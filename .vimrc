@@ -23,6 +23,7 @@ Plugin 'mattn/emmet-vim'
 Plugin 'fatih/vim-go'
 Plugin 'tomasr/molokai'
 Plugin 'vim-airline/vim-airline-themes'
+Plugin 'editorconfig/editorconfig-vim'
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
