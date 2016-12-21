@@ -81,3 +81,8 @@ set number
 " show line width 80
 set colorcolumn=80,120
 au FileType gitcommit set cc=50
+
+let mapleader = ","
+let g:mapleader = ","
+
+map <leader>nn :NERDTreeToggle<cr>
