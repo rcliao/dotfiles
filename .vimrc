@@ -4,25 +4,26 @@ set autowrite
 
 call plug#begin('~/.local/share/nvim/plugged')
 
-Plug 'scrooloose/nerdtree'
-Plug 'scrooloose/syntastic'
-Plug 'kien/ctrlp.vim'
-Plug 'bling/vim-airline'
-Plug 'majutsushi/tagbar'
+Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'airblade/vim-gitgutter'
-Plug 'valloric/youcompleteme', { 'do': './install.py' }
-Plug 'easymotion/vim-easymotion'
-Plug 'mattn/emmet-vim'
+Plug 'bling/vim-airline'
+Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'joshdick/onedark.vim'
-Plug 'mhinz/vim-grepper'
-Plug 'vim-airline/vim-airline-themes'
-Plug 'editorconfig/editorconfig-vim'
-Plug 'posva/vim-vue'
+Plug 'kien/ctrlp.vim'
 Plug 'leafgarland/typescript-vim'
+Plug 'mattn/emmet-vim'
+Plug 'mhinz/vim-grepper'
+Plug 'posva/vim-vue'
+Plug 'scrooloose/nerdtree'
+Plug 'scrooloose/syntastic'
+Plug 'vim-airline/vim-airline-themes'
 
 " Initialize plugin system
 call plug#end()
+
+" For deoplete
+let g:deoplete#enable_at_startup = 1
 
 "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
 "If you're using tmux version 2.2 or later, you can remove the outermost $TMUX check and use tmux's 24-bit color support
