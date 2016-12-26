@@ -5,6 +5,7 @@ set autowrite
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
+Plug 'zchee/deoplete-go', { 'do': 'make'}
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
 Plug 'editorconfig/editorconfig-vim'
@@ -89,3 +90,7 @@ let mapleader = ","
 let g:mapleader = ","
 
 map <leader>nn :NERDTreeToggle<cr>
+
+tnoremap <Esc> <C-\><C-n>
+set splitbelow
+set splitright
