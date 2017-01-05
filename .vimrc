@@ -2,10 +2,11 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 set autowrite
 
+" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-Plug 'zchee/deoplete-go', { 'do': 'make'}
+Plug 'zchee/deoplete-go', { 'do': 'make' }
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
 Plug 'editorconfig/editorconfig-vim'
@@ -68,6 +69,10 @@ let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_go_checkers = ['go', 'golint', 'errcheck']
 
+" For Java gradle https://github.com/Scuilion/gradle-syntastic-plugin
+let g:syntastic_java_checkers=['javac']
+let g:syntastic_java_javac_config_file_enabled = 1
+
 " VIM-go settings
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
@@ -77,6 +82,11 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 
 let g:go_fmt_command = "goimports"
+
+let g:ctrlp_max_files=0
+let g:ctrlp_max_depth=40
+
+let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
 
 " show line number
 set relativenumber
@@ -94,3 +104,6 @@ map <leader>nn :NERDTreeToggle<cr>
 tnoremap <Esc> <C-\><C-n>
 set splitbelow
 set splitright
+
+set tabstop=4
+set shiftwidth=4
