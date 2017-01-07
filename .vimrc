@@ -101,7 +101,6 @@ let g:mapleader = ","
 
 map <leader>nn :NERDTreeToggle<cr>
 
-tnoremap <Esc> <C-\><C-n>
 set splitbelow
 set splitright
 
