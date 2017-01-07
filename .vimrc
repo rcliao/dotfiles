@@ -6,7 +6,6 @@ set autowrite
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-Plug 'zchee/deoplete-go', { 'do': 'make' }
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
 Plug 'editorconfig/editorconfig-vim'
@@ -20,9 +19,34 @@ Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
 Plug 'scrooloose/syntastic'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'zchee/deoplete-go', { 'do': 'make' }
 
 " Initialize plugin system
 call plug#end()
+
+" Change coloescheme conifiguration
+colorscheme onedark
+set background=dark
+
+" Show invisibles
+set list
+
+" show line number
+set relativenumber
+set number
+
+" show line width 80
+set colorcolumn=80,120
+au FileType gitcommit set cc=50,80
+
+let mapleader = ","
+let g:mapleader = ","
+
+set splitbelow
+set splitright
+
+set tabstop=4
+set shiftwidth=4
 
 " For deoplete
 let g:deoplete#enable_at_startup = 1
@@ -43,32 +67,25 @@ if (empty($TMUX))
   endif
 endif
 
-" Change coloescheme conifiguration
-colorscheme onedark
-set background=dark
-
-" Show invisibles
-set list
-
+" Airline settings
 let g:airline_theme='onedark'
 let g:airline_powerline_fonts = 1
+
+" NerdTree shortcut
+map <leader>nn :NERDTreeToggle<cr>
 
 " Syntastic settings
 set statusline+=%#warningmsg#
 set statusline+=%{SyntasticStatuslineFlag()}
 set statusline+=%*
-
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
-
 " Javascript
 let g:syntastic_javascript_checkers = ['eslint']
-
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_go_checkers = ['go', 'golint', 'errcheck']
-
 " For Java gradle https://github.com/Scuilion/gradle-syntastic-plugin
 let g:syntastic_java_checkers=['javac']
 let g:syntastic_java_javac_config_file_enabled = 1
@@ -80,29 +97,11 @@ let g:go_highlight_fields = 1
 let g:go_highlight_types = 1
 let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
-
 let g:go_fmt_command = "goimports"
 
+" CtrlP settings
 let g:ctrlp_max_files=0
 let g:ctrlp_max_depth=40
-
+" Tell ctrlp to skip anything that is being ignored by git
 let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
 
-" show line number
-set relativenumber
-set number
-
-" show line width 80
-set colorcolumn=80,120
-au FileType gitcommit set cc=50
-
-let mapleader = ","
-let g:mapleader = ","
-
-map <leader>nn :NERDTreeToggle<cr>
-
-set splitbelow
-set splitright
-
-set tabstop=4
-set shiftwidth=4
