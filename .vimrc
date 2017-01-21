@@ -2,12 +2,16 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 set autowrite
 
+au BufNewFile,BufRead *.vue setf vue
+
 " https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
+Plug 'easymotion/vim-easymotion'
+Plug 'benekastah/neomake'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'joshdick/onedark.vim'
@@ -17,7 +21,6 @@ Plug 'mattn/emmet-vim'
 Plug 'mhinz/vim-grepper'
 Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
-Plug 'scrooloose/syntastic'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'zchee/deoplete-go', { 'do': 'make' }
 
@@ -67,28 +70,31 @@ if (empty($TMUX))
   endif
 endif
 
-" Airline settings
+
+"" Airline settings
 let g:airline_theme='onedark'
 let g:airline_powerline_fonts = 1
 
-" NerdTree shortcut
+"" NerdTree shortcut
 map <leader>nn :NERDTreeToggle<cr>
 
-" Syntastic settings
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
+"" Neomake settings
+autocmd! BufWritePost,BufEnter * Neomake
+
+" VueJS
+let g:neomake_vue_eslint_maker = {
+    \ 'args': ['--format', 'compact', '--plugin', 'vue'],
+	\ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
+	\ '%W%f: line %l\, col %c\, Warning - %m'
+    \ }
+
 " Javascript
-let g:syntastic_javascript_checkers = ['eslint']
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_go_checkers = ['go', 'golint', 'errcheck']
-" For Java gradle https://github.com/Scuilion/gradle-syntastic-plugin
-let g:syntastic_java_checkers=['javac']
-let g:syntastic_java_javac_config_file_enabled = 1
+let g:neomake_javascript_enabled_makers = ['eslint']
+let g:neomake_auto_loc_list = 1
+let g:neomake_go_enabled_makers = ['go', 'golint', 'errcheck']
+" For Java gradle https://github.com/Scuilion/gradle-neomake-plugin
+let g:neomake_java_enabled_makers=['javac']
+let g:neomake_java_javac_config_file_enabled = 1
 
 " VIM-go settings
 let g:go_highlight_functions = 1
