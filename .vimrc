@@ -6,7 +6,7 @@ set autowrite
 " Need to put this configuration here because vim-vue will overwrite it
 au BufNewFile,BufRead *.vue setf vue
 
-" https://github.com/junegunn/vim-plug
+"" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
@@ -17,7 +17,9 @@ Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'joshdick/onedark.vim'
 Plug 'kien/ctrlp.vim'
+Plug 'kshenoy/vim-signature'
 Plug 'leafgarland/typescript-vim'
+Plug 'majutsushi/tagbar'
 Plug 'mattn/emmet-vim'
 Plug 'mhinz/vim-grepper'
 Plug 'posva/vim-vue'
@@ -26,13 +28,10 @@ Plug 'scrooloose/syntastic'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'zchee/deoplete-go', { 'do': 'make' }
 
-" Initialize plugin system
+"" Initialize plugin system
 call plug#end()
 
-" Change coloescheme conifiguration
-colorscheme onedark
-set background=dark
-
+"" General Settings
 " Show invisibles
 set list
 
@@ -44,25 +43,27 @@ set number
 set colorcolumn=80,120
 au FileType gitcommit set cc=50,80
 
-let mapleader = ","
-let g:mapleader = ","
+let mapleader = " "
+let g:mapleader = " "
 
 set splitbelow
 set splitright
 
 set autoindent             " Indent according to previous line.
-set expandtab              " Use spaces instead of tabs.
-set softtabstop =4         " Tab key indents by 4 spaces.
-set shiftwidth  =4         " >> indents by 4 spaces.
+set tabstop=4              " Set tab width to 4
+set softtabstop=4          " Tab key indents by 4 spaces.
+set shiftwidth=4           " >> indents by 4 spaces.
 set shiftround             " >> indents to next multiple of 'shiftwidth'.
-
-set backspace   =indent,eol,start  " Make backspace work as you would expect.
 
 set ttyfast                " Faster redrawing.
 set lazyredraw             " Only redraw when necessary.
 
-" For deoplete
+"" Deoplete
 let g:deoplete#enable_at_startup = 1
+
+" Change coloescheme conifiguration
+colorscheme onedark
+set background=dark
 
 "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
 "If you're using tmux version 2.2 or later, you can remove the outermost $TMUX check and use tmux's 24-bit color support
@@ -91,21 +92,20 @@ map <leader>nn :NERDTreeToggle<cr>
 set statusline+=%#warningmsg#
 set statusline+=%{SyntasticStatuslineFlag()}
 set statusline+=%*
-
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_open = 0
 let g:syntastic_check_on_wq = 0
-
 " Javascript
 let g:syntastic_javascript_checkers = ['eslint']
 let g:syntastic_auto_loc_list = 1
+" GoLang
 let g:syntastic_go_makers = ['go', 'golint', 'errcheck']
 " For Java gradle https://github.com/Scuilion/gradle-syntastic-plugin
 let g:syntastic_java_makers=['javac']
 let g:syntastic_java_javac_config_file_enabled = 1
 
-" VIM-go settings
+"" VIM-go settings
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
 let g:go_highlight_fields = 1
@@ -114,7 +114,7 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 let g:go_fmt_command = "goimports"
 
-" CtrlP settings
+"" CtrlP settings
 let g:ctrlp_max_files=0
 let g:ctrlp_max_depth=40
 " Tell ctrlp to skip anything that is being ignored by git
