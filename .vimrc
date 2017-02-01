@@ -2,7 +2,10 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 set autowrite
 
-" Vue
+"" Freemarker
+au BufRead,BufNewFile *.ftl set filetype=html
+
+"" Vue
 " Need to put this configuration here because vim-vue will overwrite it
 au BufNewFile,BufRead *.vue setf vue
 
@@ -26,6 +29,7 @@ Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
 Plug 'scrooloose/syntastic'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'wakatime/vim-wakatime'
 Plug 'zchee/deoplete-go', { 'do': 'make' }
 
 "" Initialize plugin system
@@ -79,6 +83,11 @@ if (empty($TMUX))
   if (has("termguicolors"))
     set termguicolors
   endif
+endif
+
+" Change cursor shape between insert and normal mode in neovim
+if (has("nvim"))
+  let $NVIM_TUI_ENABLE_CURSOR_SHAPE=2
 endif
 
 "" Airline settings
