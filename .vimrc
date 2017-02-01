@@ -15,6 +15,7 @@ call plug#begin('~/.local/share/nvim/plugged')
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
+Plug 'eagletmt/neco-ghc'
 Plug 'easymotion/vim-easymotion'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
@@ -25,6 +26,7 @@ Plug 'leafgarland/typescript-vim'
 Plug 'majutsushi/tagbar'
 Plug 'mattn/emmet-vim'
 Plug 'mhinz/vim-grepper'
+Plug 'neovimhaskell/haskell-vim'
 Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
 Plug 'scrooloose/syntastic'
