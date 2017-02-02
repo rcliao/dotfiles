@@ -29,10 +29,10 @@ Plug 'mhinz/vim-grepper'
 Plug 'neovimhaskell/haskell-vim'
 Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
-Plug 'scrooloose/syntastic'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'wakatime/vim-wakatime'
 Plug 'zchee/deoplete-go', { 'do': 'make' }
+Plug 'w0rp/ale'
 
 "" Initialize plugin system
 call plug#end()
@@ -99,22 +99,11 @@ let g:airline_powerline_fonts = 1
 "" NerdTree shortcut
 map <leader>nn :NERDTreeToggle<cr>
 
-"" Syntastic
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 0
-let g:syntastic_check_on_wq = 0
-" Javascript
-let g:syntastic_javascript_checkers = ['eslint']
-let g:syntastic_auto_loc_list = 1
-" GoLang
-let g:syntastic_go_makers = ['go', 'golint', 'errcheck']
-" For Java gradle https://github.com/Scuilion/gradle-syntastic-plugin
-let g:syntastic_java_makers=['javac']
-let g:syntastic_java_javac_config_file_enabled = 1
+"" Ale (linter settings)
+" JavaScript
+let g:ale_linters = {
+\   'javascript': ['eslint'],
+\}
 
 "" VIM-go settings
 let g:go_highlight_functions = 1
