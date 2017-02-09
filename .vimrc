@@ -25,14 +25,15 @@ Plug 'kshenoy/vim-signature'
 Plug 'leafgarland/typescript-vim'
 Plug 'majutsushi/tagbar'
 Plug 'mattn/emmet-vim'
+Plug 'mhartington/deoplete-typescript'
 Plug 'mhinz/vim-grepper'
 Plug 'neovimhaskell/haskell-vim'
 Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'w0rp/ale'
 Plug 'wakatime/vim-wakatime'
 Plug 'zchee/deoplete-go', { 'do': 'make' }
-Plug 'w0rp/ale'
 
 "" Initialize plugin system
 call plug#end()
