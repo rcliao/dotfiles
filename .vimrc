@@ -14,6 +14,7 @@ call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'airblade/vim-gitgutter'
+Plug 'artur-shaik/vim-javacomplete2'
 Plug 'bling/vim-airline'
 Plug 'eagletmt/neco-ghc'
 Plug 'easymotion/vim-easymotion'
