@@ -20,7 +20,6 @@ Plug 'eagletmt/neco-ghc'
 Plug 'easymotion/vim-easymotion'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
-Plug 'joshdick/onedark.vim'
 Plug 'kien/ctrlp.vim'
 Plug 'kshenoy/vim-signature'
 Plug 'leafgarland/typescript-vim'
@@ -28,6 +27,7 @@ Plug 'majutsushi/tagbar'
 Plug 'mattn/emmet-vim'
 Plug 'mhartington/deoplete-typescript'
 Plug 'mhinz/vim-grepper'
+Plug 'morhetz/gruvbox'
 Plug 'neovimhaskell/haskell-vim'
 Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
@@ -58,6 +58,7 @@ set splitbelow
 set splitright
 
 set autoindent             " Indent according to previous line.
+set smartindent            " Indent smartly
 set tabstop=4              " Set tab width to 4
 set softtabstop=4          " Tab key indents by 4 spaces.
 set shiftwidth=4           " >> indents by 4 spaces.
@@ -66,11 +67,14 @@ set shiftround             " >> indents to next multiple of 'shiftwidth'.
 set ttyfast                " Faster redrawing.
 set lazyredraw             " Only redraw when necessary.
 
+"" JavaComplete2
+autocmd FileType java setlocal omnifunc=javacomplete#Complete
+
 "" Deoplete
 let g:deoplete#enable_at_startup = 1
 
 " Change coloescheme conifiguration
-colorscheme onedark
+colorscheme gruvbox
 set background=dark
 
 "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
@@ -81,9 +85,9 @@ if (empty($TMUX))
     "For Neovim 0.1.3 and 0.1.4 < https://github.com/neovim/neovim/pull/2198 >
     let $NVIM_TUI_ENABLE_TRUE_COLOR=1
   endif
-"For Neovim > 0.1.5 and Vim > patch 7.4.1799 < https://github.com/vim/vim/commit/61be73bb0f965a895bfb064ea3e55476ac175162 >
-"Based on Vim patch 7.4.1770 (`guicolors` option) < https://github.com/vim/vim/commit/8a633e3427b47286869aa4b96f2bfc1fe65b25cd >
-" < https://github.com/neovim/neovim/wiki/Following-HEAD#20160511 >
+  "For Neovim > 0.1.5 and Vim > patch 7.4.1799 < https://github.com/vim/vim/commit/61be73bb0f965a895bfb064ea3e55476ac175162 >
+  "Based on Vim patch 7.4.1770 (`guicolors` option) < https://github.com/vim/vim/commit/8a633e3427b47286869aa4b96f2bfc1fe65b25cd >
+  " < https://github.com/neovim/neovim/wiki/Following-HEAD#20160511 >
   if (has("termguicolors"))
     set termguicolors
   endif
@@ -95,7 +99,6 @@ if (has("nvim"))
 endif
 
 "" Airline settings
-let g:airline_theme='onedark'
 let g:airline_powerline_fonts = 1
 
 "" NerdTree shortcut
