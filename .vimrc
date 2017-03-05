@@ -2,7 +2,11 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 set autowrite
 
-"" Freemarker
+"" Vim default fuzzy-finder
+set path+=**
+set wildmenu
+
+"" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
 "" Vue
@@ -12,25 +16,23 @@ au BufNewFile,BufRead *.vue setf vue
 "" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
-Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'airblade/vim-gitgutter'
-Plug 'artur-shaik/vim-javacomplete2'
 Plug 'bling/vim-airline'
 Plug 'eagletmt/neco-ghc'
 Plug 'easymotion/vim-easymotion'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
-Plug 'kien/ctrlp.vim'
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'kshenoy/vim-signature'
 Plug 'leafgarland/typescript-vim'
 Plug 'majutsushi/tagbar'
 Plug 'mattn/emmet-vim'
-Plug 'mhartington/deoplete-typescript'
 Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
 Plug 'neovimhaskell/haskell-vim'
 Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
+Plug 'tpope/vim-surround'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'w0rp/ale'
 Plug 'wakatime/vim-wakatime'
@@ -67,12 +69,6 @@ set shiftround             " >> indents to next multiple of 'shiftwidth'.
 set ttyfast                " Faster redrawing.
 set lazyredraw             " Only redraw when necessary.
 
-"" JavaComplete2
-autocmd FileType java setlocal omnifunc=javacomplete#Complete
-
-"" Deoplete
-let g:deoplete#enable_at_startup = 1
-
 " Change coloescheme conifiguration
 colorscheme gruvbox
 set background=dark
@@ -102,7 +98,8 @@ endif
 let g:airline_powerline_fonts = 1
 
 "" NerdTree shortcut
-map <leader>nn :NERDTreeToggle<cr>
+map <leader>nn :NERDTreeToggle<CR>
+map <leader>nf :NERDTreeFind<CR>
 
 "" Ale (linter settings)
 " JavaScript
@@ -119,9 +116,4 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 let g:go_fmt_command = "goimports"
 
-"" CtrlP settings
-let g:ctrlp_max_files=0
-let g:ctrlp_max_depth=40
-" Tell ctrlp to skip anything that is being ignored by git
-let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
-
+map <c-p> :FZF<CR>
