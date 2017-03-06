@@ -36,7 +36,6 @@ Plug 'tpope/vim-surround'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'w0rp/ale'
 Plug 'wakatime/vim-wakatime'
-Plug 'zchee/deoplete-go', { 'do': 'make' }
 
 "" Initialize plugin system
 call plug#end()
