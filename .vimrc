@@ -6,6 +6,9 @@ set autowrite
 set path+=**
 set wildmenu
 
+"" Quick bindings
+map <leader>ts :%s/\s\+$//e<CR>
+
 "" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
@@ -23,6 +26,7 @@ Plug 'easymotion/vim-easymotion'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
 Plug 'kshenoy/vim-signature'
 Plug 'leafgarland/typescript-vim'
 Plug 'majutsushi/tagbar'
@@ -117,4 +121,10 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 let g:go_fmt_command = "goimports"
 
+"" Vim-JavaScript settings
+let g:javascript_plugin_jsdoc = 1
+
+"" Vim-FZF settings
 map <c-p> :FZF<CR>
+map <c-t> :BTags<CR>
+
