@@ -2,11 +2,11 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 set autowrite
 
-"" Vim default fuzzy-finder
+"" Vim default fuzzy-finder (:find)
 set path+=**
 set wildmenu
 
-"" Freemarker to html
+"" Map Freemarker syntax to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
 "" Vue
@@ -16,28 +16,31 @@ au BufNewFile,BufRead *.vue setf vue
 "" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
+"" Common
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
-Plug 'eagletmt/neco-ghc'
-Plug 'easymotion/vim-easymotion'
 Plug 'editorconfig/editorconfig-vim'
-Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'kshenoy/vim-signature'
-Plug 'leafgarland/typescript-vim'
 Plug 'majutsushi/tagbar'
-Plug 'mattn/emmet-vim'
 Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
-Plug 'neovimhaskell/haskell-vim'
-Plug 'pangloss/vim-javascript'
-Plug 'posva/vim-vue'
 Plug 'scrooloose/nerdtree'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-surround'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'w0rp/ale'
 Plug 'wakatime/vim-wakatime'
+Plug 'honza/vim-snippets'
+Plug 'sirver/ultisnips'
+"" Languages
+Plug 'eagletmt/neco-ghc'
+Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
+Plug 'leafgarland/typescript-vim'
+Plug 'mattn/emmet-vim'
+Plug 'neovimhaskell/haskell-vim'
+Plug 'pangloss/vim-javascript'
+Plug 'posva/vim-vue'
 
 "" Initialize plugin system
 call plug#end()
@@ -97,6 +100,7 @@ endif
 
 "" Airline settings
 let g:airline_powerline_fonts = 1
+let g:airline#extensions#tabline#enabled = 1
 
 "" NerdTree shortcut
 map <leader>nn :NERDTreeToggle<CR>
@@ -117,4 +121,34 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 let g:go_fmt_command = "goimports"
 
+"" Map Ctrl+p to FZF
 map <c-p> :FZF<CR>
+
+"" GoTags configuration with Tagbar
+let g:tagbar_type_go = {
+    \ 'ctagstype' : 'go',
+    \ 'kinds'     : [
+        \ 'p:package',
+        \ 'i:imports:1',
+        \ 'c:constants',
+        \ 'v:variables',
+        \ 't:types',
+        \ 'n:interfaces',
+        \ 'w:fields',
+        \ 'e:embedded',
+        \ 'm:methods',
+        \ 'r:constructor',
+        \ 'f:functions'
+    \ ],
+    \ 'sro' : '.',
+    \ 'kind2scope' : {
+        \ 't' : 'ctype',
+        \ 'n' : 'ntype'
+    \ },
+    \ 'scope2kind' : {
+        \ 'ctype' : 't',
+        \ 'ntype' : 'n'
+    \ },
+    \ 'ctagsbin'  : 'gotags',
+    \ 'ctagsargs' : '-sort -silent'
+\ }
