@@ -121,6 +121,9 @@ let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 let g:go_fmt_command = "goimports"
 
+"" Vim-signature
+let g:SignatureMarkTextHLDynamic=1
+
 "" Vim-JavaScript settings
 let g:javascript_plugin_jsdoc = 1
 
