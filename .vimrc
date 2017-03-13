@@ -6,7 +6,10 @@ set autowrite
 set path+=**
 set wildmenu
 
-"" Map Freemarker syntax to html
+"" Quick bindings
+map <leader>ts :%s/\s\+$//e<CR>
+
+"" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
 "" Vue
@@ -21,6 +24,7 @@ Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
 Plug 'kshenoy/vim-signature'
 Plug 'majutsushi/tagbar'
 Plug 'mhinz/vim-grepper'
@@ -123,6 +127,10 @@ let g:go_fmt_command = "goimports"
 
 "" Map Ctrl+p to FZF
 map <c-p> :FZF<CR>
+map <c-t> :BTags<CR>
+
+"" Vim-JavaScript settings
+let g:javascript_plugin_jsdoc = 1
 
 "" GoTags configuration with Tagbar
 let g:tagbar_type_go = {
