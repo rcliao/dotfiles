@@ -23,6 +23,7 @@ call plug#begin('~/.local/share/nvim/plugged')
 Plug 'airblade/vim-gitgutter'
 Plug 'bling/vim-airline'
 Plug 'editorconfig/editorconfig-vim'
+Plug 'honza/vim-snippets'
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
 Plug 'kshenoy/vim-signature'
@@ -30,19 +31,20 @@ Plug 'majutsushi/tagbar'
 Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
 Plug 'scrooloose/nerdtree'
+Plug 'sirver/ultisnips'
+Plug 'chriskempson/base16-vim'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-surround'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'w0rp/ale'
 Plug 'wakatime/vim-wakatime'
-Plug 'honza/vim-snippets'
-Plug 'sirver/ultisnips'
 "" Languages
 Plug 'eagletmt/neco-ghc'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'leafgarland/typescript-vim'
 Plug 'mattn/emmet-vim'
 Plug 'neovimhaskell/haskell-vim'
+Plug 'othree/yajs.vim'
 Plug 'pangloss/vim-javascript'
 Plug 'posva/vim-vue'
 
@@ -78,6 +80,7 @@ set ttyfast                " Faster redrawing.
 set lazyredraw             " Only redraw when necessary.
 
 " Change coloescheme conifiguration
+let g:gruvbox_italic=1
 colorscheme gruvbox
 set background=dark
 
@@ -104,7 +107,6 @@ endif
 
 "" Airline settings
 let g:airline_powerline_fonts = 1
-let g:airline#extensions#tabline#enabled = 1
 
 "" NerdTree shortcut
 map <leader>nn :NERDTreeToggle<CR>
@@ -134,9 +136,6 @@ let g:javascript_plugin_jsdoc = 1
 "" Vim-FZF settings
 map <c-p> :FZF<CR>
 map <c-t> :BTags<CR>
-
-"" Vim-JavaScript settings
-let g:javascript_plugin_jsdoc = 1
 
 "" GoTags configuration with Tagbar
 let g:tagbar_type_go = {
