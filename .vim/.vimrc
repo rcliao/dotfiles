@@ -21,7 +21,9 @@ call plug#begin('~/.local/share/nvim/plugged')
 
 "" Common
 Plug 'airblade/vim-gitgutter'
+Plug 'benmills/vimux'
 Plug 'bling/vim-airline'
+Plug 'chriskempson/base16-vim'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'honza/vim-snippets'
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
@@ -32,7 +34,6 @@ Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
 Plug 'scrooloose/nerdtree'
 Plug 'sirver/ultisnips'
-Plug 'chriskempson/base16-vim'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-surround'
 Plug 'vim-airline/vim-airline-themes'
