@@ -51,9 +51,15 @@ tmux_conf_theme_window_bg='default'
 #   - false (default)
 tmux_conf_theme_highlight_focused_pane=false
 
+# Color vars
+main_color='#00897b'          # teal
+accent_color='#80cbc4'        # light teal
+secondary_color='#e53935'     # red
+background_color='#37474f'    # blue grey
+
 # focused pane colours:
 tmux_conf_theme_focused_pane_fg='default'
-tmux_conf_theme_focused_pane_bg='#0087d7'               # light blue
+tmux_conf_theme_focused_pane_bg=$main_color
 
 # pane border style, possible values are:
 #   - thin (default)
@@ -62,25 +68,25 @@ tmux_conf_theme_pane_border_style=thin
 
 # pane borders colours:
 tmux_conf_theme_pane_border='#444444'                   # gray
-tmux_conf_theme_pane_active_border='#00afff'            # light blue
+tmux_conf_theme_pane_active_border=$accent_color
 
 # pane indicator colours
-tmux_conf_theme_pane_indicator='#00afff'                # light blue
-tmux_conf_theme_pane_active_indicator='#00afff'         # light blue
+tmux_conf_theme_pane_indicator=$accent_color
+tmux_conf_theme_pane_active_indicator=$accent_color
 
 # status line style
-tmux_conf_theme_message_fg='#000000'                    # black
-tmux_conf_theme_message_bg='#ffff00'                    # yellow
+tmux_conf_theme_message_fg=$background_color
+tmux_conf_theme_message_bg=$main_color
 tmux_conf_theme_message_attr='bold'
 
 # status line command style (<prefix> : Escape)
-tmux_conf_theme_message_command_fg='#ffff00'            # yellow
-tmux_conf_theme_message_command_bg='#000000'            # black
+tmux_conf_theme_message_command_fg=$main_color
+tmux_conf_theme_message_command_bg=$background_color
 tmux_conf_theme_message_command_attr='bold'
 
 # window modes style
-tmux_conf_theme_mode_fg='#000000'                       # black
-tmux_conf_theme_mode_bg='#ffff00'                       # yellow
+tmux_conf_theme_mode_fg=$background_color
+tmux_conf_theme_mode_bg=$main_color
 tmux_conf_theme_mode_attr='bold'
 
 # status line style
@@ -101,8 +107,8 @@ tmux_conf_theme_window_status_format='#I #W'
 # window current status style
 #   - built-in variables are:
 #     - #{circled_window_index}
-tmux_conf_theme_window_status_current_fg='#000000'      # black
-tmux_conf_theme_window_status_current_bg='#00afff'      # light blue
+tmux_conf_theme_window_status_current_fg=$background_color
+tmux_conf_theme_window_status_current_bg=$main_color
 tmux_conf_theme_window_status_current_attr='bold'
 tmux_conf_theme_window_status_current_format='#I #W'
 #tmux_conf_theme_window_status_current_format='#{circled_window_index} #W'
@@ -114,12 +120,12 @@ tmux_conf_theme_window_status_activity_bg='default'
 tmux_conf_theme_window_status_activity_attr='underscore'
 
 # window bell status style
-tmux_conf_theme_window_status_bell_fg='#ffff00'         # yellow
+tmux_conf_theme_window_status_bell_fg=$secondary_color
 tmux_conf_theme_window_status_bell_bg='default'
 tmux_conf_theme_window_status_bell_attr='blink,bold'
 
 # window last status style
-tmux_conf_theme_window_status_last_fg='#00afff'         # light blue
+tmux_conf_theme_window_status_last_fg=$main_color
 tmux_conf_theme_window_status_last_bg='default'
 tmux_conf_theme_window_status_last_attr='none'
 
@@ -156,14 +162,14 @@ tmux_conf_theme_right_separator_sub=''  #   PowerlineSymbols.otf font
 #     - #{username}
 #     - #{username_ssh}
 # itunes song
-tm_tunes="#[fg=$tm_color_music]#(osascript ~/dotfiles/applescripts/tunes.scpt | cut -c 1-50)"
+tm_tunes="#[fg=$secondary_color]#(osascript ~/dotfiles/applescripts/tunes.scpt | cut -c 1-50),"
 
 tmux_conf_theme_status_left=' ❐ #S '
 tmux_conf_theme_status_right=$tm_tunes' #{prefix}#{?battery_status, #{battery_status},}#{?battery_percentage, #{battery_percentage},} , %R %d %b | #{username}#{root} | #{hostname} '
 
 # status left style
 tmux_conf_theme_status_left_fg='#000000,#e4e4e4,#e4e4e4'  # black, white , white
-tmux_conf_theme_status_left_bg='#eeeeee,#333333,#00afff'  # light-grey, grey, white blue
+tmux_conf_theme_status_left_bg='#b0bec5,#333333,#00afff'  # light-grey, grey, white blue
 tmux_conf_theme_status_left_attr='bold,none,none'
 
 # status right style
@@ -226,7 +232,7 @@ tmux_conf_battery_status_charging='⚡'     # U+26A1
 tmux_conf_battery_status_discharging='🔋'  # U+1F50B
 
 # clock style
-tmux_conf_theme_clock_colour='#00afff'  # light blue
+tmux_conf_theme_clock_colour=$main_color
 tmux_conf_theme_clock_style='24'
 
 
@@ -234,7 +240,7 @@ tmux_conf_theme_clock_style='24'
 # this is the place to override or undo settings
 
 # increase history size
-#set -g history-limit 10000
+set -g history-limit 10000
 
 # force Vi mode
 #   really you should export VISUAL or EDITOR environment variable, see manual
@@ -242,8 +248,10 @@ tmux_conf_theme_clock_style='24'
 #set -g mode-keys vi
 
 # move status line to top
-#set -g status-position top
+# set -g status-position bottom
 
+#-------------------------------------------------------------------------------
+# Custom bindings
 unbind C-b
 
 # Window management
