@@ -240,3 +240,9 @@ tmux_conf_theme_clock_style='24'
 
 # move status line to top
 #set -g status-position top
+
+unbind C-b
+
+# Window management
+bind v split-window -v -c "${pane_current_path}"
+bind h split-window -h -c "${pane_current_path}"
