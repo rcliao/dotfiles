@@ -7,7 +7,11 @@ set path+=**
 set wildmenu
 
 "" Quick bindings
+" clear any trailing empty spaces
 map <leader>ts :%s/\s\+$//e<CR>
+" vuick vimrc editing/reloading
+map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
+map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
 "" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
@@ -32,6 +36,7 @@ Plug 'kshenoy/vim-signature'
 Plug 'majutsushi/tagbar'
 Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
+Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'sirver/ultisnips'
 Plug 'tpope/vim-fugitive'
@@ -137,6 +142,9 @@ let g:javascript_plugin_jsdoc = 1
 "" Vim-FZF settings
 map <c-p> :FZF<CR>
 map <c-t> :BTags<CR>
+
+"" Vimux settings
+map <leader>build :VimuxRunLastCommand<CR>
 
 "" GoTags configuration with Tagbar
 let g:tagbar_type_go = {
