@@ -1,6 +1,12 @@
 # https://github.com/gpakosz/.tmux
 # (‑●‑●)> released under the WTFPL v2 license, by Gregory Pakosz (@gpakosz)
+#
 
+# fix OSX Siera copy to clipboard issue
+# In OSX, you also need to change setting under iTerm2 to allow Application
+# to get clipboard access
+set -g default-shell $SHELL 
+set -g default-command "reattach-to-user-namespace -l ${SHELL}"
 
 # -- navigation ----------------------------------------------------------------
 
@@ -59,7 +65,7 @@ background_color='#37474f'    # blue grey
 
 # focused pane colours:
 tmux_conf_theme_focused_pane_fg='default'
-tmux_conf_theme_focused_pane_bg=$main_color
+tmux_conf_theme_focused_pane_bg=$background_color
 
 # pane border style, possible values are:
 #   - thin (default)

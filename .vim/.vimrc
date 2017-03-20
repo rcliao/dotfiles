@@ -6,6 +6,15 @@ set autowrite
 set path+=**
 set wildmenu
 
+"" highlight current line
+set cursorline
+
+"" Enable foldable
+set foldenable
+set foldlevelstart=10
+set foldnestmax=10
+set foldmethod=indent
+
 "" Quick bindings
 " clear any trailing empty spaces
 map <leader>ts :%s/\s\+$//e<CR>
