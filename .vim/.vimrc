@@ -25,10 +25,6 @@ map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 "" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
-"" Vue
-" Need to put this configuration here because vim-vue will overwrite it
-au BufNewFile,BufRead *.vue setf vue
-
 "" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
