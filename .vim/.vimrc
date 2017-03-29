@@ -26,8 +26,7 @@ map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 au BufRead,BufNewFile *.ftl set filetype=html
 
 "" Vue
-" Need to put this configuration here because vim-vue will overwrite it
-au BufNewFile,BufRead *.vue setf vue
+autocmd FileType vue syntax sync fromstart
 
 "" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
@@ -61,6 +60,7 @@ Plug 'mattn/emmet-vim'
 Plug 'neovimhaskell/haskell-vim'
 Plug 'othree/yajs.vim'
 Plug 'pangloss/vim-javascript'
+Plug 'pearofducks/ansible-vim'
 Plug 'posva/vim-vue'
 
 "" Initialize plugin system
@@ -149,6 +149,7 @@ let g:SignatureMarkTextHLDynamic=1
 let g:javascript_plugin_jsdoc = 1
 
 "" Vim-FZF settings
+set rtp+=/usr/local/opt/fzf
 map <c-p> :FZF<CR>
 map <c-t> :BTags<CR>
 
