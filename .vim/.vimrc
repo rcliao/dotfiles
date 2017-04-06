@@ -43,6 +43,7 @@ Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
 Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
+Plug 'shougo/vimproc.vim', {'do' : 'make'}
 Plug 'sirver/ultisnips'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-surround'
@@ -58,6 +59,7 @@ Plug 'neovimhaskell/haskell-vim'
 Plug 'othree/yajs.vim'
 Plug 'pangloss/vim-javascript'
 Plug 'posva/vim-vue'
+Plug 'quramy/tsuquyomi'
 
 "" Initialize plugin system
 call plug#end()
