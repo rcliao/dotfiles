@@ -25,6 +25,9 @@ map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 "" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
+"" Vue
+autocmd FileType vue syntax sync fromstart
+
 "" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
@@ -58,6 +61,7 @@ Plug 'mattn/emmet-vim'
 Plug 'neovimhaskell/haskell-vim'
 Plug 'othree/yajs.vim'
 Plug 'pangloss/vim-javascript'
+Plug 'pearofducks/ansible-vim'
 Plug 'posva/vim-vue'
 Plug 'quramy/tsuquyomi'
 
@@ -147,6 +151,7 @@ let g:SignatureMarkTextHLDynamic=1
 let g:javascript_plugin_jsdoc = 1
 
 "" Vim-FZF settings
+set rtp+=/usr/local/opt/fzf
 map <c-p> :FZF<CR>
 map <c-t> :BTags<CR>
 
