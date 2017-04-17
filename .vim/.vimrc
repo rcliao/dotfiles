@@ -58,6 +58,9 @@ map <leader>ts :%s/\s\+$//e<CR>
 map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
 map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
+" find bufer quickly
+nmap <leader>ls :ls<cr>:buffer<space>
+
 "" Freemarker to html
 au BufRead,BufNewFile *.ftl set filetype=html
 
