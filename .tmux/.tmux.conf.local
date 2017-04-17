@@ -258,7 +258,10 @@ set -g mode-keys vi
 
 #-------------------------------------------------------------------------------
 # Custom bindings
-unbind C-b
+set prefix C-a
+
+unbind-key C-b
+bind-key C-a send-prefix
 
 # Window management
 bind v split-window -v -c "${pane_current_path}"
