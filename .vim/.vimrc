@@ -1,33 +1,3 @@
-set nocompatible              " be iMproved, required
-filetype off                  " required
-set autowrite
-
-"" Vim default fuzzy-finder (:find)
-set path+=**
-set wildmenu
-
-"" highlight current line
-set cursorline
-
-"" Enable foldable
-set foldenable
-set foldlevelstart=10
-set foldnestmax=10
-set foldmethod=indent
-
-"" Quick bindings
-" clear any trailing empty spaces
-map <leader>ts :%s/\s\+$//e<CR>
-" vuick vimrc editing/reloading
-map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
-map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
-
-"" Freemarker to html
-au BufRead,BufNewFile *.ftl set filetype=html
-
-"" Vue
-autocmd FileType vue syntax sync fromstart
-
 "" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
@@ -35,7 +5,6 @@ call plug#begin('~/.local/share/nvim/plugged')
 Plug 'airblade/vim-gitgutter'
 Plug 'benmills/vimux'
 Plug 'bling/vim-airline'
-Plug 'chriskempson/base16-vim'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'honza/vim-snippets'
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
@@ -44,7 +13,6 @@ Plug 'kshenoy/vim-signature'
 Plug 'majutsushi/tagbar'
 Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
-Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'sirver/ultisnips'
 Plug 'tpope/vim-fugitive'
@@ -67,6 +35,32 @@ Plug 'posva/vim-vue'
 call plug#end()
 
 "" General Settings
+
+" Vim default fuzzy-finder (:find)
+set path+=**
+set wildmenu
+
+" highlight current line
+set cursorline
+
+" Enable foldable
+set foldenable
+set foldlevelstart=10
+set foldnestmax=10
+set foldmethod=indent
+
+" Quick bindings
+" clear any trailing empty spaces
+map <leader>ts :%s/\s\+$//e<CR>
+" vuick vimrc editing/reloading
+map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
+map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
+
+"" Freemarker to html
+au BufRead,BufNewFile *.ftl set filetype=html
+
+"" Vue
+autocmd FileType vue syntax sync fromstart
 " Show invisibles
 set list
 
@@ -78,9 +72,11 @@ set number
 set colorcolumn=80,120
 au FileType gitcommit set cc=50,80
 
+" Use space as leader
 let mapleader = " "
 let g:mapleader = " "
 
+" More expected split pane behavior
 set splitbelow
 set splitright
 
