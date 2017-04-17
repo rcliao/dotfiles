@@ -14,6 +14,7 @@ Plug 'majutsushi/tagbar'
 Plug 'mhinz/vim-grepper'
 Plug 'morhetz/gruvbox'
 Plug 'scrooloose/nerdtree'
+Plug 'shougo/vimproc.vim', {'do' : 'make'}
 Plug 'sirver/ultisnips'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-surround'
@@ -30,6 +31,7 @@ Plug 'othree/yajs.vim'
 Plug 'pangloss/vim-javascript'
 Plug 'pearofducks/ansible-vim'
 Plug 'posva/vim-vue'
+Plug 'quramy/tsuquyomi'
 
 "" Initialize plugin system
 call plug#end()
