@@ -188,3 +188,4 @@ let g:tagbar_type_go = {
 
 "" TypeScipt cnofiguration for tsuquyomi
 map <leader>tsud :TsuDefinition<CR>
+
