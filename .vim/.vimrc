@@ -60,7 +60,6 @@ call plug#begin('~/.local/share/nvim/plugged')
 call plug#end()
 
 "" General Settings {
-
     " Use space as leader
     let mapleader = " "
     let g:mapleader = " "
@@ -74,8 +73,6 @@ call plug#end()
 
     " Enable foldable
     set foldenable
-    set foldlevelstart=10
-    set foldnestmax=10
     set foldmethod=indent
 
     "" Freemarker to html
@@ -130,7 +127,6 @@ call plug#end()
     if (has("nvim"))
         let $NVIM_TUI_ENABLE_CURSOR_SHAPE=2
     endif
-
 "" }
 
 "" Vue
@@ -204,26 +200,27 @@ let g:tagbar_type_go = {
     \ 'ctagsargs' : '-sort -silent'
 \ }
 
-"" Bindings
-map <leader>tsud :TsuDefinition<CR>
-" clear any trailing empty spaces
-map <leader>rts :%s/\s\+$//e<CR>
-" quick vimrc editing/reloading
-map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
-map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
+"" Bindings {
+    map <leader>tsud :TsuDefinition<CR>
+    " clear any trailing empty spaces
+    map <leader>rts :%s/\s\+$//e<CR>
+    " quick vimrc editing/reloading
+    map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
+    map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
-map <leader>nt :NERDTreeToggle<CR>
-map <leader>nf :NERDTreeFind<CR>
-map <leader>nb :Bookmark<CR>
+    map <leader>nt :NERDTreeToggle<CR>
+    map <leader>nf :NERDTreeFind<CR>
+    map <leader>nb :Bookmark<CR>
 
-" find bufer quickly
-nmap <leader>ls :ls<CR>:buffer<SPACE>
+    " find bufer quickly
+    nmap <leader>ls :ls<CR>:buffer<SPACE>
 
-" Vim-FZF settings
-set rtp+=/usr/local/opt/fzf
-map <c-p> :FZF<CR>
-map <c-t> :BTags<CR>
+    " Vim-FZF settings
+    set rtp+=/usr/local/opt/fzf
+    map <c-p> :FZF<CR>
+    map <c-t> :BTags<CR>
 
-" Vimux settings
-map <leader>build :VimuxRunLastCommand<CR>
-map <leader>tmuxc :VimuxPromptCommand<CR>
+    " Vimux settings
+    map <leader>build :VimuxRunLastCommand<CR>
+    map <leader>tmuxc :VimuxPromptCommand<CR>
+"" }
