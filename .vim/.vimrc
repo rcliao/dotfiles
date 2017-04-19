@@ -2,6 +2,8 @@
 call plug#begin('~/.local/share/nvim/plugged')
 
 "" Common {
+    " NERDTree for file explorer
+    Plug 'scrooloose/nerdtree'
     " show git gutter (indication on what changed)
     Plug 'airblade/vim-gitgutter'
     " lightweight statusline
@@ -62,13 +64,6 @@ call plug#end()
     " Use space as leader
     let mapleader = " "
     let g:mapleader = " "
-
-    " File explorer
-    let g:netrw_banner=0                         " hide banner
-    let g:netrw_browse_split=4                   " default open file to previous window
-    let g:netrw_liststyle=3                      " wide display similar to NERDTree
-    let g:netrw_winsize=85                       " default new window width
-    let g:netrw_list_hide=netrw_gitignore#Hide() " ignore all files in .gitignore
 
     " To get Vim default fuzzy-finder (:find)
     set path+=**
@@ -213,11 +208,13 @@ let g:tagbar_type_go = {
 map <leader>tsud :TsuDefinition<CR>
 " clear any trailing empty spaces
 map <leader>rts :%s/\s\+$//e<CR>
-" vuick vimrc editing/reloading
+" quick vimrc editing/reloading
 map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
 map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
-map <leader>nn :Vex<CR>
+map <leader>nt :NERDTreeToggle<CR>
+map <leader>nf :NERDTreeFind<CR>
+map <leader>nb :Bookmark<CR>
 
 " find bufer quickly
 nmap <leader>ls :ls<CR>:buffer<SPACE>
