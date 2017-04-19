@@ -1,7 +1,7 @@
-"" https://github.com/junegunn/vim-plug
+" https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
-"" Common {
+"" Common plugins {
     " NERDTree for file explorer
     Plug 'scrooloose/nerdtree'
     " show git gutter (indication on what changed)
@@ -75,9 +75,6 @@ call plug#end()
     set foldenable
     set foldmethod=indent
 
-    "" Freemarker to html
-    au BufRead,BufNewFile *.ftl set filetype=html
-
     " Show invisibles
     set list
 
@@ -99,9 +96,6 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set shiftround             " >> indents to next multiple of 'shiftwidth'.
-
-    set ttyfast                " Faster redrawing.
-    set lazyredraw             " Only redraw when necessary.
 
     " Change coloescheme conifiguration
     colorscheme gruvbox
@@ -129,78 +123,83 @@ call plug#end()
     endif
 "" }
 
-"" Vue
-autocmd FileType vue syntax sync fromstart
+"" Languages settings {
+    " Freemarker to html
+    au BufRead,BufNewFile *.ftl set filetype=html
 
-"" lightline
-let g:lightline = {
-    \ 'colorscheme': 'solarized',
-    \ 'active': {
-    \   'left': [ [ 'mode', 'paste' ],
-    \             [ 'fugitive', 'readonly', 'filename', 'modified' ] ]
-    \ },
-    \ 'component': {
-    \   'readonly': '%{&filetype=="help"?"":&readonly?"\ue0a2":""}',
-    \   'modified': '%{&filetype=="help"?"":&modified?"+":&modifiable?"":"-"}',
-    \   'fugitive': '%{exists("*fugitive#head")?"\ue0a0 ".fugitive#head():""}'
-    \ },
-    \ 'component_visible_condition': {
-    \   'readonly': '(&filetype!="help"&& &readonly)',
-    \   'modified': '(&filetype!="help"&&(&modified||!&modifiable))',
-    \   'fugitive': '(exists("*fugitive#head") && ""!=fugitive#head())'
-    \ },
-    \ 'separator': { 'left': "\ue0b0", 'right': "\ue0b2" },
-    \ 'subseparator': { 'left': "\ue0b1", 'right': "\ue0b3" }
-\ }
+    " Vue
+    autocmd FileType vue syntax sync fromstart
 
-"" Ale (linter settings)
-" JavaScript
-let g:ale_linters = {
-    \ 'javascript': ['eslint'],
-\ }
+    " lightline
+    let g:lightline = {
+        \ 'colorscheme': 'solarized',
+        \ 'active': {
+        \   'left': [ [ 'mode', 'paste' ],
+        \             [ 'fugitive', 'readonly', 'filename', 'modified' ] ]
+        \ },
+        \ 'component': {
+        \   'readonly': '%{&filetype=="help"?"":&readonly?"\ue0a2":""}',
+        \   'modified': '%{&filetype=="help"?"":&modified?"+":&modifiable?"":"-"}',
+        \   'fugitive': '%{exists("*fugitive#head")?"\ue0a0 ".fugitive#head():""}'
+        \ },
+        \ 'component_visible_condition': {
+        \   'readonly': '(&filetype!="help"&& &readonly)',
+        \   'modified': '(&filetype!="help"&&(&modified||!&modifiable))',
+        \   'fugitive': '(exists("*fugitive#head") && ""!=fugitive#head())'
+        \ },
+        \ 'separator': { 'left': "\ue0b0", 'right': "\ue0b2" },
+        \ 'subseparator': { 'left': "\ue0b1", 'right': "\ue0b3" }
+    \ }
 
-"" VIM-go settings
-let g:go_highlight_functions = 1
-let g:go_highlight_methods = 1
-let g:go_highlight_fields = 1
-let g:go_highlight_types = 1
-let g:go_highlight_operators = 1
-let g:go_highlight_build_constraints = 1
-let g:go_fmt_command = "goimports"
+    " Ale (linter settings)
+    " JavaScript
+    let g:ale_linters = {
+        \ 'javascript': ['eslint'],
+    \ }
 
-"" Vim-signature
-let g:SignatureMarkTextHLDynamic=1
+    " VIM-go settings
+    let g:go_highlight_functions = 1
+    let g:go_highlight_methods = 1
+    let g:go_highlight_fields = 1
+    let g:go_highlight_types = 1
+    let g:go_highlight_operators = 1
+    let g:go_highlight_build_constraints = 1
+    let g:go_fmt_command = "goimports"
 
-"" GoTags configuration with Tagbar
-let g:tagbar_type_go = {
-    \ 'ctagstype' : 'go',
-    \ 'kinds'     : [
-        \ 'p:package',
-        \ 'i:imports:1',
-        \ 'c:constants',
-        \ 'v:variables',
-        \ 't:types',
-        \ 'n:interfaces',
-        \ 'w:fields',
-        \ 'e:embedded',
-        \ 'm:methods',
-        \ 'r:constructor',
-        \ 'f:functions'
-    \ ],
-    \ 'sro' : '.',
-    \ 'kind2scope' : {
-        \ 't' : 'ctype',
-        \ 'n' : 'ntype'
-    \ },
-    \ 'scope2kind' : {
-        \ 'ctype' : 't',
-        \ 'ntype' : 'n'
-    \ },
-    \ 'ctagsbin'  : 'gotags',
-    \ 'ctagsargs' : '-sort -silent'
-\ }
+    "" Vim-signature
+    let g:SignatureMarkTextHLDynamic=1
 
-"" Bindings {
+    " GoTags configuration with Tagbar
+    let g:tagbar_type_go = {
+        \ 'ctagstype' : 'go',
+        \ 'kinds'     : [
+            \ 'p:package',
+            \ 'i:imports:1',
+            \ 'c:constants',
+            \ 'v:variables',
+            \ 't:types',
+            \ 'n:interfaces',
+            \ 'w:fields',
+            \ 'e:embedded',
+            \ 'm:methods',
+            \ 'r:constructor',
+            \ 'f:functions'
+        \ ],
+        \ 'sro' : '.',
+        \ 'kind2scope' : {
+            \ 't' : 'ctype',
+            \ 'n' : 'ntype'
+        \ },
+        \ 'scope2kind' : {
+            \ 'ctype' : 't',
+            \ 'ntype' : 'n'
+        \ },
+        \ 'ctagsbin'  : 'gotags',
+        \ 'ctagsargs' : '-sort -silent'
+    \ }
+"" }
+
+"" Leader key bindings {
     map <leader>tsud :TsuDefinition<CR>
     " clear any trailing empty spaces
     map <leader>rts :%s/\s\+$//e<CR>
