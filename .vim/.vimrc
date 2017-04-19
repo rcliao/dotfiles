@@ -61,8 +61,7 @@ call plug#end()
 
 "" General Settings {
     " Use space as leader
-    let mapleader = " "
-    let g:mapleader = " "
+    let g:mapleader=" "
 
     " To get Vim default fuzzy-finder (:find)
     set path+=**
@@ -75,8 +74,12 @@ call plug#end()
     set foldenable
     set foldmethod=indent
 
+    " incremental search
+    set incsearch
+
     " Show invisibles
     set list
+    set listchars=tab:>\ ,trail:-,extends:>,precedes:<,nbsp:+
 
     " show line number
     set relativenumber
@@ -89,6 +92,9 @@ call plug#end()
     " More expected split pane behavior
     set splitbelow
     set splitright
+
+    " Auto reload file changes
+    set autoread
 
     set autoindent             " Indent according to previous line.
     set smartindent            " Indent smartly
