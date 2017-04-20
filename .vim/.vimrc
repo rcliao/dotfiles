@@ -226,6 +226,6 @@ call plug#end()
     map <c-t> :BTags<CR>
 
     " Vimux settings
-    map <leader>build :VimuxRunLastCommand<CR>
+    map <leader>tmuxb :VimuxRunLastCommand<CR>
     map <leader>tmuxc :VimuxPromptCommand<CR>
 "" }
