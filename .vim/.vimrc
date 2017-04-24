@@ -4,7 +4,7 @@ call plug#begin('~/.local/share/nvim/plugged')
 "" Common plugins {
     " NERDTree for file explorer
     Plug 'scrooloose/nerdtree'
-    " show git gutter (indication on what changed)
+    " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " lightweight statusline
     Plug 'itchyny/lightline.vim'
@@ -28,6 +28,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'tpope/vim-fugitive'
     " Easily change surrounding stuff
     Plug 'tpope/vim-surround'
+    " Provide additional text object for Vim
+    Plug 'wellle/targets.vim'
     " Async Linter
     Plug 'w0rp/ale'
     " Log coding time
