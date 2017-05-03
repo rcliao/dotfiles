@@ -98,6 +98,9 @@ call plug#end()
     " Auto reload file changes
     set autoread
 
+    " To hide split character
+    set fillchars+=vert:│
+
     set autoindent             " Indent according to previous line.
     set smartindent            " Indent smartly
     set tabstop=4              " Set tab width to 4
@@ -123,11 +126,6 @@ call plug#end()
         if (has("termguicolors"))
             set termguicolors
         endif
-    endif
-
-    " Change cursor shape between insert and normal mode in neovim
-    if (has("nvim"))
-        let $NVIM_TUI_ENABLE_CURSOR_SHAPE=2
     endif
 "" }
 
