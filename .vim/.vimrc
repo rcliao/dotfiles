@@ -37,6 +37,9 @@ call plug#begin('~/.local/share/nvim/plugged')
 "" }
 
 "" Languages {
+    " For writing
+    Plug 'LanguageTool'
+	Plug 'rhysd/vim-grammarous'
     " Haskell
     Plug 'eagletmt/neco-ghc'
     Plug 'neovimhaskell/haskell-vim'
@@ -130,6 +133,9 @@ call plug#end()
 "" }
 
 "" Languages settings {
+    " Writing related
+    let g:languagetool_jar='$HOME/languagetool/languagetool-commandline.jar'
+
     " Freemarker to html
     au BufRead,BufNewFile *.ftl set filetype=html
 
