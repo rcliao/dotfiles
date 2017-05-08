@@ -130,6 +130,12 @@ call plug#end()
             set termguicolors
         endif
     endif
+
+    " spell check on markdown and gitcommit file
+    autocmd BufRead,BufNewFile *.md setlocal spell
+    autocmd FileType gitcommit setlocal spell
+    " auto complete words
+    set complete+=kspell
 "" }
 
 "" Languages settings {
