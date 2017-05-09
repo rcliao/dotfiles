@@ -136,6 +136,12 @@ call plug#end()
     autocmd FileType gitcommit setlocal spell
     " auto complete words
     set complete+=kspell
+
+    " The Silver Searcher
+    if executable('ag')
+        " Use ag over grep
+        set grepprg=ag\ --nogroup\ --nocolor
+    endif
 "" }
 
 "" Languages settings {
