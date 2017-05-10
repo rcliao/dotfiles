@@ -7,7 +7,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " lightweight statusline
-    Plug 'itchyny/lightline.vim'
+    Plug 'vim-airline/vim-airline'
+    Plug 'vim-airline/vim-airline-themes'
     " tmux integration
     Plug 'benmills/vimux'
     " EditorConfig integration
@@ -24,10 +25,18 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'majutsushi/tagbar'
     " Colorscheme
     Plug 'morhetz/gruvbox'
+    "" tpope section
     " Git integration in vim like :Gstatus
     Plug 'tpope/vim-fugitive'
     " Easily change surrounding stuff
     Plug 'tpope/vim-surround'
+    " More natural binding on navigations
+    Plug 'tpope/vim-unimpaired'
+    " Allow "." to repeat many plugin actions
+    Plug 'tpope/vim-repeat'
+    " Comment stuff out
+    Plug 'tpope/vim-commentary'
+    "" End of tpope section
     " Provide additional text object for Vim
     Plug 'wellle/targets.vim'
     " Async Linter
@@ -39,7 +48,7 @@ call plug#begin('~/.local/share/nvim/plugged')
 "" Languages {
     " For writing
     Plug 'LanguageTool'
-	Plug 'rhysd/vim-grammarous'
+    Plug 'rhysd/vim-grammarous'
     " Haskell
     Plug 'eagletmt/neco-ghc'
     Plug 'neovimhaskell/haskell-vim'
@@ -148,32 +157,15 @@ call plug#end()
     " Writing related
     let g:languagetool_jar='$HOME/languagetool/languagetool-commandline.jar'
 
+    " Airline plugin
+    let g:airline_powerline_fonts = 1
+    let g:airline_theme = 'gruvbox'
+
     " Freemarker to html
     au BufRead,BufNewFile *.ftl set filetype=html
 
     " Vue
     autocmd FileType vue syntax sync fromstart
-
-    " lightline
-    let g:lightline = {
-        \ 'colorscheme': 'solarized',
-        \ 'active': {
-        \   'left': [ [ 'mode', 'paste' ],
-        \             [ 'fugitive', 'readonly', 'filename', 'modified' ] ]
-        \ },
-        \ 'component': {
-        \   'readonly': '%{&filetype=="help"?"":&readonly?"\ue0a2":""}',
-        \   'modified': '%{&filetype=="help"?"":&modified?"+":&modifiable?"":"-"}',
-        \   'fugitive': '%{exists("*fugitive#head")?"\ue0a0 ".fugitive#head():""}'
-        \ },
-        \ 'component_visible_condition': {
-        \   'readonly': '(&filetype!="help"&& &readonly)',
-        \   'modified': '(&filetype!="help"&&(&modified||!&modifiable))',
-        \   'fugitive': '(exists("*fugitive#head") && ""!=fugitive#head())'
-        \ },
-        \ 'separator': { 'left': "\ue0b0", 'right': "\ue0b2" },
-        \ 'subseparator': { 'left': "\ue0b1", 'right': "\ue0b3" }
-    \ }
 
     " Ale (linter settings)
     " JavaScript
