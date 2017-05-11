@@ -108,7 +108,9 @@ call plug#end()
     " To hide split character
     set fillchars+=vert:│
 
-    set autoindent             " Indent according to previous line.
+    set autoindent             " Usually does the right thing unless it doesnt
+    set copyindent             " copy indent from the previous line
+    set preserveindent         " preserve indent based on most of the indentation
     set smartindent            " Indent smartly
     set tabstop=4              " Set tab width to 4
     set softtabstop=4          " Tab key indents by 4 spaces.
