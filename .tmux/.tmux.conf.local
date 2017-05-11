@@ -263,6 +263,9 @@ set -g prefix C-a
 unbind-key C-b
 bind-key C-a send-prefix
 
+# Turn off tmux prefix delay
+set-option -g repeat-time 0
+
 # Window management
 bind v split-window -v -c "${pane_current_path}"
 bind s split-window -h -c "${pane_current_path}"
