@@ -6,9 +6,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'scrooloose/nerdtree'
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
-    " lightweight statusline
-    Plug 'vim-airline/vim-airline'
-    Plug 'vim-airline/vim-airline-themes'
     " tmux integration
     Plug 'benmills/vimux'
     " EditorConfig integration
@@ -21,8 +18,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'junegunn/fzf.vim'
     " Show mark location
     Plug 'kshenoy/vim-signature'
-    " Tagbar shows tags
-    Plug 'majutsushi/tagbar'
     " Colorscheme
     Plug 'morhetz/gruvbox'
     "" tpope section
@@ -151,15 +146,25 @@ call plug#end()
         " Use ag over grep
         set grepprg=ag\ --nogroup\ --nocolor
     endif
+
+    set statusline=                              " clear the statusline for when vimrc is reloaded
+    set statusline+=%-3.3n\                      " buffer number
+    set statusline+=%f\                          " file name
+    set statusline+=%h%m%r%w                     " flags
+    set statusline+=[%{strlen(&ft)?&ft:'none'},  " filetype
+    set statusline+=%{strlen(&fenc)?&fenc:&enc}, " encoding
+    set statusline+=%{&fileformat}]              " file format
+    set statusline+=%=                           " right align
+    set statusline+=%{synIDattr(synID(line('.'),col('.'),1),'name')}\  " highlight
+    set statusline+=%b,0x%-8B\                   " current char
+    set statusline+=%-14.(%l,%c%V%)\ %<%P        " offset
 "" }
 
 "" Languages settings {
     " Writing related
     let g:languagetool_jar='$HOME/languagetool/languagetool-commandline.jar'
 
-    " Airline plugin
-    let g:airline_powerline_fonts = 1
-    let g:airline_theme = 'gruvbox'
+    " Lightline plugin
 
     " Freemarker to html
     au BufRead,BufNewFile *.ftl set filetype=html
