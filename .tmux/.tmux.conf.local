@@ -266,6 +266,9 @@ bind-key C-a send-prefix
 # Turn off tmux prefix delay
 set-option -g repeat-time 0
 
+# Persist window rename forever
+set-option -g allow-rename off
+
 # Window management
 bind v split-window -v -c "${pane_current_path}"
 bind s split-window -h -c "${pane_current_path}"

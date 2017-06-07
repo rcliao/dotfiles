@@ -149,16 +149,19 @@ call plug#end()
         set grepprg=ag\ --nogroup\ --nocolor
     endif
 
-    hi StatusLine ctermfg=DarkGrey
-    set statusline=                                " clear the statusline for when vimrc is reloaded
-    set statusline+=%-3.3n\                        " buffer number
-    set statusline+=%f\                            " file name
-    set statusline+=%h%m%r%w                       " flags
-    set statusline+=[%{strlen(&ft)?&ft:'none'}]    " filetype
-    set statusline+=\ \(%{fugitive#statusline()}\) " git branch name
-    set statusline+=%=                             " right align
-    set statusline+=%b,0x%-8B\                     " current char
-    set statusline+=%-14.(%l,%c%V%)\ %<%P          " offset
+    set statusline=                                  " clear the statusline for when vimrc is reloaded
+    set statusline+=%#Pmenu#                         " Set color
+    set statusline+=%-3.3n\                          " buffer number
+    set statusline+=%f\                              " file name
+    set statusline+=%h%m%r%w                         " flags
+    set statusline+=[%{strlen(&ft)?&ft:'none'}]      " filetype
+    set statusline+=\ \(%{fugitive#statusline()}\)\  " git branch name
+    set statusline+=%#CursorLine#                    " SEt color
+    set statusline+=%=                               " right align
+    set statusline+=%#Pmenu#                         " Set color
+    set statusline+=\ %b,0x%-8B\                     " current char
+    set statusline+=%-14.(%l,%c%V%)\ %<%P            " offset
+    hi Normal guibg=NONE ctermbg=NONE
 "" }
 
 "" Languages settings {
@@ -177,6 +180,7 @@ call plug#end()
     " JavaScript
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
+        \ 'html': [],
     \ }
 
     " VIM-go settings
