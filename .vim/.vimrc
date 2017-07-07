@@ -63,6 +63,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'pearofducks/ansible-vim'
     " Vue
     Plug 'posva/vim-vue'
+    " Elm-lang
+    Plug 'elmcast/elm-vim'
 "" }
 
 "" Initialize plugin system
@@ -116,6 +118,7 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set shiftround             " >> indents to next multiple of 'shiftwidth'.
+    set expandtab              " default to use space rather than tab to indent
 
     " Change coloescheme conifiguration
     colorscheme gruvbox
