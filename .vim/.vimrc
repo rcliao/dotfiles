@@ -65,6 +65,9 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'posva/vim-vue'
     " Elm-lang
     Plug 'elmcast/elm-vim'
+    " Markdown
+    Plug 'plasticboy/vim-markdown'
+    Plug 'mzlogin/vim-markdown-toc'
 "" }
 
 "" Initialize plugin system
