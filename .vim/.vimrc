@@ -19,6 +19,7 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Show mark location
     Plug 'kshenoy/vim-signature'
     " Colorscheme
+    Plug 'chriskempson/base16-vim'
     Plug 'morhetz/gruvbox'
     "" tpope section
     " Git integration in vim like :Gstatus
@@ -36,8 +37,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'wellle/targets.vim'
     " Async Linter
     Plug 'w0rp/ale'
-    " Log coding time
-    Plug 'wakatime/vim-wakatime'
 "" }
 
 "" Languages {
@@ -121,7 +120,11 @@ call plug#end()
     set expandtab              " default to use space rather than tab to indent
 
     " Change coloescheme conifiguration
-    colorscheme gruvbox
+    colorscheme base16-eighties
+    if filereadable(expand("~/.vimrc_background"))
+        let base16colorspace=256
+        source ~/.vimrc_background
+    endif
     set background=dark
 
     "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
@@ -171,13 +174,8 @@ call plug#end()
     " Writing related
     let g:languagetool_jar='$HOME/languagetool/languagetool-commandline.jar'
 
-    " Lightline plugin
-
     " Freemarker to html
     au BufRead,BufNewFile *.ftl set filetype=html
-
-    " Vue
-    autocmd FileType vue syntax sync fromstart
 
     " Ale (linter settings)
     " JavaScript
