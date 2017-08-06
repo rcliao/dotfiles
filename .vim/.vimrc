@@ -19,7 +19,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Show mark location
     Plug 'kshenoy/vim-signature'
     " Colorscheme
-    Plug 'chriskempson/base16-vim'
     Plug 'morhetz/gruvbox'
     "" tpope section
     " Git integration in vim like :Gstatus
@@ -37,6 +36,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'wellle/targets.vim'
     " Async Linter
     Plug 'w0rp/ale'
+    " Start screen
+    Plug 'mhinz/vim-startify'
 "" }
 
 "" Languages {
@@ -80,9 +81,6 @@ call plug#end()
     set path+=**
     set wildmenu
 
-    " highlight current line
-    set cursorline
-
     " Enable foldable
     set foldenable
     set foldmethod=indent
@@ -123,11 +121,8 @@ call plug#end()
     set expandtab              " default to use space rather than tab to indent
 
     " Change coloescheme conifiguration
-    colorscheme base16-eighties
-    if filereadable(expand("~/.vimrc_background"))
-        let base16colorspace=256
-        source ~/.vimrc_background
-    endif
+    colorscheme gruvbox
+    let g:gruvbox_contrast_dark = "soft"
     set background=dark
 
     "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
@@ -163,8 +158,6 @@ call plug#end()
     set statusline+=%-3.3n\                          " buffer number
     set statusline+=%f\                              " file name
     set statusline+=%h%m%r%w                         " flags
-    set statusline+=[%{strlen(&ft)?&ft:'none'}]      " filetype
-    set statusline+=\ \(%{fugitive#statusline()}\)\  " git branch name
     set statusline+=%#CursorLine#                    " SEt color
     set statusline+=%=                               " right align
     set statusline+=%#Pmenu#                         " Set color
