@@ -38,6 +38,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'w0rp/ale'
     " Start screen
     Plug 'mhinz/vim-startify'
+    " Personal Wiki
+    Plug 'vimwiki/vimwiki'
 "" }
 
 "" Languages {
@@ -177,8 +179,10 @@ call plug#end()
     " JavaScript
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
-        \ 'html': [],
+        \ 'html': []
     \ }
+
+    let g:ale_java_javac_classpath=$CLASSPATH
 
     " VIM-go settings
     let g:go_highlight_functions = 1
@@ -230,6 +234,10 @@ call plug#end()
     map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
     map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
+    " quick shortcut to insert current datetime
+    map <leader>cdt :put =strftime('%c')<CR>
+
+    " NERDTree related
     map <leader>nt :NERDTreeToggle<CR>
     map <leader>nf :NERDTreeFind<CR>
     map <leader>nb :Bookmark<CR>
