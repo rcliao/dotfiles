@@ -86,6 +86,7 @@ call plug#end()
     " Enable foldable
     set foldenable
     set foldmethod=indent
+    set foldlevel=2
 
     " incremental search
     set incsearch
@@ -125,6 +126,7 @@ call plug#end()
     " Change coloescheme conifiguration
     colorscheme gruvbox
     let g:gruvbox_contrast_dark = "soft"
+    let g:gruvbox_italic = 1
     set background=dark
 
     "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
