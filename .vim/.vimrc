@@ -2,17 +2,12 @@
 call plug#begin('~/.local/share/nvim/plugged')
 
 "" Common plugins {
-    " NERDTree for file explorer
-    Plug 'scrooloose/nerdtree'
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " tmux integration
     Plug 'benmills/vimux'
     " EditorConfig integration
     Plug 'editorconfig/editorconfig-vim'
-    " snippet integration
-    Plug 'honza/vim-snippets'
-    Plug 'sirver/ultisnips'
     " fast fuzzy finder
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
@@ -21,6 +16,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Colorscheme
     Plug 'morhetz/gruvbox'
     "" tpope section
+    " Enhance Netrw
+    Plug 'tpope/vim-vinegar'
     " Git integration in vim like :Gstatus
     Plug 'tpope/vim-fugitive'
     " Easily change surrounding stuff
@@ -87,6 +84,14 @@ call plug#end()
     set foldenable
     set foldmethod=indent
     set foldlevel=2
+
+    " Netrw settings
+    let g:netrw_banner = 0
+    let g:netrw_altv = 1
+    let g:netrw_winsize = 25
+    " Delete all the netrw related buffer so that it doesn't prevent vim from
+    " closing
+    autocmd FileType netrw setl bufhidden=delete
 
     " incremental search
     set incsearch
@@ -158,15 +163,12 @@ call plug#end()
     endif
 
     set statusline=                                  " clear the statusline for when vimrc is reloaded
-    set statusline+=%#Pmenu#                         " Set color
-    set statusline+=%-3.3n\                          " buffer number
+    set statusline+=\ \ %-3.3n\                          " buffer number
     set statusline+=%f\                              " file name
     set statusline+=%h%m%r%w                         " flags
-    set statusline+=%#CursorLine#                    " SEt color
+    set statusline+=%y\                              " file name
     set statusline+=%=                               " right align
-    set statusline+=%#Pmenu#                         " Set color
-    set statusline+=\ %b,0x%-8B\                     " current char
-    set statusline+=%-14.(%l,%c%V%)\ %<%P            " offset
+    set statusline+=%-14.(%l,%c%V%)                  " offset
     hi Normal guibg=NONE ctermbg=NONE
 "" }
 
@@ -239,10 +241,9 @@ call plug#end()
     " quick shortcut to insert current datetime
     map <leader>cdt :put =strftime('%c')<CR>
 
-    " NERDTree related
-    map <leader>nt :NERDTreeToggle<CR>
-    map <leader>nf :NERDTreeFind<CR>
-    map <leader>nb :Bookmark<CR>
+    " Netrw shortcuts
+    map <leader>e :Explore<CR>
+    map <leader>ve :Vexplore<CR>
 
     " find bufer quickly
     nmap <leader>ls :ls<CR>:buffer<SPACE>
