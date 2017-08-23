@@ -168,7 +168,6 @@ call plug#end()
     set statusline+=%y\                              " file name
     set statusline+=%=                               " right align
     set statusline+=%-14.(%l,%c%V%)                  " offset
-    hi Normal guibg=NONE ctermbg=NONE
 "" }
 
 "" Languages settings {
