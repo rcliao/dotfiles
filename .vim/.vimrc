@@ -77,8 +77,8 @@ call plug#end()
     let g:mapleader=" "
 
     " To get Vim default fuzzy-finder (:find)
-    set path+=**
-    set wildmenu
+    " set path+=**
+    " set wildmenu
 
     " Enable foldable
     set foldenable
@@ -102,7 +102,6 @@ call plug#end()
 
     " show line number
     set relativenumber
-    set number
 
     " show line width 80
     set colorcolumn=80,120
@@ -186,6 +185,8 @@ call plug#end()
         \ 'html': []
     \ }
 
+    " ale update that doesn't read from $CLASSPATH environment vars anymore,
+    " this line assign environment variable to ale path for javac linter
     let g:ale_java_javac_classpath=$CLASSPATH
 
     " VIM-go settings
