@@ -2,6 +2,8 @@
 call plug#begin('~/.local/share/nvim/plugged')
 
 "" Common plugins {
+    " lightweight file explorer
+    Plug 'justinmk/vim-dirvish'
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " tmux integration
@@ -68,7 +70,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'elmcast/elm-vim'
     " Markdown
     Plug 'plasticboy/vim-markdown'
-    Plug 'mzlogin/vim-markdown-toc'
 "" }
 
 "" Initialize plugin system
@@ -87,12 +88,8 @@ call plug#end()
     set foldmethod=indent
     set foldlevel=2
 
-    " Netrw settings
-    let g:netrw_banner = 0   " hide informative banner
-    let g:netrw_altv = 1     " Open at right
-    " Delete all the netrw related buffer so that it doesn't prevent vim from
-    " closing
-    autocmd FileType netrw setl bufhidden=delete
+    " Dirvish settings
+    let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
 
     " incremental search
     set incsearch
@@ -150,12 +147,13 @@ call plug#end()
     endif
 
     set statusline=                                  " clear the statusline for when vimrc is reloaded
-    set statusline+=\ \ %-3.3n\                          " buffer number
-    set statusline+=%f\                              " file name
-    set statusline+=%h%m%r%w                         " flags
+    set statusline+=\ \ \ %-2.2n\                    " buffer number
+    set statusline+=\ %f\                            " file name
+    set statusline+=\ %h%m%r%w                       " flags
     set statusline+=%y\                              " file name
     set statusline+=%=                               " right align
-    set statusline+=%-14.(%l,%c%V%)                  " offset
+    set statusline+=\ \ %-7.(%l:%c%V%)               " offset
+    set statusline+=\ /\ %-4.L\ \                    " total lines
 "" }
 
 "" Languages settings {
@@ -200,9 +198,8 @@ call plug#end()
     " quick shortcut to insert current datetime
     map <leader>cdt :put =strftime('%c')<CR>
 
-    " Netrw shortcuts
-    map <leader>e :Explore<CR>
-    map <leader>ve :Vexplore<CR>
+    " Dirvish shortcuts
+    map <leader>e :Dirvish<CR>
 
     " find bufer quickly
     nmap <leader>ls :ls<CR>:buffer<SPACE>

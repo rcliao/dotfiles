@@ -2,12 +2,6 @@
 # (‑●‑●)> released under the WTFPL v2 license, by Gregory Pakosz (@gpakosz)
 #
 
-# fix OSX Siera copy to clipboard issue
-# In OSX, you also need to change setting under iTerm2 to allow Application
-# to get clipboard access
-set -g default-shell $SHELL 
-set -g default-command "reattach-to-user-namespace -l ${SHELL}"
-
 # -- navigation ----------------------------------------------------------------
 
 # if you're running tmux within iTerm2
