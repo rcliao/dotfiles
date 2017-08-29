@@ -20,8 +20,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Colorscheme
     Plug 'morhetz/gruvbox'
     "" tpope section
-    " Enhance Netrw (% to add file, ! to execute command on selected file)
-    Plug 'tpope/vim-vinegar'
     " Git integration in vim like :Gstatus => C (commit) => :Gpush
     Plug 'tpope/vim-fugitive'
     " Easily change surrounding stuff like cs'"
@@ -169,7 +167,6 @@ call plug#end()
         \ 'javascript': ['eslint'],
         \ 'html': []
     \ }
-
     " ale update that doesn't read from $CLASSPATH environment vars anymore,
     " this line assign environment variable to ale path for javac linter
     let g:ale_java_javac_classpath=$CLASSPATH
@@ -183,26 +180,26 @@ call plug#end()
     let g:go_highlight_build_constraints = 1
     let g:go_fmt_command = "goimports"
 
-    "" Vim-signature
+    " Vim-signature
     let g:SignatureMarkTextHLDynamic=1
 "" }
 
 "" Leader key bindings {
-    map <leader>tsud :TsuDefinition<CR>
+    " find bufer quickly
+    nmap <leader>ls :ls<CR>:buffer<SPACE>
+    " quick shortcut to insert current datetime
+    map <leader>cdt :put =strftime('%c')<CR>
     " clear any trailing empty spaces
     map <leader>rts :%s/\s\+$//e<CR>
     " quick vimrc editing/reloading
     map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
     map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
-    " quick shortcut to insert current datetime
-    map <leader>cdt :put =strftime('%c')<CR>
+    " fugitive shortcuts
+    map <leader>gs :Gstatus<CR>
 
     " Dirvish shortcuts
     map <leader>e :Dirvish<CR>
-
-    " find bufer quickly
-    nmap <leader>ls :ls<CR>:buffer<SPACE>
 
     " Vim-FZF settings
     set rtp+=/usr/local/opt/fzf
