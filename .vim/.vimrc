@@ -197,6 +197,7 @@ call plug#end()
 
     " fugitive shortcuts
     map <leader>gs :Gstatus<CR>
+    map <leader>gp :Gpush<CR>
 
     " Dirvish shortcuts
     map <leader>e :Dirvish<CR>
