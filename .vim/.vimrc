@@ -200,8 +200,8 @@ call plug#end()
     map <leader>gp :Gpush<CR>
 
     " Dirvish shortcuts
-    map <leader>e :Dirvish %<CR>
-    map <leader>er :Dirvish<CR>
+    map <leader>de :Dirvish %<CR>
+    map <leader>dr :Dirvish<CR>
 
     " Vim-FZF settings
     set rtp+=/usr/local/opt/fzf
