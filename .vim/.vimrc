@@ -68,6 +68,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'elmcast/elm-vim'
     " Markdown
     Plug 'plasticboy/vim-markdown'
+    " Rust-lang
+    Plug 'rust-lang/rust.vim'
 "" }
 
 "" Initialize plugin system
@@ -165,7 +167,8 @@ call plug#end()
     " JavaScript
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
-        \ 'html': []
+        \ 'html': [],
+        \ 'rust': ['rustc']
     \ }
     " ale update that doesn't read from $CLASSPATH environment vars anymore,
     " this line assign environment variable to ale path for javac linter
