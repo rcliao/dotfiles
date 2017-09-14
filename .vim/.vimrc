@@ -212,6 +212,13 @@ call plug#end()
     map <leader>tmuxb :VimuxRunLastCommand<CR>
     map <leader>tmuxc :VimuxPromptCommand<CR>
 
+    " shortcuts for folding levels
+    nmap <leader>z0 :set foldlevel=0<CR>
+    nmap <leader>z1 :set foldlevel=1<CR>
+    nmap <leader>z2 :set foldlevel=2<CR>
+    nmap <leader>z3 :set foldlevel=3<CR>
+    nmap <leader>z9 :set foldlevel=999<CR>
+
     " shortcuts for Go related files
     function! s:build_go_files()
         let l:file = expand('%')
