@@ -1,3 +1,5 @@
+scriptencoding utf-8
+
 " https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
 
@@ -75,7 +77,7 @@ call plug#end()
 
 "" General Settings {
     " Use space as leader
-    let g:mapleader=" "
+    let g:mapleader=' '
 
     " To get Vim default fuzzy-finder (:find)
     set path+=**
@@ -101,7 +103,9 @@ call plug#end()
 
     " show line width 80
     set colorcolumn=80,120
-    au FileType gitcommit set cc=50,80
+    augroup git
+        au FileType gitcommit set cc=50,80
+    augroup END
 
     " More expected split pane behavior
     set splitbelow
@@ -125,7 +129,7 @@ call plug#end()
 
     " Change coloescheme conifiguration
     colorscheme gruvbox
-    let g:gruvbox_contrast_dark = "soft"
+    let g:gruvbox_contrast_dark = 'soft'
     let g:gruvbox_italic = 1
     set background=dark
 
@@ -133,8 +137,10 @@ call plug#end()
     set termguicolors
 
     " spell check on markdown and gitcommit file
-    autocmd BufRead,BufNewFile *.md setlocal spell
-    autocmd FileType gitcommit setlocal spell
+    augroup spellchecker
+        autocmd BufRead,BufNewFile *.md setlocal spell
+        autocmd FileType gitcommit setlocal spell
+    augroup END
     " auto complete words
     set complete+=kspell
 
@@ -178,7 +184,7 @@ call plug#end()
     let g:go_highlight_types = 1
     let g:go_highlight_operators = 1
     let g:go_highlight_build_constraints = 1
-    let g:go_fmt_command = "goimports"
+    let g:go_fmt_command = 'goimports'
 
     " Vim-signature
     let g:SignatureMarkTextHLDynamic=1
@@ -204,7 +210,7 @@ call plug#end()
     map <leader>dr :Dirvish<CR>
 
     " Vim-FZF settings
-    set rtp+=/usr/local/opt/fzf
+    set runtimepath+=/usr/local/opt/fzf
     map <c-p> :FZF<CR>
     map <c-t> :BTags<CR>
 
@@ -222,8 +228,10 @@ call plug#end()
         endif
     endfunction
 
-    autocmd FileType go nmap <leader>r <Plug>(go-run)
-    autocmd FileType go nmap <leader>t <Plug>(go-test)
-    autocmd FileType go nmap <leader>b :<C-u>call <SID>build_go_files()<CR>
-    autocmd FileType go nmap <leader>c <Plug>(go-coverage-toggle)
+    augroup goshortcuts
+        autocmd FileType go nmap <leader>r <Plug>(go-run)
+        autocmd FileType go nmap <leader>t <Plug>(go-test)
+        autocmd FileType go nmap <leader>b :<C-u>call <SID>build_go_files()<CR>
+        autocmd FileType go nmap <leader>c <Plug>(go-coverage-toggle)
+    augroup END
 "" }
