@@ -267,8 +267,7 @@ bind v split-window -v -c "${pane_current_path}"
 bind s split-window -h -c "${pane_current_path}"
 
 # Synchronize
-bind -n C-x setw synchronize-panes on
-bind -n C-z setw synchronize-panes off
+bind C-x set-window-option synchronize-panes
 
 # Buffers to/from Mac clipboard, yay tmux book from pragprog
 bind C-c run "tmux save-buffer - | reattach-to-user-namespace pbcopy"

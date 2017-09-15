@@ -70,6 +70,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'elmcast/elm-vim'
     " Markdown
     Plug 'plasticboy/vim-markdown'
+    " Rust-lang
+    Plug 'rust-lang/rust.vim'
 "" }
 
 "" Initialize plugin system
@@ -171,7 +173,8 @@ call plug#end()
     " JavaScript
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
-        \ 'html': []
+        \ 'html': [],
+        \ 'rust': ['rustc']
     \ }
     " ale update that doesn't read from $CLASSPATH environment vars anymore,
     " this line assign environment variable to ale path for javac linter
@@ -217,6 +220,13 @@ call plug#end()
     " Vimux settings
     map <leader>tmuxb :VimuxRunLastCommand<CR>
     map <leader>tmuxc :VimuxPromptCommand<CR>
+
+    " shortcuts for folding levels
+    nmap <leader>z0 :set foldlevel=0<CR>
+    nmap <leader>z1 :set foldlevel=1<CR>
+    nmap <leader>z2 :set foldlevel=2<CR>
+    nmap <leader>z3 :set foldlevel=3<CR>
+    nmap <leader>z9 :set foldlevel=999<CR>
 
     " shortcuts for Go related files
     function! s:build_go_files()
