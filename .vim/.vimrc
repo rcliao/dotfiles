@@ -48,30 +48,30 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'LanguageTool'
     Plug 'rhysd/vim-grammarous'
     " Haskell
-    Plug 'eagletmt/neco-ghc'
-    Plug 'neovimhaskell/haskell-vim'
+    Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
+    Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
     " Go
-    Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
+    Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries', 'for': 'go' }
     " TypeScript
-    Plug 'leafgarland/typescript-vim'
-    Plug 'quramy/tsuquyomi'
+    Plug 'leafgarland/typescript-vim', { 'for': 'typescript' }
+    Plug 'quramy/tsuquyomi', { 'for': 'typescript' }
         " Required for tsuquyomi
-        Plug 'shougo/vimproc.vim', {'do' : 'make'}
+        Plug 'shougo/vimproc.vim', {'do' : 'make', 'for': 'typescript' }
     " Emmet for easier html code snippet
     Plug 'mattn/emmet-vim'
     " JavaScript
     Plug 'othree/yajs.vim'
     Plug 'pangloss/vim-javascript'
     " Ansible
-    Plug 'pearofducks/ansible-vim'
+    Plug 'pearofducks/ansible-vim', { 'for': 'ansible' }
     " Vue
-    Plug 'posva/vim-vue'
+    Plug 'posva/vim-vue', { 'for': 'vue' }
     " Elm-lang
-    Plug 'elmcast/elm-vim'
+    Plug 'elmcast/elm-vim', { 'for': 'elm' }
     " Markdown
-    Plug 'plasticboy/vim-markdown'
+    Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
     " Rust-lang
-    Plug 'rust-lang/rust.vim'
+    Plug 'rust-lang/rust.vim', { 'for': 'rust' }
 "" }
 
 "" Initialize plugin system
@@ -101,6 +101,7 @@ call plug#end()
     set listchars=tab:>\ ,trail:-,extends:>,precedes:<,nbsp:+
 
     " show line number
+    set number
     set relativenumber
 
     " show line width 80
@@ -132,6 +133,7 @@ call plug#end()
     " Change coloescheme conifiguration
     colorscheme gruvbox
     let g:gruvbox_contrast_dark = 'soft'
+    let g:gruvbox_contrast_light = 'hard'
     let g:gruvbox_italic = 1
     set background=dark
 
@@ -226,6 +228,8 @@ call plug#end()
     nmap <leader>z1 :set foldlevel=1<CR>
     nmap <leader>z2 :set foldlevel=2<CR>
     nmap <leader>z3 :set foldlevel=3<CR>
+    nmap <leader>z4 :set foldlevel=4<CR>
+    nmap <leader>z5 :set foldlevel=5<CR>
     nmap <leader>z9 :set foldlevel=999<CR>
 
     " shortcuts for Go related files
