@@ -263,8 +263,8 @@ set-option -g repeat-time 0
 set-option -g allow-rename off
 
 # Window management
-bind v split-window -v -c "${pane_current_path}"
-bind s split-window -h -c "${pane_current_path}"
+bind v split-window -v -c "#{pane_current_path}"
+bind s split-window -h -c "#{pane_current_path}"
 
 # Synchronize
 bind C-x set-window-option synchronize-panes
