@@ -62,6 +62,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     " JavaScript
     Plug 'othree/yajs.vim'
     Plug 'pangloss/vim-javascript'
+    " JSX - React
+    Plug 'mxw/vim-jsx', { 'for': 'jsx' }
     " Ansible
     Plug 'pearofducks/ansible-vim', { 'for': 'ansible' }
     " Vue
