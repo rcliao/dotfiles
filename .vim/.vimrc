@@ -60,10 +60,10 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Emmet for easier html code snippet
     Plug 'mattn/emmet-vim'
     " JavaScript
-    Plug 'othree/yajs.vim'
-    Plug 'pangloss/vim-javascript'
+    Plug 'othree/yajs.vim', { 'for': ['html', 'javascript'] }
+    Plug 'pangloss/vim-javascript', { 'for': ['html', 'javascript'] }
     " JSX - React
-    Plug 'mxw/vim-jsx', { 'for': 'jsx' }
+    Plug 'mxw/vim-jsx', { 'for': ['jsx', 'javascript'] }
     " Ansible
     Plug 'pearofducks/ansible-vim', { 'for': 'ansible' }
     " Vue
@@ -183,6 +183,11 @@ call plug#end()
     " ale update that doesn't read from $CLASSPATH environment vars anymore,
     " this line assign environment variable to ale path for javac linter
     let g:ale_java_javac_classpath=$CLASSPATH
+
+    " vim-JavaScript
+    let g:javascript_plugin_jsdoc = 1
+    " vim-jsx
+    let g:jsx_ext_required = 0
 
     " VIM-go settings
     let g:go_highlight_functions = 1
