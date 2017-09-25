@@ -2,14 +2,11 @@ scriptencoding utf-8
 
 " https://github.com/junegunn/vim-plug
 call plug#begin('~/.local/share/nvim/plugged')
-
 "" Common plugins {
     " lightweight file explorer
     Plug 'justinmk/vim-dirvish'
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
-    " tmux integration
-    Plug 'benmills/vimux'
     " EditorConfig integration
     Plug 'editorconfig/editorconfig-vim'
     " fast fuzzy finder
@@ -26,16 +23,16 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'tpope/vim-fugitive'
     " Easily change surrounding stuff like cs'"
     Plug 'tpope/vim-surround'
-    " More natural binding on navigations
+    " More natural binding on navigations like q[
     Plug 'tpope/vim-unimpaired'
     " Allow "." to repeat many plugin actions
     Plug 'tpope/vim-repeat'
     " Comment stuff out by gc
     Plug 'tpope/vim-commentary'
     "" End of tpope section
-    " Provide additional text object for Vim
+    " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
-    " Async Linter
+    " Async General Linter
     Plug 'w0rp/ale'
     " Start screen
     Plug 'mhinz/vim-startify'
@@ -45,8 +42,8 @@ call plug#begin('~/.local/share/nvim/plugged')
 
 "" Languages {
     " For writing
-    Plug 'LanguageTool'
-    Plug 'rhysd/vim-grammarous'
+    Plug 'LanguageTool', { 'for': 'markdown' }
+    Plug 'rhysd/vim-grammarous', { 'for': 'markdown' }
     " Haskell
     Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
     Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
@@ -75,7 +72,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Rust-lang
     Plug 'rust-lang/rust.vim', { 'for': 'rust' }
 "" }
-
 "" Initialize plugin system
 call plug#end()
 
@@ -225,10 +221,6 @@ call plug#end()
     set runtimepath+=/usr/local/opt/fzf
     map <c-p> :FZF<CR>
     map <c-t> :BTags<CR>
-
-    " Vimux settings
-    map <leader>tmuxb :VimuxRunLastCommand<CR>
-    map <leader>tmuxc :VimuxPromptCommand<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
