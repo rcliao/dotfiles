@@ -29,6 +29,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'tpope/vim-repeat'
     " Comment stuff out by gc
     Plug 'tpope/vim-commentary'
+    " kicks off build/testing in tmux synchronous or asynchronously
+    Plug 'tpope/vim-dispatch'
     "" End of tpope section
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
@@ -153,6 +155,9 @@ call plug#end()
         " Use ag over grep
         set grepprg=ag\ --nogroup\ --nocolor
     endif
+
+    " Change cursor shape per mode
+    let $NVIM_TUI_ENABLE_CURSOR_SHAPE=1
 
     set statusline=                                  " clear the statusline for when vimrc is reloaded
     set statusline+=\ \ \ %-2.2n\                    " buffer number
