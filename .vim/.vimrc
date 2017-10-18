@@ -47,6 +47,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Haskell
     Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
     Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
+    " SQL workbench
+    Plug 'vim-scripts/dbext.vim'
     " Go
     Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries', 'for': 'go' }
     " TypeScript
@@ -174,7 +176,8 @@ call plug#end()
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
         \ 'html': [],
-        \ 'rust': ['rustc']
+        \ 'rust': ['rustc'],
+        \ 'typescript': ['tslint']
     \ }
     " ale update that doesn't read from $CLASSPATH environment vars anymore,
     " this line assign environment variable to ale path for javac linter
@@ -201,8 +204,6 @@ call plug#end()
 "" Leader key bindings {
     " find bufer quickly
     nmap <leader>ls :ls<CR>:buffer<SPACE>
-    " quick shortcut to insert current datetime
-    map <leader>cdt :put =strftime('%c')<CR>
     " clear any trailing empty spaces
     map <leader>rts :%s/\s\+$//e<CR>
     " quick vimrc editing/reloading
@@ -221,6 +222,7 @@ call plug#end()
     set runtimepath+=/usr/local/opt/fzf
     map <c-p> :FZF<CR>
     map <c-t> :BTags<CR>
+    map <c-m> :Marks<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
