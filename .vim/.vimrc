@@ -75,6 +75,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
     " Rust-lang
     Plug 'rust-lang/rust.vim', { 'for': 'rust' }
+    " Tmux
+    Plug 'tmux-plugins/vim-tmux'
 "" }
 "" Initialize plugin system
 call plug#end()
