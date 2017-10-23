@@ -14,8 +14,10 @@ export GOPATH="~/dev/go"
 export PATH=$PATH:$GOPATH/bin
 
 # Java & Gradle Settings
-export JAVA_HOME=$(/usr/libexec/java_home)
-export PATH=$PATH:~/.local/bin
+if [[ ! -a ~/usr/libexec/java_home ]]; then
+    export JAVA_HOME=$(/usr/libexec/java_home)
+    export PATH=$PATH:~/.local/bin
+fi
 
 # fzf settings
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
