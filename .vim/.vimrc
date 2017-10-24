@@ -44,7 +44,6 @@ call plug#begin('~/.local/share/nvim/plugged')
 
 "" Languages {
     " For writing
-    Plug 'LanguageTool', { 'for': 'markdown' }
     Plug 'rhysd/vim-grammarous', { 'for': 'markdown' }
     " Haskell
     Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
