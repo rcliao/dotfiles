@@ -27,7 +27,7 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'tpope/vim-unimpaired'
     " Allow "." to repeat many plugin actions
     Plug 'tpope/vim-repeat'
-    " Comment stuff out by gc
+    " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
     " kicks off build/testing in tmux synchronous or asynchronously
     Plug 'tpope/vim-dispatch'
