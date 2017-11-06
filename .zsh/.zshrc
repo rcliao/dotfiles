@@ -10,7 +10,7 @@ source $ZSH/oh-my-zsh.sh
 export PATH=$PATH:~/bin
 
 # Go Settings
-export GOPATH="~/dev/go"
+export GOPATH="$HOME/dev/go"
 export PATH=$PATH:$GOPATH/bin
 
 # Java & Gradle Settings
