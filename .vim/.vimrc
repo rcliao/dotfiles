@@ -238,12 +238,12 @@ call plug#end()
 
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
-    map <leader>b :Buffers<CR>
-    map <leader>l :BLines<CR>
-    map <leader>p :FZF<CR>
-    map <leader>t :Tags<CR>
-    map <leader>bt :BTags<CR>
-    map <leader>m :Marks<CR>
+    map <leader>fb :Buffers<CR>
+    map <leader>fl :BLines<CR>
+    map <leader>fp :FZF<CR>
+    map <leader>ft :Tags<CR>
+    map <leader>fct :BTags<CR>
+    map <leader>fm :Marks<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
