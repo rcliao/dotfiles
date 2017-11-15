@@ -75,7 +75,7 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Rust-lang
     Plug 'rust-lang/rust.vim', { 'for': 'rust' }
     " Tmux
-    Plug 'tmux-plugins/vim-tmux'
+    Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
 "" }
 "" Initialize plugin system
 call plug#end()
