@@ -48,8 +48,6 @@ call plug#begin('~/.local/share/nvim/plugged')
     " Haskell
     Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
     Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
-    " SQL workbench
-    Plug 'vim-scripts/dbext.vim'
     " Go
     Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries', 'for': 'go' }
     " TypeScript
@@ -126,7 +124,6 @@ call plug#end()
     set autoindent             " Usually does the right thing unless it doesnt
     set copyindent             " copy indent from the previous line
     set preserveindent         " preserve indent based on most of the indentation
-    set smartindent            " Indent smartly
     set tabstop=4              " Set tab width to 4
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
@@ -161,9 +158,7 @@ call plug#end()
         set grepprg=rg\ --vimgrep
     endif
 
-    " Change cursor shape per mode
-    let $NVIM_TUI_ENABLE_CURSOR_SHAPE=1
-
+    " Custom status line for better performance
     set statusline=                                  " clear the statusline for when vimrc is reloaded
     set statusline+=\ \ \ %-2.2n\                    " buffer number
     set statusline+=\ %f\                            " file name
@@ -210,9 +205,6 @@ call plug#end()
     " Vim-signature
     let g:SignatureMarkTextHLDynamic=1
 
-    " Vim-dbext
-    let g:dbext_default_profile_mySQL = 'type=MYSQL:user=root:passwd=:dbname=lyric'
-
     " RipGrep settings
     " --column: Show column number
     " --line-number: Show line number
@@ -246,9 +238,12 @@ call plug#end()
 
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
-    map <c-p> :FZF<CR>
-    map <c-t> :BTags<CR>
-    map <c-m> :Marks<CR>
+    map <leader>fb :Buffers<CR>
+    map <leader>fl :BLines<CR>
+    map <leader>fp :FZF<CR>
+    map <leader>ft :Tags<CR>
+    map <leader>fct :BTags<CR>
+    map <leader>fm :Marks<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
