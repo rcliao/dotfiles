@@ -40,6 +40,8 @@ call plug#begin('~/.local/share/nvim/plugged')
     Plug 'mhinz/vim-startify'
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
+    " Highlight active pane
+    Plug 'blueyed/vim-diminactive'
 "" }
 
 "" Languages {
