@@ -58,6 +58,8 @@ call plug#begin(s:plugpath)
     Plug 'mhinz/vim-startify'
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
+    " Highlight active pane
+    Plug 'blueyed/vim-diminactive'
 "" }
 
 "" Languages {
