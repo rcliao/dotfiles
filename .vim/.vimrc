@@ -1,7 +1,25 @@
 scriptencoding utf-8
 
+let s:plugpath = "~/.local/share/nvim/plugged"
+
+if !has("nvim")
+    let s:plugpath = "~/.vim/plugged"
+    if empty(glob('~/.vim/autoload/plug.vim'))
+        silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+                    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+    endif
+endif
+if has ("nvim")
+    if empty(glob('~/.local/share/nvim/site/autoload/plug.vim'))
+        silent !curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs
+                    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+    endif
+endif
+
 " https://github.com/junegunn/vim-plug
-call plug#begin('~/.local/share/nvim/plugged')
+call plug#begin(s:plugpath)
 "" Common plugins {
     " lightweight file explorer
     Plug 'justinmk/vim-dirvish'
@@ -134,11 +152,12 @@ call plug#end()
     colorscheme gruvbox
     let g:gruvbox_contrast_dark = 'soft'
     let g:gruvbox_contrast_light = 'hard'
-    let g:gruvbox_italic = 1
     set background=dark
 
     " True color support
-    set termguicolors
+    if has("nvim")
+        set termguicolors
+    endif
 
     " spell check on markdown and gitcommit file
     augroup spellchecker
