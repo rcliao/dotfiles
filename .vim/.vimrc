@@ -1,16 +1,16 @@
 scriptencoding utf-8
 
-let s:plugpath = "~/.local/share/nvim/plugged"
+let s:plugpath = '~/.local/share/nvim/plugged'
 
-if !has("nvim")
-    let s:plugpath = "~/.vim/plugged"
+if !has('nvim')
+    let s:plugpath = '~/.vim/plugged'
     if empty(glob('~/.vim/autoload/plug.vim'))
         silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
                     \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
         autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
     endif
 endif
-if has ("nvim")
+if has ('nvim')
     if empty(glob('~/.local/share/nvim/site/autoload/plug.vim'))
         silent !curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs
                     \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
@@ -64,7 +64,7 @@ call plug#begin(s:plugpath)
 
 "" Languages {
     " For writing
-    Plug 'rhysd/vim-grammarous', { 'for': 'markdown' }
+    Plug 'rhysd/vim-grammarous', { 'for': ['markdown', 'gitcommit', 'vimwiki'] }
     " Haskell
     Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
     Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
