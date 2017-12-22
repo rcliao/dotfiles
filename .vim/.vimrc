@@ -1,21 +1,19 @@
 scriptencoding utf-8
 
 let s:plugpath = '~/.local/share/nvim/plugged'
+let s:plugvim = '~/.local/share/nvim/site/autoload/plug.vim'
 
 if !has('nvim')
     let s:plugpath = '~/.vim/plugged'
-    if empty(glob('~/.vim/autoload/plug.vim'))
-        silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
-                    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-    endif
+    let s:plugvim = '~/.vim/autoload/plug.vim'
 endif
-if has ('nvim')
-    if empty(glob('~/.local/share/nvim/site/autoload/plug.vim'))
-        silent !curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs
-                    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
+if empty(glob(s:plugvim))
+    silent !curl -fLo s:plugvim --create-dirs
+        \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    augroup AutoInstallPlug
         autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-    endif
+    augroup END
 endif
 
 " https://github.com/junegunn/vim-plug
@@ -30,8 +28,6 @@ call plug#begin(s:plugpath)
     " fast fuzzy finder
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
-    " Show mark location
-    Plug 'kshenoy/vim-signature'
     " Easy motion
     Plug 'easymotion/vim-easymotion'
     " Colorscheme
@@ -47,8 +43,6 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-repeat'
     " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
-    " kicks off build/testing in tmux synchronous or asynchronously
-    Plug 'tpope/vim-dispatch'
     "" End of tpope section
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
@@ -60,6 +54,8 @@ call plug#begin(s:plugpath)
     Plug 'vimwiki/vimwiki'
     " Highlight active pane
     Plug 'blueyed/vim-diminactive'
+    " Tmux integration
+    Plug 'benmills/vimux'
 "" }
 
 "" Languages {
@@ -102,18 +98,12 @@ call plug#end()
     " Use space as leader
     let g:mapleader=' '
 
-    " To get Vim default fuzzy-finder (:find)
-    set path+=**
     set wildmenu
 
     " Enable foldable
     set foldenable
     set foldmethod=indent
     set foldlevel=2
-
-    " Dirvish settings
-    let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
-
     " incremental search
     set incsearch
 
@@ -127,28 +117,17 @@ call plug#end()
 
     " show line width 80
     set colorcolumn=80,120
-    augroup git
+    augroup AutoWrap
         au FileType gitcommit set cc=50,80
+        au FileType markdown set cc=80
     augroup END
 
-    " More expected split pane behavior
+    " More expected split pane behavior (new one to right and bottom)
     set splitbelow
     set splitright
 
-    " Auto reload file changes
-    set autoread
-
     " To hide split character
     set fillchars+=vert:│
-
-    set autoindent             " Usually does the right thing unless it doesnt
-    set copyindent             " copy indent from the previous line
-    set preserveindent         " preserve indent based on most of the indentation
-    set tabstop=4              " Set tab width to 4
-    set softtabstop=4          " Tab key indents by 4 spaces.
-    set shiftwidth=4           " >> indents by 4 spaces.
-    set shiftround             " >> indents to next multiple of 'shiftwidth'.
-    set expandtab              " default to use space rather than tab to indent
 
     " Change coloescheme conifiguration
     colorscheme gruvbox
@@ -157,7 +136,7 @@ call plug#end()
     set background=dark
 
     " True color support
-    if has("nvim")
+    if has('nvim')
         set termguicolors
     endif
 
@@ -169,7 +148,7 @@ call plug#end()
     " auto complete words
     set complete+=kspell
 
-    " Set up :grep with The Silver Searcher
+    " Set up :grep with The Silver Searcher or ripgrep
     if executable('ag')
         " Use ag over grep
         set grepprg=ag\ --nogroup\ --nocolor
@@ -190,9 +169,9 @@ call plug#end()
     set statusline+=\ /\ %-4.L\ \                    " total lines
 "" }
 
-"" Languages settings {
-    " Writing related
-    let g:languagetool_jar='$HOME/languagetool/languagetool-commandline.jar'
+"" Languages/Plugin settings {
+    " Dirvish settings
+    let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
 
     " Freemarker to html
     au BufRead,BufNewFile *.ftl set filetype=html
@@ -223,9 +202,6 @@ call plug#end()
     let g:go_highlight_build_constraints = 1
     let g:go_fmt_command = 'goimports'
 
-    " Vim-signature
-    let g:SignatureMarkTextHLDynamic=1
-
     " RipGrep settings
     " --column: Show column number
     " --line-number: Show line number
@@ -241,8 +217,18 @@ call plug#end()
 "" }
 
 "" Leader key bindings {
-    " find bufer quickly
+    " quick jump through buffer
     nmap <leader>ls :ls<CR>:buffer<SPACE>
+    " built-in fuzzy search
+    nmap <leader>e :e **/
+    " include search
+    nmap <leader>i :ilist<space>
+    " quick jump on tags (if generated)
+    nmap <leader>j :tjump /
+    nmap <leader>p :ptjump /
+    nmap <leader>d :dlist /
+    " switch to last buffer
+    nmap <leader>q :b#<cr>
     " clear any trailing empty spaces
     map <leader>rts :%s/\s\+$//e<CR>
     " quick vimrc editing/reloading
@@ -257,13 +243,17 @@ call plug#end()
     map <leader>de :Dirvish %<CR>
     map <leader>dr :Dirvish<CR>
 
+    " Tmux shortcuts
+    map <leader>tc :VimuxPromptCommand<CR>
+    map <leader>tr :VimuxRunLastCommand<CR>
+    map <leader>tz :VimuxZoomRunner<CR>
+
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
     map <leader>fb :Buffers<CR>
     map <leader>fl :BLines<CR>
     map <leader>fp :FZF<CR>
-    map <leader>ft :Tags<CR>
-    map <leader>fct :BTags<CR>
+    map <leader>ft :BTags<CR>
     map <leader>fm :Marks<CR>
 
     " shortcuts for folding levels
