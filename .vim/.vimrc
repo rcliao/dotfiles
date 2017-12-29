@@ -256,6 +256,7 @@ call plug#end()
     map <leader>tc :VimuxPromptCommand<CR>
     map <leader>tr :VimuxRunLastCommand<CR>
     map <leader>tz :VimuxZoomRunner<CR>
+    map <leader>td :VimuxCloseRunner<CR>
 
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
