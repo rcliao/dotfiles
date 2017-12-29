@@ -19,8 +19,6 @@ endif
 " https://github.com/junegunn/vim-plug
 call plug#begin(s:plugpath)
 "" Common plugins {
-    " lightweight file explorer
-    Plug 'justinmk/vim-dirvish'
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " EditorConfig integration
@@ -100,6 +98,19 @@ call plug#end()
 
     set wildmenu
 
+    " hide netre banner
+    let g:netrw_banner = 0
+
+    " Indentation settings
+    set autoindent             " Usually does the right thing unless it doesnt
+    set copyindent             " copy indent from the previous line
+    set preserveindent         " preserve indent based on most of the indentation
+    set tabstop=4              " Set tab width to 4
+    set softtabstop=4          " Tab key indents by 4 spaces.
+    set shiftwidth=4           " >> indents by 4 spaces.
+    set shiftround             " >> indents to next multiple of 'shiftwidth'.
+    set expandtab              " default to use space rather than tab to indent
+
     " Enable foldable
     set foldenable
     set foldmethod=indent
@@ -170,9 +181,6 @@ call plug#end()
 "" }
 
 "" Languages/Plugin settings {
-    " Dirvish settings
-    let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
-
     " Freemarker to html
     au BufRead,BufNewFile *.ftl set filetype=html
 
@@ -239,9 +247,10 @@ call plug#end()
     map <leader>gs :Gstatus<CR>
     map <leader>gp :Gpush<CR>
 
-    " Dirvish shortcuts
-    map <leader>de :Dirvish %<CR>
-    map <leader>dr :Dirvish<CR>
+    " Netrw shortcuts
+    map <leader>- :Rex<CR>
+    map <leader>de :Ex<CR>
+    map <leader>ds :Vex<CR>
 
     " Tmux shortcuts
     map <leader>tc :VimuxPromptCommand<CR>
