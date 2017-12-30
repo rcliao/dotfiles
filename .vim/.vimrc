@@ -41,6 +41,8 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-repeat'
     " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
+    " Vinegar enhancing `netrw`
+    Plug 'tpope/vim-vinegar'
     "" End of tpope section
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
