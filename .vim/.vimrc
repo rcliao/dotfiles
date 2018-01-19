@@ -8,6 +8,7 @@ if !has('nvim')
     let s:plugvim = '~/.vim/autoload/plug.vim'
 endif
 
+" Auto install vim-plug if not installed
 if empty(glob(s:plugvim))
     silent !curl -fLo s:plugvim --create-dirs
         \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
@@ -111,7 +112,7 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set shiftround             " >> indents to next multiple of 'shiftwidth'.
-    set expandtab              " default to use space rather than tab to indent
+    set noexpandtab            " default to use hard tab rather than space to indent
 
     " Enable foldable
     set foldenable
@@ -124,7 +125,7 @@ call plug#end()
     set list
     set listchars=tab:>\ ,trail:-,extends:>,precedes:<,nbsp:+
 
-    " show line number
+    " show line number and relative number
     set number
     set relativenumber
 
@@ -142,13 +143,13 @@ call plug#end()
     " To hide split character
     set fillchars+=vert:│
 
-    " Change coloescheme conifiguration
+    " Change coloescheme and its conifiguration
     colorscheme gruvbox
     let g:gruvbox_contrast_dark = 'soft'
     let g:gruvbox_contrast_light = 'hard'
     set background=dark
 
-    " True color support
+    " True color support for neovim
     if has('nvim')
         set termguicolors
     endif
