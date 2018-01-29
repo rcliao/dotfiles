@@ -19,7 +19,7 @@ if [[ ! -a ~/usr/libexec/java_home ]]; then
     export PATH=$PATH:~/.local/bin
 fi
 
-# fzf settings
+# fzf settings – enables fuzzy search with "**" like `nvim **`
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # Use nvim if local env and vim for ssh connection
@@ -47,12 +47,12 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # --glob: Additional conditions for search (in this case ignore everything in the .git/ folder)
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.git/*"'
 
-# fe [FUZZY PATTERN] - Open the selected file with the default editor
-#   - Bypass fuzzy finder if there's only one match (--select-1)
-#   - Exit if there's no match (--exit-0)
-fe() {
-  local files
-  IFS=$'\n' files=($(fzf-tmux --query="$1" --multi --select-1 --exit-0))
-  [[ -n "$files" ]] && ${EDITOR:-vim} "${files[@]}"
-}
+# Load up ssh keys
+ssh-add -A &> /dev/null
 
+# Always work in a tmux session if tmux is installed
+if which tmux 2>&1 >/dev/null; then
+  if [ $TERM != "screen-256color" ] && [  $TERM != "screen" ]; then
+    tmux attach -t dev || tmux new -s dev; exit
+  fi
+fi
