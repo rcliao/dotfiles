@@ -53,7 +53,9 @@ call plug#begin(s:plugpath)
     Plug 'mhinz/vim-startify'
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
-    "" Experimental are
+    "" Experimental area
+    " For generating tags automatically and seamlessly
+    Plug 'ludovicchabant/vim-gutentags'
 "" }
 
 "" Languages {
