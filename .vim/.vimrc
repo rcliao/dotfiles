@@ -96,6 +96,9 @@ call plug#end()
     " Use space as leader
     let g:mapleader=' '
 
+    " Enable recursive search with `*find`
+    set path+=**
+    " Allow command to open menu
     set wildmenu
 
     " hide netre banner
@@ -133,7 +136,7 @@ call plug#end()
         au FileType markdown set cc=80
     augroup END
 
-    " More expected split pane behavior (new one to right and bottom)
+    " Expected split pane behavior (new one to right and bottom)
     set splitbelow
     set splitright
 
@@ -181,7 +184,7 @@ call plug#end()
     set statusline+=\ \ \ %-2.2n\                    " buffer number
     set statusline+=\ %f\                            " file name
     set statusline+=\ %h%m%r%w                       " flags
-    set statusline+=%y\                              " file name
+    set statusline+=%y\                              " file type
     set statusline+=%=                               " right align
     set statusline+=\ \ %-7.(%l:%c%V%)               " offset
     set statusline+=\ /\ %-4.L\ \                    " total lines
@@ -281,21 +284,4 @@ call plug#end()
     nmap <leader>z4 :set foldlevel=4<CR>
     nmap <leader>z5 :set foldlevel=5<CR>
     nmap <leader>z9 :set foldlevel=999<CR>
-
-    " shortcuts for Go related files
-    function! s:build_go_files()
-        let l:file = expand('%')
-        if l:file =~# '^\f\+_test\.go$'
-            call go#test#Test(0, 1)
-        elseif l:file =~# '^\f\+\.go$'
-            call go#cmd#Build(0)
-        endif
-    endfunction
-
-    augroup goshortcuts
-        autocmd FileType go nmap <leader>r <Plug>(go-run)
-        autocmd FileType go nmap <leader>t <Plug>(go-test)
-        autocmd FileType go nmap <leader>b :<C-u>call <SID>build_go_files()<CR>
-        autocmd FileType go nmap <leader>c <Plug>(go-coverage-toggle)
-    augroup END
 "" }
