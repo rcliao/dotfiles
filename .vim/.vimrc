@@ -53,10 +53,7 @@ call plug#begin(s:plugpath)
     Plug 'mhinz/vim-startify'
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
-    " Highlight active pane
-    Plug 'blueyed/vim-diminactive'
-    " Tmux integration
-    Plug 'benmills/vimux'
+    "" Experimental are
 "" }
 
 "" Languages {
@@ -112,7 +109,7 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set shiftround             " >> indents to next multiple of 'shiftwidth'.
-    set noexpandtab            " default to use hard tab rather than space to indent
+    set expandtab            " default to use hard tab rather than space to indent
 
     " Enable foldable
     set foldenable
@@ -148,6 +145,13 @@ call plug#end()
     let g:gruvbox_contrast_dark = 'soft'
     let g:gruvbox_contrast_light = 'hard'
     set background=dark
+
+    " highlight the active pane using cursorline
+    augroup BgHighlight
+        autocmd!
+        autocmd WinEnter * set cul
+        autocmd WinLeave * set nocul
+    augroup END
 
     " True color support for neovim
     if has('nvim')
