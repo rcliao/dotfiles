@@ -27,7 +27,7 @@ call plug#begin(s:plugpath)
     " fast fuzzy finder
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
-    " Easy motion
+    " Easy motion `<leader><leader>f` to jump anywhere
     Plug 'easymotion/vim-easymotion'
     " Colorscheme
     Plug 'morhetz/gruvbox'
@@ -54,7 +54,7 @@ call plug#begin(s:plugpath)
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
     "" Experimental area
-    " For generating tags automatically and seamlessly
+    " For generating tags automatically and seamlessly with ctags
     Plug 'ludovicchabant/vim-gutentags'
 "" }
 
@@ -88,7 +88,7 @@ call plug#begin(s:plugpath)
     Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
     " Rust-lang
     Plug 'rust-lang/rust.vim', { 'for': 'rust' }
-    " Tmux
+    " Tmux (for syntax highlight)
     Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
 "" }
 "" Initialize plugin system
@@ -138,7 +138,7 @@ call plug#end()
         au FileType markdown set cc=80
     augroup END
 
-    " Expected split pane behavior (new one to right and bottom)
+    " Expected split pane behavior (new pane to the right and the bottom)
     set splitbelow
     set splitright
 
@@ -152,13 +152,14 @@ call plug#end()
     set background=dark
 
     " highlight the active pane using cursorline
+    set cursorline
     augroup BgHighlight
         autocmd!
-        autocmd WinEnter * set cul
-        autocmd WinLeave * set nocul
+        autocmd WinEnter * set cursorline
+        autocmd WinLeave * set nocursorline
     augroup END
 
-    " True color support for neovim
+    " True color support for neovim and only for neovim
     if has('nvim')
         set termguicolors
     endif
@@ -193,7 +194,7 @@ call plug#end()
 "" }
 
 "" Languages/Plugin settings {
-    " Freemarker to html
+    " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
 
     " Ale (linter settings)
@@ -241,6 +242,8 @@ call plug#end()
     nmap <leader>ls :ls<CR>:buffer<SPACE>
     " built-in fuzzy search
     nmap <leader>e :e **/
+    " Buffer jumb
+    nmap <leader>b :b
     " include search
     nmap <leader>i :ilist<space>
     " quick jump on tags (if generated)
@@ -263,12 +266,6 @@ call plug#end()
     map <leader>- :Rex<CR>
     map <leader>de :Ex<CR>
     map <leader>ds :Vex<CR>
-
-    " Tmux shortcuts
-    map <leader>tc :VimuxPromptCommand<CR>
-    map <leader>tr :VimuxRunLastCommand<CR>
-    map <leader>tz :VimuxZoomRunner<CR>
-    map <leader>td :VimuxCloseRunner<CR>
 
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
