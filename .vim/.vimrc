@@ -243,7 +243,7 @@ call plug#end()
     " built-in fuzzy search
     nmap <leader>e :e **/
     " Buffer jumb
-    nmap <leader>b :b
+    nmap <leader>b :b <C-d>
     " include search
     nmap <leader>i :ilist<space>
     " quick jump on tags (if generated)
