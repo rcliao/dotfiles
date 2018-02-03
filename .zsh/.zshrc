@@ -49,10 +49,3 @@ export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.g
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
-
-# Always work in a tmux session if tmux is installed
-if which tmux 2>&1 >/dev/null; then
-  if [ $TERM != "screen-256color" ] && [  $TERM != "screen" ]; then
-    tmux attach -t dev || tmux new -s dev; exit
-  fi
-fi
