@@ -22,13 +22,11 @@ call plug#begin(s:plugpath)
 "" Common plugins {
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
-    " EditorConfig integration
-    Plug 'editorconfig/editorconfig-vim'
+    " lightweight file explorer (netrw is buggy with bunch of trash buffer)
+    Plug 'justinmk/vim-dirvish'
     " fast fuzzy finder
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
-    " Easy motion `<leader><leader>f` to jump anywhere
-    Plug 'easymotion/vim-easymotion'
     " Colorscheme
     Plug 'morhetz/gruvbox'
     "" tpope section
@@ -42,13 +40,17 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-repeat'
     " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
-    " Vinegar enhancing `netrw`
-    Plug 'tpope/vim-vinegar'
     "" End of tpope section
-    " Provide additional text object for Vim like (b{B,t
-    Plug 'wellle/targets.vim'
     " Async General Linter
     Plug 'w0rp/ale'
+    " Provide additional text object for Vim like (b{B,t
+    Plug 'wellle/targets.vim'
+    "" Rarely used plugins
+    " Easy motion `<leader><leader>f` to jump anywhere
+    Plug 'easymotion/vim-easymotion'
+    " EditorConfig integration
+    Plug 'editorconfig/editorconfig-vim'
+    "" Optional fun plugins
     " Start screen
     Plug 'mhinz/vim-startify'
     " Personal Wiki
@@ -196,6 +198,9 @@ call plug#end()
 "" Languages/Plugin settings {
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
+
+    " Dirvish settings
+    let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
 
     " Ale (linter settings)
     " JavaScript
