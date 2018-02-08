@@ -33,9 +33,6 @@ fi
 export GPG_TTY=$(tty)
 export GPG_TTY
 
-# Gruvbox colorscheme
-source  ~/.local/share/nvim/plugged/gruvbox/gruvbox_256palette.sh
-
 # rust-lang cargo env
 export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -49,3 +46,7 @@ export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.g
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
+
+# For setting up base16 shell
+BASE16_SHELL=$HOME/.config/base16-shell/
+[ -n "$PS1" ] && [ -s $BASE16_SHELL/profile_helper.sh ] && eval "$($BASE16_SHELL/profile_helper.sh)"

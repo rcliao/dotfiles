@@ -28,7 +28,7 @@ call plug#begin(s:plugpath)
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
     " Colorscheme
-    Plug 'morhetz/gruvbox'
+    Plug 'chriskempson/base16-vim'
     "" tpope section
     " Git integration in vim like :Gstatus => C (commit) => :Gpush
     Plug 'tpope/vim-fugitive'
@@ -148,10 +148,10 @@ call plug#end()
     set fillchars+=vert:│
 
     " Change coloescheme and its conifiguration
-    colorscheme gruvbox
-    let g:gruvbox_contrast_dark = 'soft'
-    let g:gruvbox_contrast_light = 'hard'
-    set background=dark
+    if filereadable(expand("~/.vimrc_background"))
+        let base16colorspace=256
+        source ~/.vimrc_background
+    endif
 
     " highlight the active pane using cursorline
     set cursorline
