@@ -58,6 +58,8 @@ call plug#begin(s:plugpath)
     "" Experimental area
     " For generating tags automatically and seamlessly with ctags
     Plug 'ludovicchabant/vim-gutentags'
+    " For aligning text
+    Plug 'tommcdo/vim-lion'
 "" }
 
 "" Languages {
