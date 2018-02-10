@@ -4,6 +4,10 @@ export ZSH=~/.oh-my-zsh
 # Zsh theme
 ZSH_THEME="ys"
 
+plugins=(
+  vi-mode
+)
+
 source $ZSH/oh-my-zsh.sh
 
 # for Vimr under bin folder
