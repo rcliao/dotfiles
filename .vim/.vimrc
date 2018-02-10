@@ -60,6 +60,8 @@ call plug#begin(s:plugpath)
     Plug 'ludovicchabant/vim-gutentags'
     " For aligning text
     Plug 'tommcdo/vim-lion'
+    " UltiSnip for snippet management
+    Plug 'SirVer/ultisnips'
 "" }
 
 "" Languages {
