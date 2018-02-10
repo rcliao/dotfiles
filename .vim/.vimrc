@@ -28,7 +28,7 @@ call plug#begin(s:plugpath)
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
     " Colorscheme
-    Plug 'chriskempson/base16-vim'
+    Plug 'nlknguyen/papercolor-theme'
     "" tpope section
     " Git integration in vim like :Gstatus => C (commit) => :Gpush
     Plug 'tpope/vim-fugitive'
@@ -152,10 +152,8 @@ call plug#end()
     set fillchars+=vert:│
 
     " Change coloescheme and its conifiguration
-    if filereadable(expand('~/.vimrc_background'))
-        let g:base16colorspace=256
-        source ~/.vimrc_background
-    endif
+    set background=dark
+    colorscheme PaperColor
 
     " color highlight of the current cursor number
     hi CursorLineNr   term=bold ctermfg=1 gui=bold guifg=#f99157
@@ -167,11 +165,6 @@ call plug#end()
         autocmd WinEnter * set cursorline
         autocmd WinLeave * set nocursorline
     augroup END
-
-    " True color support for neovim and only for neovim
-    if has('nvim')
-        set termguicolors
-    endif
 
     " spell check on markdown and gitcommit file
     augroup spellchecker
