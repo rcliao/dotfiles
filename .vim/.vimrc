@@ -155,9 +155,6 @@ call plug#end()
     set background=dark
     colorscheme PaperColor
 
-    " color highlight of the current cursor number
-    hi CursorLineNr   term=bold ctermfg=1 gui=bold guifg=#f99157
-
     " highlight the active pane using cursorline
     set cursorline
     augroup BgHighlight
