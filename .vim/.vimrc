@@ -150,10 +150,13 @@ call plug#end()
     set fillchars+=vert:│
 
     " Change coloescheme and its conifiguration
-    if filereadable(expand("~/.vimrc_background"))
-        let base16colorspace=256
+    if filereadable(expand('~/.vimrc_background'))
+        let g:base16colorspace=256
         source ~/.vimrc_background
     endif
+
+    " color highlight of the current cursor number
+    hi CursorLineNr   term=bold ctermfg=1 gui=bold guifg=#f99157
 
     " highlight the active pane using cursorline
     set cursorline
