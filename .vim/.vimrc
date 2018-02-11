@@ -28,7 +28,7 @@ call plug#begin(s:plugpath)
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
     " Colorscheme
-    Plug 'nlknguyen/papercolor-theme'
+    Plug 'morhetz/gruvbox'
     "" tpope section
     " Git integration in vim like :Gstatus => C (commit) => :Gpush
     Plug 'tpope/vim-fugitive'
@@ -149,11 +149,26 @@ call plug#end()
     set splitright
 
     " To hide split character
-    set fillchars+=vert:│
+    set fillchars=vert:\ ,stl:\ ,stlnc:\ 
 
     " Change coloescheme and its conifiguration
     set background=dark
-    colorscheme PaperColor
+    colorscheme gruvbox
+
+    " unify color with iTerm
+    hi vertsplit ctermfg=238 ctermbg=235
+    hi LineNr ctermfg=237
+    hi StatusLine ctermfg=235 ctermbg=245
+    hi StatusLineNC ctermfg=235 ctermbg=237
+    hi Search ctermbg=58 ctermfg=15
+    hi Default ctermfg=1
+    hi clear SignColumn
+    hi SignColumn ctermbg=235
+    hi GitGutterAdd ctermbg=235 ctermfg=245
+    hi GitGutterChange ctermbg=235 ctermfg=245
+    hi GitGutterDelete ctermbg=235 ctermfg=245
+    hi GitGutterChangeDelete ctermbg=235 ctermfg=245
+    hi EndOfBuffer ctermfg=237 ctermbg=235
 
     " highlight the active pane using cursorline
     set cursorline

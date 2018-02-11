@@ -40,6 +40,9 @@ export GPG_TTY
 # rust-lang cargo env
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Gruvbox colorscheme
+[ -f ~/.local/share/nvim/plugged/gruvbox/gruvbox_256palette.sh ] && source ~/.local/share/nvim/plugged/gruvbox/gruvbox_256palette.sh
+
 # RipGrep settings
 # --files: List files that would be searched but do not search
 # --no-ignore: Do not respect .gitignore, etc...
