@@ -120,7 +120,7 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set shiftround             " >> indents to next multiple of 'shiftwidth'.
-    set expandtab            " default to use hard tab rather than space to indent
+    set expandtab              " default to use hard tab rather than space to indent
 
     " Enable foldable
     set foldenable
@@ -274,6 +274,11 @@ call plug#end()
     " quick vimrc editing/reloading
     map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
     map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
+
+    " <c-l> to remove highlighting of hlsearch
+    if maparg('<C-L>', 'n') ==# ''
+        nnoremap <silent> <C-L> :nohlsearch<C-R>=has('diff')?'<Bar>diffupdate':''<CR><CR><C-L>
+    endif
 
     " fugitive shortcuts
     map <leader>gs :Gstatus<CR>
