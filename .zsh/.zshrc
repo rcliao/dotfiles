@@ -2,7 +2,7 @@
 export ZSH=~/.oh-my-zsh
 
 # Zsh theme
-ZSH_THEME="ys"
+ZSH_THEME="spaceship"
 
 plugins=(
   vi-mode
