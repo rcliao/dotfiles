@@ -41,3 +41,14 @@ shift + alt - 6 : chunkc tiling::window --send-to-desktop 6
 
 # monitor switch
 alt - t : chunkc tiling:monitor -f next
+
+## Resize
+alt - left 	: chunkc tiling::window --use-temporary-ratio 0.1 --adjust-window-edge west
+alt - down 	: chunkc tiling::window --use-temporary-ratio 0.1 --adjust-window-edge south
+alt - up 	: chunkc tiling::window --use-temporary-ratio 0.1 --adjust-window-edge north
+alt - right 	: chunkc tiling::window --use-temporary-ratio 0.1 --adjust-window-edge east
+
+alt + shift - right 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge west
+alt + shift - down 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge south
+alt + shift - up 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge north
+alt + shift - left 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge east
