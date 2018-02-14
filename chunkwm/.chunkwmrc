@@ -27,8 +27,8 @@ chunkc set 5_desktop_mode                float
 
 chunkc set global_desktop_offset_top     32
 chunkc set global_desktop_offset_bottom  32
-chunkc set global_desktop_offset_left    160
-chunkc set global_desktop_offset_right   160
+chunkc set global_desktop_offset_left    80
+chunkc set global_desktop_offset_right   80
 chunkc set global_desktop_offset_gap     16
 
 chunkc set desktop_padding_step_size     10.0
