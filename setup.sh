@@ -10,6 +10,8 @@ chunkwmrc=~/dotfiles/chunkwm/.chunkwmrc
 chunkwmrc_dest=~/.chunkwmrc
 skhdrc=~/dotfiles/chunkwm/.skhdrc
 skhdrc_dest=~/.skhdrc
+ranger_config=~/dotfiles/ranger
+ranger_config_dest=~/.config/ranger
 
 echo "Setting up $vimrc => $vimrc_dest"
 ln -sf $vimrc $vimrc_dest
@@ -21,3 +23,5 @@ echo "Setting up $chunkwmrc => $chunkwmrc_dest"
 ln -sf $chunkwmrc $chunkwmrc_dest
 echo "Setting up $skhdrc => $skhdrc_dest"
 ln -sf $skhdrc $skhdrc_dest
+echo "Setting up $ranger_config => $ranger_config_dest"
+ln -sf $ranger_config $ranger_config_dest
