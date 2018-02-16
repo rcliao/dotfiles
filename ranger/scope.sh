@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -o noclobber -o noglob -o nounset -o pipefail
+# Temporarily commented out based on https://github.com/ranger/ranger/issues/1072
+# set -o noclobber -o noglob -o nounset -o pipefail
 IFS=$'\n'
 
 # If the option `use_preview_script` is set to `true`,
@@ -176,3 +177,4 @@ handle_mime "${MIMETYPE}"
 handle_fallback
 
 exit 1
+
