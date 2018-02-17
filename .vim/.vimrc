@@ -157,7 +157,6 @@ call plug#end()
 
     " unify color with iTerm
     hi vertsplit ctermfg=238 ctermbg=None
-    hi LineNr ctermfg=237
     hi StatusLine ctermfg=None ctermbg=245
     hi StatusLineNC ctermfg=None ctermbg=237
     hi Search ctermbg=58 ctermfg=15
