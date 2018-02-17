@@ -52,3 +52,6 @@ alt + shift - right 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust
 alt + shift - down 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge south
 alt + shift - up 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge north
 alt + shift - left 	: chunkc tiling::window --use-temporary-ratio -0.1 --adjust-window-edge east
+
+## work around on screenshot blocked by border
+cmd + shift - 4 -> : chunkc border::clear
