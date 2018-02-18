@@ -29,6 +29,7 @@ call plug#begin(s:plugpath)
     Plug 'junegunn/fzf.vim'
     " Colorscheme
     Plug 'morhetz/gruvbox'
+    Plug 'arcticicestudio/nord-vim'
     "" tpope section
     " Git integration in vim like :Gstatus => C (commit) => :Gpush
     Plug 'tpope/vim-fugitive'
@@ -152,14 +153,10 @@ call plug#end()
     set fillchars=vert:\ ,stl:\ ,stlnc:\ 
 
     " Change coloescheme and its conifiguration
-    set background=dark
-    colorscheme gruvbox
+    colorscheme nord
 
     " unify color with iTerm
     hi vertsplit ctermfg=238 ctermbg=None
-    hi StatusLine ctermfg=None ctermbg=245
-    hi StatusLineNC ctermfg=None ctermbg=237
-    hi Search ctermbg=58 ctermfg=15
     hi Default ctermfg=1
     hi clear SignColumn
     hi SignColumn ctermbg=None
