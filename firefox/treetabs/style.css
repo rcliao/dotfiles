@@ -7,7 +7,7 @@ div#background {
     --faviconized-tab-size: 28px;
 }
 
-.tab[data-level] {
+.tab[data-level]:not(.collapsed) {
     margin: 0 !important;
     border-top: 1px dashed;
     margin-bottom: 4px !important;
