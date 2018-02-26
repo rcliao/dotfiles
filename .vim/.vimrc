@@ -153,6 +153,7 @@ call plug#end()
     set fillchars=vert:\ ,stl:\ ,stlnc:\ 
 
     " Change coloescheme and its conifiguration
+    let g:nord_comment_brightness = 12
     colorscheme nord
 
     " unify color with iTerm
