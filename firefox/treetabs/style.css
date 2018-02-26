@@ -7,14 +7,21 @@ div#background {
     --faviconized-tab-size: 28px;
 }
 
-.tab[data-level]:not(.collapsed) {
+.tab[data-level]:not([data-level="0"]):not(.collapsed) {
     margin: 0 !important;
     border-top: 1px dashed;
-    margin-bottom: 4px !important;
+}
+.tab[data-level="2"]:not(.collapsed) {
+    border-top: 1px dotted !important;
 }
 
 .tab {
     padding: 12px 8px;
+    margin-top: 4px;
+}
+.tab + .tab[data-level]:not([data-level="0"]):not(.collapsed),
+.tab:first-child {
+    margin-top: 0px;
 }
 
 /* Hide .twisty and adjust margins so favicons have 7px on left. */
