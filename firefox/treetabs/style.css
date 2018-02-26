@@ -1,44 +1,117 @@
-/* hide macos close/maximize/close buttons */
-#titlebar {display: none !important;}
-#main-window {-moz-appearance:none !important;}
+div#background {
+    background-color: #333;
+}
 
-/* Hide main tabs toolbar */
-#TabsToolbar {
+:root {
+    --favicon-size:         16px;
+    --faviconized-tab-size: 28px;
+}
+
+.tab[data-level] {
+    margin: 0 !important;
+    border-top: 1px dashed;
+    margin-bottom: 4px !important;
+}
+
+.tab {
+    padding: 12px 8px;
+}
+
+/* Hide .twisty and adjust margins so favicons have 7px on left. */
+.tab .twisty {
+    visibility: hidden;
+    margin-left: -11px;
+}
+
+/* Push tab labels slightly to the right so they're completely hidden in collapsed state */
+.tab .label {
+    margin-left: 16px;
+}
+
+/* Hide close buttons on tabs. */
+.tab .closebox {
     visibility: collapse;
 }
-/* Sidebar min and max width removal */
-#sidebar {
-    max-width: none !important;
-    min-width: 0px !important;
-}
-/* Hide splitter, when using Tree Style Tab. */
-#sidebar-box[sidebarcommand="treestyletab_piro_sakura_ne_jp-sidebar-action"] + #sidebar-splitter {
+
+/* Hide sound playing/muted button. */
+.sound-button::before {
     display: none !important;
 }
-/* Hide sidebar header, when using Tree Style Tab. */
-#sidebar-box[sidebarcommand="treestyletab_piro_sakura_ne_jp-sidebar-action"] #sidebar-header {
-    visibility: collapse;
+
+/* Hide 'new tab' button. */
+.newtab-button {
+    display: none;
 }
 
-/* Shrink sidebar until hovered, when using Tree Style Tab. */
-:root {
-    --thin-tab-width: 30px;
-    --wide-tab-width: 200px;
+/* ################################################ */
+/* ##### COLOR THEME ############################## */
+/* ################################################ */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
-#sidebar-box:not([sidebarcommand="treestyletab_piro_sakura_ne_jp-sidebar-action"]) {
-    min-width: var(--wide-tab-width) !important;
-    max-width: none !important;
+@keyframes pulse {
+    0% {
+        width: 0px;
+        height: 0px;
+        opacity: 1;
+    }
+    100% {
+        width: 350px;
+        height: 350px;
+        opacity: 0;
+        top: calc(50% - 175px);
+        left: calc(50% - 175px);
+    }
 }
-#sidebar-box[sidebarcommand="treestyletab_piro_sakura_ne_jp-sidebar-action"] {
-    position: relative !important;
-    transition: all 300ms !important;
-    min-width: var(--thin-tab-width) !important;
-    max-width: var(--thin-tab-width) !important;
+#tabbar {
+    border-right: 1px solid rgba(0,0,0,0.1);
 }
-#sidebar-box[sidebarcommand="treestyletab_piro_sakura_ne_jp-sidebar-action"]:hover {
-    transition: all 300ms !important;
-    min-width: var(--wide-tab-width) !important;
-    max-width: var(--wide-tab-width) !important;
-    margin-right: calc((var(--wide-tab-width) - var(--thin-tab-width)) * -1) !important;
+.tab {
+    font-size: 14px;
+    background-color: #ccc;
+    border-color: #292929;
+    color: #333;
+    box-shadow: none !important;
+    text-align: center;
+}
+.tab:hover {
+    background-color: #88c0d0 !important;
+}
+.tab.discarded {
+    background-color: #1d1d1d;
+    color: #383838 !important;
+}
+.tab.discarded:hover {
+    background-color: #88c0d0 !important;
 }
 
+.tab.active {
+    background-color: #8fbcbb;
+}
+.tab.active:hover {
+    background-color: #88c0d0 !important;
+}
+
+
+/* Adjust style for tab that has sound playing. */
+.tab.sound-playing .favicon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    background: #FFFFFF;
+    animation: pulse 2s ease-out 0s infinite;
+    z-index: -1;
+    opacity: 0;
+}
+
+/* Adjust style for tab that is muted. */
+.tab.muted {
+    opacity: 0.5;
+}
