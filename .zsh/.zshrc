@@ -39,13 +39,8 @@ export GPG_TTY=$(tty)
 # rust-lang cargo env
 export PATH="$HOME/.cargo/bin:$PATH"
 
-# RipGrep settings
-# --files: List files that would be searched but do not search
-# --no-ignore: Do not respect .gitignore, etc...
-# --hidden: Search hidden files and folders
-# --follow: Follow symlinks
-# --glob: Additional conditions for search (in this case ignore everything in the .git/ folder)
-export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.git/*"'
+# use fd as default find command to traverse the file system while respecting .gitignore
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
