@@ -12,6 +12,8 @@ skhdrc=~/dotfiles/chunkwm/.skhdrc
 skhdrc_dest=~/.skhdrc
 ranger_config=~/dotfiles/ranger
 ranger_config_dest=~/.config/ranger
+alacritty_config=~/dotfiles/alacritty/alacritty.yml
+alacritty_config_dest=~/.config/alacritty/alacritty.yml
 
 echo "Setting up $vimrc => $vimrc_dest"
 ln -sf $vimrc $vimrc_dest
@@ -25,3 +27,5 @@ echo "Setting up $skhdrc => $skhdrc_dest"
 ln -sf $skhdrc $skhdrc_dest
 echo "Setting up $ranger_config => $ranger_config_dest"
 ln -sf $ranger_config $ranger_config_dest
+echo "Setting up $alacritty_config => $alacritty_config_dest"
+ln -sf $alacritty_config $alacritty_config_dest
