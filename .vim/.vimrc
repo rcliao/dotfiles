@@ -245,7 +245,7 @@ call plug#end()
     let g:UltiSnipsJumpBackwardTrigger = '<c-k>'
     let g:UltiSnipsSnippetsDir = $HOME.'/dotfiles/UltiSnips'
     let g:UltiSnipsSnippetDirectories = ['UltiSnips', $HOME.'/dotfiles/UltiSnips']
-    let g:UltiSnipsEnableSnipMate = 0
+    let g:UltiSnipsEditSplit="vertical"
     " to bring up omni complete
     ino <silent> <c-x><c-z> <c-r>=<sid>ulti_complete()<cr>
     fu! s:ulti_complete() abort

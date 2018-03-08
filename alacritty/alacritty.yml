@@ -29,10 +29,12 @@ window:
 
   # Window decorations
   # Setting this to false will result in window without borders and title bar.
-  decorations: false
+  # has to set to true because the support with chunkwm is not there (e.g.
+  # the window focus event is not implemented correctly)
+  decorations: true
 
 # Display tabs using this many cells (changes require restart)
-tabspaces: 8
+tabspaces: 4
 
 # When true, bold text is drawn using the bright variant of colors.
 draw_bold_text_with_bright_colors: true
@@ -184,7 +186,7 @@ mouse:
 selection:
   semantic_escape_chars: ",│`|:\"' ()[]{}<>"
 
-dynamic_title: true
+dynamic_title: false
 
 hide_cursor_when_typing: false
 
