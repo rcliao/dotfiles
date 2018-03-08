@@ -41,6 +41,8 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-repeat'
     " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
+    " Database interaction
+    Plug 'tpope/vim-db'
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
