@@ -62,7 +62,7 @@ call plug#begin(s:plugpath)
     " For aligning text
     Plug 'tommcdo/vim-lion'
     " UltiSnip for snippet management
-    Plug 'SirVer/ultisnips'
+    Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
 "" }
 
 "" Languages {
@@ -239,6 +239,34 @@ call plug#end()
     let g:go_highlight_build_constraints = 1
     let g:go_fmt_command = 'goimports'
 
+    " ultisnip configurations
+    let g:UltiSnipsExpandTrigger = '<tab>'
+    let g:UltiSnipsJumpForwardTrigger = '<c-j>'
+    let g:UltiSnipsJumpBackwardTrigger = '<c-k>'
+    let g:UltiSnipsSnippetsDir = $HOME.'/dotfiles/UltiSnips'
+    let g:UltiSnipsSnippetDirectories = ['UltiSnips', $HOME.'/dotfiles/UltiSnips']
+    let g:UltiSnipsEnableSnipMate = 0
+    " to bring up omni complete
+    ino <silent> <c-x><c-z> <c-r>=<sid>ulti_complete()<cr>
+    fu! s:ulti_complete() abort
+        if empty(UltiSnips#SnippetsInCurrentScope(1))
+            return ''
+        endif
+        let l:word_to_complete = matchstr(strpart(getline('.'), 0, col('.') - 1), '\S\+$')
+        let l:contain_word = 'stridx(v:val, word_to_complete)>=0'
+        let l:candidates = map(filter(keys(g:current_ulti_dict_info), l:contain_word),
+                    \  "{
+                    \      'word': v:val,
+                    \      'menu': '[snip] '. g:current_ulti_dict_info[v:val]['description'],
+                    \      'dup' : 1,
+                    \   }")
+        let l:from_where = col('.') - len(l:word_to_complete)
+        if !empty(l:candidates)
+            call complete(l:from_where, l:candidates)
+        endif
+        return ''
+    endfu
+
     " RipGrep settings
     " --column: Show column number
     " --line-number: Show line number
@@ -307,3 +335,4 @@ call plug#end()
     nmap <leader>z5 :set foldlevel=5<CR>
     nmap <leader>z9 :set foldlevel=999<CR>
 "" }
+
