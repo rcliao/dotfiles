@@ -28,7 +28,6 @@ call plug#begin(s:plugpath)
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
     " Colorscheme
-    Plug 'morhetz/gruvbox'
     Plug 'arcticicestudio/nord-vim'
     "" tpope section
     " Git integration in vim like :Gstatus => C (commit) => :Gpush
@@ -209,6 +208,10 @@ call plug#end()
 "" }
 
 "" Languages/Plugin settings {
+    " git gutter settings
+    " update time faster for gitgutter
+    set updatetime=100
+
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
 
