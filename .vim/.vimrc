@@ -30,18 +30,12 @@ call plug#begin(s:plugpath)
     " Colorscheme
     Plug 'arcticicestudio/nord-vim'
     "" tpope section
-    " Git integration in vim like :Gstatus => C (commit) => :Gpush
-    Plug 'tpope/vim-fugitive'
     " Easily change surrounding stuff like cs'"
     Plug 'tpope/vim-surround'
     " More natural binding on navigations like q[
     Plug 'tpope/vim-unimpaired'
-    " Allow "." to repeat many plugin actions
-    Plug 'tpope/vim-repeat'
     " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
-    " Database interaction
-    Plug 'tpope/vim-db'
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
@@ -50,8 +44,6 @@ call plug#begin(s:plugpath)
     "" Rarely used plugins
     " Easy motion `<leader><leader>f` to jump anywhere
     Plug 'easymotion/vim-easymotion'
-    " EditorConfig integration
-    Plug 'editorconfig/editorconfig-vim'
     "" Optional fun plugins
     " Start screen
     Plug 'mhinz/vim-startify'
@@ -60,8 +52,6 @@ call plug#begin(s:plugpath)
     "" Experimental area
     " For generating tags automatically and seamlessly with ctags
     Plug 'ludovicchabant/vim-gutentags'
-    " For aligning text
-    Plug 'tommcdo/vim-lion'
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
 "" }
@@ -150,10 +140,15 @@ call plug#end()
     set splitbelow
     set splitright
 
-    " To hide split character
+    " To hide pane split character
     set fillchars=vert:\ ,stl:\ ,stlnc:\ 
 
-    " Change coloescheme and its conifiguration
+    " True color support for nvim
+    if has('nvim-0.1.5')        " True color in neovim wasn't added until 0.1.5
+        set termguicolors
+    endif
+
+    " Change colorscheme and its conifiguration
     let g:nord_comment_brightness = 12
     colorscheme nord
 
