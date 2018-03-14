@@ -42,8 +42,6 @@ call plug#begin(s:plugpath)
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
     "" Rarely used plugins
-    " Easy motion `<leader><leader>f` to jump anywhere
-    Plug 'easymotion/vim-easymotion'
     "" Optional fun plugins
     " Start screen
     Plug 'mhinz/vim-startify'
@@ -112,7 +110,6 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set shiftround             " >> indents to next multiple of 'shiftwidth'.
-    set expandtab              " default to use hard tab rather than space to indent
 
     " Enable foldable
     set foldenable
@@ -121,7 +118,7 @@ call plug#end()
     " incremental search
     set incsearch
 
-    " Show invisibles
+    " Show invisibles characters like space or tabs
     set list
     set listchars=tab:>\ ,trail:-,extends:>,precedes:<,nbsp:+
 
@@ -152,18 +149,18 @@ call plug#end()
     let g:nord_comment_brightness = 12
     colorscheme nord
 
-    " unify color with iTerm
-    hi vertsplit ctermfg=238 ctermbg=None
-    hi Default ctermfg=1
+    " Transparent background
+    hi vertsplit ctermbg=None guibg=None
     hi clear SignColumn
-    hi SignColumn ctermbg=None
-    hi GitGutterAdd ctermbg=None ctermfg=245
-    hi GitGutterChange ctermbg=None ctermfg=245
-    hi GitGutterDelete ctermbg=None ctermfg=245
-    hi GitGutterChangeDelete ctermbg=None ctermfg=245
-    hi EndOfBuffer ctermfg=237 ctermbg=None
+    hi LineNr ctermbg=None guibg=None
+    hi SignColumn ctermbg=None guibg=None
+    hi GitGutterAdd ctermbg=None guibg=None
+    hi GitGutterChange ctermbg=None guibg=None
+    hi GitGutterDelete ctermbg=None guibg=None
+    hi GitGutterChangeDelete ctermbg=None guibg=None
+    hi EndOfBuffer guibg=None ctermbg=None
     " transparent background
-    highlight Normal ctermbg=None
+    highlight Normal guibg=None ctermbg=None
 
     " highlight the active pane using cursorline
     set cursorline
@@ -312,7 +309,7 @@ call plug#end()
     map <leader>gp :Gpush<CR>
 
     " Netrw shortcuts
-    map <leader>- :Rex<CR>
+    map <leader>-  :Rex<CR>
     map <leader>de :Ex<CR>
     map <leader>ds :Vex<CR>
 
