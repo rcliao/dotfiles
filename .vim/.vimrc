@@ -86,6 +86,8 @@ call plug#begin(s:plugpath)
     Plug 'rust-lang/rust.vim', { 'for': 'rust' }
     " Tmux (for syntax highlight)
     Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
+    " Kotlin
+    Plug 'udalov/kotlin-vim'
 "" }
 "" Initialize plugin system
 call plug#end()
