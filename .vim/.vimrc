@@ -94,6 +94,9 @@ call plug#end()
     " Use space as leader
     let g:mapleader=' '
 
+    " To avoid buffer needing to write to disk when abandoned
+    set hidden
+
     " Enable recursive search with `*find`
     set path+=**
     " Allow command to open menu
