@@ -39,9 +39,10 @@ call plug#begin(s:plugpath)
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
+    " Easy motion
+    Plug 'easymotion/vim-easymotion'
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
-    "" Rarely used plugins
     "" Optional fun plugins
     " Start screen
     Plug 'mhinz/vim-startify'
@@ -52,6 +53,8 @@ call plug#begin(s:plugpath)
     Plug 'ludovicchabant/vim-gutentags'
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
+    " Org mode for note taking / TODOs
+    Plug 'jceb/vim-orgmode' | Plug 'tpope/vim-speeddating'
 "" }
 
 "" Languages {
