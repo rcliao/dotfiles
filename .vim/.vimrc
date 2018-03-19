@@ -208,6 +208,9 @@ call plug#end()
     " update time faster for gitgutter
     set updatetime=100
 
+    " VimWiki settings
+    let g:vimwiki_list=[{'syntax': 'markdown', 'ext': '.md'}]
+
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
 
