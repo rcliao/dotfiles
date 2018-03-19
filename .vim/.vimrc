@@ -39,9 +39,10 @@ call plug#begin(s:plugpath)
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
+    " Easy motion
+    Plug 'easymotion/vim-easymotion'
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
-    "" Rarely used plugins
     "" Optional fun plugins
     " Start screen
     Plug 'mhinz/vim-startify'
@@ -95,6 +96,9 @@ call plug#end()
 "" General Settings {
     " Use space as leader
     let g:mapleader=' '
+
+    " To avoid buffer needing to write to disk when abandoned
+    set hidden
 
     " Enable recursive search with `*find`
     set path+=**
@@ -205,6 +209,9 @@ call plug#end()
     " git gutter settings
     " update time faster for gitgutter
     set updatetime=100
+
+    " VimWiki settings
+    let g:vimwiki_list=[{'syntax': 'markdown', 'ext': '.md'}]
 
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
