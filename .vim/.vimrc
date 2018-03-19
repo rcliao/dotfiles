@@ -53,8 +53,6 @@ call plug#begin(s:plugpath)
     Plug 'ludovicchabant/vim-gutentags'
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
-    " Org mode for note taking / TODOs
-    Plug 'jceb/vim-orgmode' | Plug 'tpope/vim-speeddating'
 "" }
 
 "" Languages {
