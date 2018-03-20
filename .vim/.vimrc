@@ -209,7 +209,9 @@ call plug#end()
     set updatetime=100
 
     " VimWiki settings
-    let g:vimwiki_list=[{'syntax': 'markdown', 'ext': '.md'}]
+    let g:vimwiki_list=[{'path': '~/vimwiki',
+                \ 'syntax': 'markdown'}]
+    au BufRead,BufNewFile *.md set filetype=markdown.vimwiki
 
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
