@@ -308,6 +308,8 @@ call plug#end()
     map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
     map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
+    map <leader>td "=strftime("%Y-%m-%d")<CR>P
+
     " <c-l> to remove highlighting of hlsearch
     if maparg('<C-L>', 'n') ==# ''
         nnoremap <silent> <C-L> :nohlsearch<C-R>=has('diff')?'<Bar>diffupdate':''<CR><CR><C-L>
