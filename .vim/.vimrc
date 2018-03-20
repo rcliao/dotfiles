@@ -87,6 +87,8 @@ call plug#begin(s:plugpath)
     Plug 'rust-lang/rust.vim', { 'for': 'rust' }
     " Tmux (for syntax highlight)
     Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
+    " Kotlin
+    Plug 'udalov/kotlin-vim'
 "" }
 "" Initialize plugin system
 call plug#end()
@@ -307,6 +309,8 @@ call plug#end()
     " quick vimrc editing/reloading
     map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
     map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
+
+    map <leader>td "=strftime("%Y-%m-%d")<CR>P
 
     " <c-l> to remove highlighting of hlsearch
     if maparg('<C-L>', 'n') ==# ''
