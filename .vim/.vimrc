@@ -108,6 +108,9 @@ call plug#end()
     " hide netre banner
     let g:netrw_banner = 0
 
+    " when scroll up and down, apply "margin" so easier to see context
+    set scrolloff=4
+
     " Indentation settings
     set autoindent             " Usually does the right thing unless it doesnt
     set copyindent             " copy indent from the previous line
@@ -213,7 +216,10 @@ call plug#end()
     " VimWiki settings
     let g:vimwiki_list=[{'path': '~/vimwiki',
                 \ 'syntax': 'markdown', 'ext': '.md'}]
-    autocmd BufEnter,BufRead,BufNewFile *.md set filetype=markdown.vimwiki
+    " to avoid vimwiki on every single markdown
+    let g:vimwiki_global_ext=0
+    " to allow ultisnip use tab to expand snippets
+    let g:vimwiki_table_mappings = 0
 
     " Markdown settings
     autocmd BufEnter,BufRead,BufNewFile *.md set foldlevel=1
