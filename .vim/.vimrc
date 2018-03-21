@@ -221,9 +221,6 @@ call plug#end()
     " to allow ultisnip use tab to expand snippets
     let g:vimwiki_table_mappings = 0
 
-    " Markdown settings
-    autocmd BufEnter,BufRead,BufNewFile *.md set foldlevel=1
-
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
 
