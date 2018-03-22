@@ -36,6 +36,8 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-unimpaired'
     " Comment stuff out by gcc
     Plug 'tpope/vim-commentary'
+    " Allowing "." command to repat various plugin actions
+    Plug 'tpope/vim-repeat'
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
