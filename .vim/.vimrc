@@ -1,21 +1,23 @@
 scriptencoding utf-8
 
-let s:plugpath = '~/.local/share/nvim/plugged'
-let s:plugvim = '~/.local/share/nvim/site/autoload/plug.vim'
+"" Set up for Vim-Plug {
+    let s:plugpath = '~/.local/share/nvim/plugged'
+    let s:plugvim = '~/.local/share/nvim/site/autoload/plug.vim'
 
-if !has('nvim')
-    let s:plugpath = '~/.vim/plugged'
-    let s:plugvim = '~/.vim/autoload/plug.vim'
-endif
+    if !has('nvim')
+        let s:plugpath = '~/.vim/plugged'
+        let s:plugvim = '~/.vim/autoload/plug.vim'
+    endif
 
-" Auto install vim-plug if not installed
-if empty(glob(s:plugvim))
-    silent !curl -fLo s:plugvim --create-dirs
-        \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-    augroup AutoInstallPlug
-        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-    augroup END
-endif
+" Auto install vim-plug if not installed {
+    if empty(glob(s:plugvim))
+        silent !curl -fLo s:plugvim --create-dirs
+            \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        augroup AutoInstallPlug
+            autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+        augroup END
+    endif
+"" }
 
 " https://github.com/junegunn/vim-plug
 call plug#begin(s:plugpath)
@@ -216,7 +218,7 @@ call plug#end()
     set updatetime=100
 
     " VimWiki settings
-    let g:vimwiki_list=[{'path': '~/vimwiki',
+    let g:vimwiki_list = [{'path': '~/vimwiki',
                 \ 'syntax': 'markdown', 'ext': '.md'}]
     " to avoid vimwiki on every single markdown
     let g:vimwiki_global_ext=0

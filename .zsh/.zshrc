@@ -2,13 +2,18 @@
 export ZSH=~/.oh-my-zsh
 
 # Zsh theme
-ZSH_THEME="spaceship"
+ZSH_THEME=""
 
 plugins=(
   vi-mode
 )
 
 source $ZSH/oh-my-zsh.sh
+
+# npm i -g pure-prompt
+PURE_GIT_PULL=0
+autoload -U promptinit; promptinit
+prompt pure
 
 # for Vimr under bin folder
 export PATH=$PATH:~/bin
@@ -44,3 +49,4 @@ export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
+
