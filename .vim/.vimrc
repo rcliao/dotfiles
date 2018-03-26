@@ -320,7 +320,7 @@ call plug#end()
     map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
     map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
-    map <leader>td "=strftime("%Y-%m-%d")<CR>P
+    map <leader>td "=strftime("%Y-%m-%d")<CR>p
 
     " <c-l> to remove highlighting of hlsearch
     if maparg('<C-L>', 'n') ==# ''
