@@ -116,13 +116,10 @@ call plug#end()
     set scrolloff=4
 
     " Indentation settings
-    set autoindent             " Usually does the right thing unless it doesnt
-    set copyindent             " copy indent from the previous line
-    set preserveindent         " preserve indent based on most of the indentation
     set tabstop=4              " Set tab width to 4
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
-    set shiftround             " >> indents to next multiple of 'shiftwidth'.
+    set expandtab              " space over tab
 
     " Enable foldable
     set foldenable
