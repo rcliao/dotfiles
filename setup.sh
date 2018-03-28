@@ -18,6 +18,8 @@ mpd_conf=~/dotfiles/mpd/mpd.conf
 mpd_conf_dest=~/.mpd/mpd.conf
 ncmpcpp_bindings=~/dotfiles/ncmpcpp/bindings
 ncmpcpp_bindings_dest=~/.ncmpcpp/bindings
+ncmpcpp_config=~/dotfiles/ncmpcpp/config
+ncmpcpp_config_dest=~/.ncmpcpp/config
 
 mkdir -p ~/.mpd && touch ~/.mpd/mpd{.db,.log,.pid,state}
 echo "Setting up $vimrc => $vimrc_dest"
@@ -38,3 +40,5 @@ echo "Setting up $mpd_conf => $mpd_conf_dest"
 ln -sf $mpd_conf $mpd_conf_dest
 echo "Setting up $ncmpcpp_bindings => $ncmpcpp_bindings_dest"
 ln -sf $ncmpcpp_bindings $ncmpcpp_bindings_dest
+echo "Setting up $ncmpcpp_config => $ncmpcpp_config_dest"
+ln -sf $ncmpcpp_config $ncmpcpp_config_dest
