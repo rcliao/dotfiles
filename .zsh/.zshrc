@@ -15,15 +15,12 @@ PURE_GIT_PULL=0
 autoload -U promptinit; promptinit
 prompt pure
 
-# for Vimr under bin folder
-export PATH=$PATH:~/bin
-
 # Go Settings
 export GOPATH="$HOME/dev/go"
 export PATH=$PATH:$GOPATH/bin
 
 # Java & Gradle Settings
-if [[ ! -a ~/usr/libexec/java_home ]]; then
+if [[ ! -a /usr/libexec/java_home ]]; then
     export JAVA_HOME=$(/usr/libexec/java_home)
     export PATH=$PATH:~/.local/bin
 fi
@@ -50,3 +47,5 @@ export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 # Load up ssh keys
 ssh-add -A &> /dev/null
 
+# jump for easier dir traversal
+eval "$(jump shell)"

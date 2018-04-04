@@ -7,16 +7,19 @@ My personal dotfiles containing configurations for NeoVim, Tmux and Zshrc.
 ### Runtime Dependencies
 
 * Install NeoVim – https://github.com/neovim/neovim/wiki/Installing-Neovim
-    * Install Vim-Plug – https://github.com/junegunn/vim-plug
+    - `brew install neovim`
 * Install Oh My Zsh – https://github.com/robbyrussell/oh-my-zsh
-    * Install spaceship-primpt – https://github.com/denysdovhan/spaceship-prompt
+    * Install spaceship-primpt – https://github.com/sindresorhus/pure
+        - `npm i -g pure-prompt`
 * Install Tmux – https://github.com/tmux/tmux
+    - `brew install tmux`
 
-### Optional Dependencies
+### Command line productivity
 
 * Install RipGrep – https://github.com/BurntSushi/ripgrep
 * Install fd – https://github.com/sharkdp/fd
 * Install fzf – https://github.com/junegunn/fzf
+* Install jump - https://github.com/gsamokovarov/jump
 
 ### OSX Window Manager
 
