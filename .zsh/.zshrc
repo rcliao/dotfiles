@@ -14,6 +14,7 @@ source $ZSH/oh-my-zsh.sh
 PURE_GIT_PULL=0
 autoload -U promptinit; promptinit
 prompt pure
+PROMPT='%(1j.[%j] .)%(?.%F{magenta}.%F{red})${PURE_PROMPT_SYMBOL:-❯}%f '
 
 # Go Settings
 export GOPATH="$HOME/dev/go"
