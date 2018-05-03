@@ -104,7 +104,7 @@ call plug#end()
     " To avoid buffer needing to write to disk when abandoned
     set hidden
 
-    " Enable recursive search with `*find`
+    " Enable recursive search with `:find` command
     set path+=**
     " Allow command to open menu
     set wildmenu
@@ -281,19 +281,6 @@ call plug#end()
         endif
         return ''
     endfu
-
-    " RipGrep settings
-    " --column: Show column number
-    " --line-number: Show line number
-    " --no-heading: Do not show file headings in results
-    " --fixed-strings: Search term as a literal string
-    " --ignore-case: Case insensitive search
-    " --no-ignore: Do not respect .gitignore, etc...
-    " --hidden: Search hidden files and folders
-    " --follow: Follow symlinks
-    " --glob: Additional conditions for search (in this case ignore everything in the .git/ folder)
-    " --color: Search color options
-    command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>), 1, <bang>0)
 "" }
 
 "" Leader key bindings {
@@ -342,6 +329,7 @@ call plug#end()
     map <leader>fm  :Marks<CR>
     map <leader>fp  :FZF<CR>
     map <leader>ft  :BTags<CR>
+    map <leader>fs  :Snippets<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
