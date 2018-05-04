@@ -240,11 +240,6 @@ call plug#end()
     " this line assign environment variable to ale path for javac linter
     let g:ale_java_javac_classpath=$CLASSPATH
 
-    " vim-JavaScript
-    let g:javascript_plugin_jsdoc = 1
-    " vim-jsx
-    let g:jsx_ext_required = 0
-
     " VIM-go settings
     let g:go_highlight_functions = 1
     let g:go_highlight_methods = 1
@@ -261,49 +256,17 @@ call plug#end()
     let g:UltiSnipsSnippetsDir = $HOME.'/dotfiles/UltiSnips'
     let g:UltiSnipsSnippetDirectories = ['UltiSnips', $HOME.'/dotfiles/UltiSnips']
     let g:UltiSnipsEditSplit="vertical"
-    " to bring up omni complete
-    ino <silent> <c-x><c-z> <c-r>=<sid>ulti_complete()<cr>
-    fu! s:ulti_complete() abort
-        if empty(UltiSnips#SnippetsInCurrentScope(1))
-            return ''
-        endif
-        let l:word_to_complete = matchstr(strpart(getline('.'), 0, col('.') - 1), '\S\+$')
-        let l:contain_word = 'stridx(v:val, word_to_complete)>=0'
-        let l:candidates = map(filter(keys(g:current_ulti_dict_info), l:contain_word),
-                    \  "{
-                    \      'word': v:val,
-                    \      'menu': '[snip] '. g:current_ulti_dict_info[v:val]['description'],
-                    \      'dup' : 1,
-                    \   }")
-        let l:from_where = col('.') - len(l:word_to_complete)
-        if !empty(l:candidates)
-            call complete(l:from_where, l:candidates)
-        endif
-        return ''
-    endfu
 "" }
 
 "" Leader key bindings {
     " quick jump through buffer
-    nmap <leader>ls :ls<CR>:buffer<SPACE>
+    nmap <leader>b :ls<CR>:buffer<SPACE>
     " built-in fuzzy search
     nmap <leader>e :e **/
-    " Buffer jumb
-    nmap <leader>b :b <C-d>
-    " include search
-    nmap <leader>i :ilist<space>
-    " quick jump on tags (if generated)
-    nmap <leader>j :tjump /
-    nmap <leader>p :ptjump /
-    nmap <leader>d :dlist /
     " switch to last buffer
     nmap <leader>q :b#<cr>
-    " clear any trailing empty spaces
-    map <leader>rts :%s/\s\+$//e<CR>
-    " quick vimrc editing/reloading
-    map <leader>vimrc :tabe ~/dotfiles/.vim/.vimrc<CR>
-    map <leader>rvimrc :source ~/dotfiles/.vim/.vimrc<CR>
 
+    " insert current date
     map <leader>td "=strftime("%Y-%m-%d")<CR>p
 
     " <c-l> to remove highlighting of hlsearch
@@ -311,20 +274,10 @@ call plug#end()
         nnoremap <silent> <C-L> :nohlsearch<C-R>=has('diff')?'<Bar>diffupdate':''<CR><CR><C-L>
     endif
 
-    " fugitive shortcuts
-    map <leader>gs :Gstatus<CR>
-    map <leader>gp :Gpush<CR>
-
-    " Netrw shortcuts
-    map <leader>-  :Rex<CR>
-    map <leader>de :Ex<CR>
-    map <leader>ds :Vex<CR>
-
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
     map <leader>fat :Tags<CR>
     map <leader>fb  :Buffers<CR>
-    map <leader>fc  :Commits<CR>
     map <leader>fl  :BLines<CR>
     map <leader>fm  :Marks<CR>
     map <leader>fp  :FZF<CR>
