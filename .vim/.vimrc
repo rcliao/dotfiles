@@ -18,7 +18,6 @@ scriptencoding utf-8
         augroup END
     endif
 "" }
-
 " https://github.com/junegunn/vim-plug
 call plug#begin(s:plugpath)
 "" Common plugins {
@@ -57,42 +56,8 @@ call plug#begin(s:plugpath)
     Plug 'ludovicchabant/vim-gutentags'
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
-"" }
-
-"" Languages {
-    " For writing
-    Plug 'rhysd/vim-grammarous', { 'for': ['markdown', 'gitcommit', 'vimwiki'] }
-    " Haskell
-    Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
-    Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
-    " Go
-    Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries', 'for': 'go' }
-    " TypeScript
-    Plug 'leafgarland/typescript-vim', { 'for': 'typescript' }
-    Plug 'quramy/tsuquyomi', { 'for': 'typescript' }
-        " Required for tsuquyomi
-        Plug 'shougo/vimproc.vim', {'do' : 'make', 'for': 'typescript' }
-    " Emmet for easier html code snippet
-    Plug 'mattn/emmet-vim'
-    " JavaScript
-    Plug 'othree/yajs.vim', { 'for': ['html', 'javascript'] }
-    Plug 'pangloss/vim-javascript', { 'for': ['html', 'javascript'] }
-    " JSX - React
-    Plug 'mxw/vim-jsx', { 'for': ['jsx', 'javascript'] }
-    " Ansible
-    Plug 'pearofducks/ansible-vim', { 'for': 'ansible' }
-    " Vue
-    Plug 'posva/vim-vue', { 'for': 'vue' }
-    " Elm-lang
-    Plug 'elmcast/elm-vim', { 'for': 'elm' }
-    " Markdown
-    Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
-    " Rust-lang
-    Plug 'rust-lang/rust.vim', { 'for': 'rust' }
-    " Tmux (for syntax highlight)
-    Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
-    " Kotlin
-    Plug 'udalov/kotlin-vim'
+    " Language all in one bundle
+    Plug 'sheerun/vim-polyglot'
 "" }
 "" Initialize plugin system
 call plug#end()
@@ -103,14 +68,6 @@ call plug#end()
 
     " To avoid buffer needing to write to disk when abandoned
     set hidden
-
-    " Enable recursive search with `:find` command
-    set path+=**
-    " Allow command to open menu
-    set wildmenu
-
-    " hide netre banner
-    let g:netrw_banner = 0
 
     " when scroll up and down, apply "margin" so easier to see context
     set scrolloff=4
@@ -189,10 +146,6 @@ call plug#end()
     set complete+=kspell
 
     " Set up :grep with The Silver Searcher or ripgrep
-    if executable('ag')
-        " Use ag over grep
-        set grepprg=ag\ --nogroup\ --nocolor
-    endif
     if executable('rg')
         " Use rg over grep
         set grepprg=rg\ --vimgrep
@@ -236,9 +189,6 @@ call plug#end()
         \ 'rust': ['rustc'],
         \ 'typescript': ['tslint']
     \ }
-    " ale update that doesn't read from $CLASSPATH environment vars anymore,
-    " this line assign environment variable to ale path for javac linter
-    let g:ale_java_javac_classpath=$CLASSPATH
 
     " VIM-go settings
     let g:go_highlight_functions = 1
