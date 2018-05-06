@@ -8,6 +8,7 @@ scriptencoding utf-8
         let s:plugpath = '~/.vim/plugged'
         let s:plugvim = '~/.vim/autoload/plug.vim'
     endif
+""  }
 
 " Auto install vim-plug if not installed {
     if empty(glob(s:plugvim))
@@ -56,8 +57,39 @@ call plug#begin(s:plugpath)
     Plug 'ludovicchabant/vim-gutentags'
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
-    " Language all in one bundle
-    Plug 'sheerun/vim-polyglot'
+"" }
+"" Language specific {
+    " Haskell
+    Plug 'eagletmt/neco-ghc', { 'for': 'haskell' }
+    Plug 'neovimhaskell/haskell-vim', { 'for': 'haskell' }
+    " Go
+    Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries', 'for': 'go' }
+    " TypeScript
+    Plug 'leafgarland/typescript-vim', { 'for': 'typescript' }
+    Plug 'quramy/tsuquyomi', { 'for': 'typescript' }
+        " Required for tsuquyomi
+        Plug 'shougo/vimproc.vim', {'do' : 'make', 'for': 'typescript' }
+    " Emmet for easier html code snippet
+    Plug 'mattn/emmet-vim'
+    " JavaScript
+    Plug 'othree/yajs.vim', { 'for': ['html', 'javascript'] }
+    Plug 'pangloss/vim-javascript', { 'for': ['html', 'javascript'] }
+    " JSX - React
+    Plug 'mxw/vim-jsx', { 'for': ['jsx', 'javascript'] }
+    " Ansible
+    Plug 'pearofducks/ansible-vim', { 'for': 'ansible' }
+    " Vue
+    Plug 'posva/vim-vue', { 'for': 'vue' }
+    " Elm-lang
+    Plug 'elmcast/elm-vim', { 'for': 'elm' }
+    " Markdown
+    Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
+    " Rust-lang
+    Plug 'rust-lang/rust.vim', { 'for': 'rust' }
+    " Tmux (for syntax highlight)
+    Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
+    " Kotlin
+    Plug 'udalov/kotlin-vim'
 "" }
 "" Initialize plugin system
 call plug#end()
@@ -78,10 +110,14 @@ call plug#end()
     set shiftwidth=4           " >> indents by 4 spaces.
     set expandtab              " space over tab
 
+    " update time faster for gitgutter
+    set updatetime=100
+
     " Enable foldable
     set foldenable
     set foldmethod=indent
     set foldlevel=2
+
     " incremental search
     set incsearch
 
@@ -163,10 +199,6 @@ call plug#end()
 "" }
 
 "" Languages/Plugin settings {
-    " git gutter settings
-    " update time faster for gitgutter
-    set updatetime=100
-
     " VimWiki settings
     let g:vimwiki_list = [{'path': '~/vimwiki',
                 \ 'syntax': 'markdown', 'ext': '.md'}]
@@ -182,7 +214,6 @@ call plug#end()
     let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
 
     " Ale (linter settings)
-    " JavaScript
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
         \ 'html': [],
