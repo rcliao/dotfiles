@@ -53,8 +53,6 @@ call plug#begin(s:plugpath)
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
     "" Experimental area
-    " For generating tags automatically and seamlessly with ctags
-    Plug 'ludovicchabant/vim-gutentags'
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
 "" }
@@ -222,12 +220,6 @@ call plug#end()
     \ }
 
     " VIM-go settings
-    let g:go_highlight_functions = 1
-    let g:go_highlight_methods = 1
-    let g:go_highlight_fields = 1
-    let g:go_highlight_types = 1
-    let g:go_highlight_operators = 1
-    let g:go_highlight_build_constraints = 1
     let g:go_fmt_command = 'goimports'
 
     " ultisnip configurations
@@ -259,11 +251,8 @@ call plug#end()
     set runtimepath+=/usr/local/opt/fzf
     map <leader>fat :Tags<CR>
     map <leader>fb  :Buffers<CR>
-    map <leader>fl  :BLines<CR>
-    map <leader>fm  :Marks<CR>
     map <leader>fp  :FZF<CR>
     map <leader>ft  :BTags<CR>
-    map <leader>fs  :Snippets<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
