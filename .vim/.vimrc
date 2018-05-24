@@ -252,15 +252,13 @@ call plug#end()
     map <leader>fat :Tags<CR>
     map <leader>fb  :Buffers<CR>
     map <leader>fp  :FZF<CR>
+    map <leader>fd  :Files ~/Dropbox/wiki<CR>
     map <leader>ft  :BTags<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
     nmap <leader>z1 :set foldlevel=1<CR>
     nmap <leader>z2 :set foldlevel=2<CR>
-    nmap <leader>z3 :set foldlevel=3<CR>
-    nmap <leader>z4 :set foldlevel=4<CR>
-    nmap <leader>z5 :set foldlevel=5<CR>
     nmap <leader>z9 :set foldlevel=999<CR>
 "" }
 
