@@ -42,6 +42,10 @@ shift + alt - 6 : chunkc tiling::window --send-to-desktop 6
 # monitor switch
 alt - t : chunkc tiling:monitor -f next
 
+# float / unfloat window and center on screen
+shift + alt - c : chunkc tiling::window --toggle float;\
+          chunkc tiling::window --grid-layout 4:4:1:1:2:2
+
 ## Resize
 alt - left 	: chunkc tiling::window --use-temporary-ratio 0.1 --adjust-window-edge west
 alt - down 	: chunkc tiling::window --use-temporary-ratio 0.1 --adjust-window-edge south
