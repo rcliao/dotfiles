@@ -9,7 +9,6 @@ scriptencoding utf-8
         let s:plugvim = '~/.vim/autoload/plug.vim'
     endif
 ""  }
-
 " Auto install vim-plug if not installed {
     if empty(glob(s:plugvim))
         silent !curl -fLo s:plugvim --create-dirs
@@ -43,8 +42,6 @@ call plug#begin(s:plugpath)
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
-    " Easy motion
-    Plug 'easymotion/vim-easymotion'
     " Provide additional text object for Vim like (b{B,t
     Plug 'wellle/targets.vim'
     "" Optional fun plugins
@@ -52,9 +49,10 @@ call plug#begin(s:plugpath)
     Plug 'mhinz/vim-startify'
     " Personal Wiki
     Plug 'vimwiki/vimwiki'
-    "" Experimental area
     " UltiSnip for snippet management
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
+    "" Experimental area
+    Plug 'junegunn/goyo.vim'
 "" }
 "" Language specific {
     " Haskell
@@ -254,6 +252,9 @@ call plug#end()
     map <leader>fp  :FZF<CR>
     map <leader>fd  :Files ~/Dropbox/wiki<CR>
     map <leader>ft  :BTags<CR>
+
+    " Goyo settings
+    map <leader>gy :Goyo<CR>
 
     " shortcuts for folding levels
     nmap <leader>z0 :set foldlevel=0<CR>
