@@ -53,6 +53,7 @@ call plug#begin(s:plugpath)
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
     "" Experimental area
     Plug 'junegunn/goyo.vim'
+    Plug 'soywod/kronos.vim'
 "" }
 "" Language specific {
     " Haskell
@@ -226,18 +227,19 @@ call plug#end()
     let g:UltiSnipsJumpBackwardTrigger = '<c-k>'
     let g:UltiSnipsSnippetsDir = $HOME.'/dotfiles/UltiSnips'
     let g:UltiSnipsSnippetDirectories = ['UltiSnips', $HOME.'/dotfiles/UltiSnips']
-    let g:UltiSnipsEditSplit="vertical"
+    let g:UltiSnipsEditSplit = 'vertical'
+
+    " Kronos settings
+    let g:kronos_database = '~/Dropbox/journals'
 "" }
 
 "" Leader key bindings {
     " quick jump through buffer
     nmap <leader>b :ls<CR>:buffer<SPACE>
-    " built-in fuzzy search
-    nmap <leader>e :e **/
     " switch to last buffer
     nmap <leader>q :b#<cr>
 
-    " insert current date
+    " insert current date (mostly used for the journal)
     map <leader>td "=strftime("%Y-%m-%d")<CR>p
 
     " <c-l> to remove highlighting of hlsearch
@@ -247,11 +249,11 @@ call plug#end()
 
     " Vim-FZF settings
     set runtimepath+=/usr/local/opt/fzf
-    map <leader>fat :Tags<CR>
     map <leader>fb  :Buffers<CR>
     map <leader>fp  :FZF<CR>
-    map <leader>fd  :Files ~/Dropbox/wiki<CR>
     map <leader>ft  :BTags<CR>
+    " Search for vimwiki files
+    map <leader>fd  :Files ~/Dropbox/wiki<CR>
 
     " Goyo settings
     map <leader>gy :Goyo<CR>
