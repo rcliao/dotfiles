@@ -53,7 +53,6 @@ call plug#begin(s:plugpath)
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
     "" Experimental area
     Plug 'junegunn/goyo.vim'
-    Plug 'soywod/kronos.vim'
 "" }
 "" Language specific {
     " Haskell
@@ -228,9 +227,6 @@ call plug#end()
     let g:UltiSnipsSnippetsDir = $HOME.'/dotfiles/UltiSnips'
     let g:UltiSnipsSnippetDirectories = ['UltiSnips', $HOME.'/dotfiles/UltiSnips']
     let g:UltiSnipsEditSplit = 'vertical'
-
-    " Kronos settings
-    let g:kronos_database = '~/Dropbox/journals'
 "" }
 
 "" Leader key bindings {
