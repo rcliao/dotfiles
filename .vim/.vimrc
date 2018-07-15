@@ -202,6 +202,8 @@ call plug#end()
     let g:vimwiki_global_ext=0
     " to allow ultisnip use tab to expand snippets
     let g:vimwiki_table_mappings = 0
+    " to enable fold in vimwiki (note: might be bad performance for big file)
+    let g:vimwiki_folding = 'expr'
 
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
@@ -258,6 +260,7 @@ call plug#end()
     nmap <leader>z0 :set foldlevel=0<CR>
     nmap <leader>z1 :set foldlevel=1<CR>
     nmap <leader>z2 :set foldlevel=2<CR>
+    nmap <leader>z3 :set foldlevel=3<CR>
     nmap <leader>z9 :set foldlevel=999<CR>
 "" }
 
