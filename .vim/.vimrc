@@ -23,8 +23,6 @@ call plug#begin(s:plugpath)
 "" Common plugins {
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
-    " lightweight file explorer (netrw is buggy with bunch of trash buffer)
-    Plug 'justinmk/vim-dirvish'
     " fast fuzzy finder
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
     Plug 'junegunn/fzf.vim'
@@ -35,8 +33,6 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-surround'
     " More natural binding on navigations like q[
     Plug 'tpope/vim-unimpaired'
-    " Comment stuff out by gcc
-    Plug 'tpope/vim-commentary'
     " Allowing "." command to repat various plugin actions
     Plug 'tpope/vim-repeat'
     "" End of tpope section
