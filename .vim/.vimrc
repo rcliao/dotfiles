@@ -204,9 +204,6 @@ call plug#end()
     " Freemarker to html for syntax highlight without plugin
     au BufRead,BufNewFile *.ftl set filetype=html
 
-    " Dirvish settings
-    let g:dirvish_mode = ':sort ,^.*[\/],' " sort folder at top
-
     " Ale (linter settings)
     let g:ale_linters = {
         \ 'javascript': ['eslint'],
