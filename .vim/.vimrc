@@ -142,6 +142,7 @@ call plug#end()
 
     " Change colorscheme and its conifiguration
     let g:nord_comment_brightness = 12
+    let g:nord_cursor_line_number_background = 1
     colorscheme nord
 
     " Transparent background
