@@ -35,6 +35,7 @@ call plug#begin(s:plugpath)
     Plug 'tpope/vim-unimpaired'
     " Allowing "." command to repat various plugin actions
     Plug 'tpope/vim-repeat'
+    Plug 'tpope/vim-fugitive'
     "" End of tpope section
     " Async General Linter
     Plug 'w0rp/ale'
