@@ -65,7 +65,6 @@ chunkc set focused_border_skip_floating  0
 
 chunkc core::load border.so
 chunkc core::load tiling.so
-chunkc core::load ffm.so
+# disable mouse following focus
+#chunkc core::load ffm.so
 
-# For fixing the Alacritty no decorations not being found by chunkwm
-chunkc tiling::rule --owner Alacritty --subrole AXDialog --state tile
