@@ -229,8 +229,6 @@ call plug#end()
 "" Leader key bindings {
     " quick jump through buffer
     nmap <leader>b :ls<CR>:buffer<SPACE>
-    " switch to last buffer
-    nmap <leader>q :b#<cr>
 
     " insert current date (mostly used for the journal)
     map <leader>td "=strftime("%Y-%m-%d")<CR>p
