@@ -49,4 +49,6 @@ export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 ssh-add -A &> /dev/null
 
 # jump for easier dir traversal
-eval "$(jump shell)"
+if [ -x "$(command -v jump)" ]; then
+    eval "$(jump shell)"
+fi
