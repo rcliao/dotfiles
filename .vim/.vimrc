@@ -147,17 +147,17 @@ call plug#end()
     colorscheme nord
 
     " Transparent background
-    hi vertsplit ctermbg=None guibg=None
+    hi vertsplit ctermbg=NONE guibg=NONE
     hi clear SignColumn
-    hi LineNr ctermbg=None guibg=None
-    hi SignColumn ctermbg=None guibg=None
-    hi GitGutterAdd ctermbg=None guibg=None
-    hi GitGutterChange ctermbg=None guibg=None
-    hi GitGutterDelete ctermbg=None guibg=None
-    hi GitGutterChangeDelete ctermbg=None guibg=None
-    hi EndOfBuffer guibg=None ctermbg=None
+    hi LineNr ctermbg=NONE guibg=NONE
+    hi SignColumn ctermbg=NONE guibg=NONE
+    hi GitGutterAdd ctermbg=NONE guibg=NONE
+    hi GitGutterChange ctermbg=NONE guibg=NONE
+    hi GitGutterDelete ctermbg=NONE guibg=NONE
+    hi GitGutterChangeDelete ctermbg=NONE guibg=NONE
+    hi EndOfBuffer guibg=NONE ctermbg=NONE
     " transparent background
-    highlight Normal guibg=None ctermbg=None
+    highlight Normal guibg=NONE ctermbg=NONE
 
     " highlight the active pane using cursorline
     set cursorline
