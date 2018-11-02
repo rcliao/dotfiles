@@ -1,3 +1,4 @@
 bundle/
 tags*
 *.pyo
+*.swp
