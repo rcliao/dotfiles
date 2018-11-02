@@ -113,14 +113,14 @@ call plug#end()
 
     " incremental search
     set incsearch
+    set hlsearch
+
+    " set backspace behavior to be more expected
+    set bs=2
 
     " Show invisibles characters like space or tabs
     set list
     set listchars=tab:>\ ,trail:-,extends:>,precedes:<,nbsp:+
-
-    " show line number and relative number
-    set number
-    set relativenumber
 
     " show line width 80
     set colorcolumn=80,120
@@ -143,7 +143,6 @@ call plug#end()
 
     " Change colorscheme and its conifiguration
     let g:nord_comment_brightness = 12
-    let g:nord_cursor_line_number_background = 1
     colorscheme nord
 
     " Transparent background
@@ -158,14 +157,6 @@ call plug#end()
     hi EndOfBuffer guibg=NONE ctermbg=NONE
     " transparent background
     highlight Normal guibg=NONE ctermbg=NONE
-
-    " highlight the active pane using cursorline
-    set cursorline
-    augroup BgHighlight
-        autocmd!
-        autocmd WinEnter * set cursorline
-        autocmd WinLeave * set nocursorline
-    augroup END
 
     " spell check on markdown and gitcommit file
     augroup spellchecker
@@ -182,6 +173,7 @@ call plug#end()
     endif
 
     " Custom status line for better performance
+    set laststatus=2                                 " always show status
     set statusline=                                  " clear the statusline for when vimrc is reloaded
     set statusline+=\ \ \ %-2.2n\                    " buffer number
     set statusline+=\ %f\                            " file name
