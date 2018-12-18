@@ -1,8 +1,3 @@
-/* hide MacOS close/maximize/minimize buttons */
-#titlebar {display: none !important;}
-#main-window {-moz-appearance:none !important;}
-
-
 /* Hide main tabs toolbar */
 #TabsToolbar {
     visibility: collapse;
