@@ -6,6 +6,9 @@ filetype plugin indent on
 set path+=**
 set wildmenu
 
+" backspace behavior
+set backspace=indent,eol,start
+
 " To avoid buffer needing to write to disk when abandoned
 set hidden
 
@@ -14,16 +17,13 @@ set foldenable
 set foldmethod=indent
 set foldlevel=2
 
-" incremental search
+" searches
 set incsearch
+set hlsearch
 
 " Show invisibles
 set list
 set listchars=tab:>\ ,trail:-,extends:>,precedes:<,nbsp:+
-
-" show line number
-set number
-set relativenumber
 
 " More expected split pane behavior
 set splitbelow
