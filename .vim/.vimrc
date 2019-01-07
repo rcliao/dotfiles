@@ -223,7 +223,8 @@ call plug#end()
     nmap <leader>b :ls<CR>:buffer<SPACE>
 
     " insert current date (mostly used for the journal)
-    map <leader>td "=strftime("%Y-%m-%d")<CR>p
+    map <leader>cd "=strftime("%Y-%m-%d")<CR>p
+    map <leader>ct "=strftime("%c")<CR>p
 
     " <c-l> to remove highlighting of hlsearch
     if maparg('<C-L>', 'n') ==# ''
