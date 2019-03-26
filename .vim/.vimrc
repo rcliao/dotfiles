@@ -50,6 +50,7 @@ call plug#begin(s:plugpath)
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
     "" Experimental area
     Plug 'junegunn/goyo.vim'
+    Plug 'jparise/vim-graphql'
 "" }
 "" Language specific {
     " Haskell
@@ -60,8 +61,6 @@ call plug#begin(s:plugpath)
     " TypeScript
     Plug 'leafgarland/typescript-vim', { 'for': 'typescript' }
     Plug 'quramy/tsuquyomi', { 'for': 'typescript' }
-        " Required for tsuquyomi
-        Plug 'shougo/vimproc.vim', {'do' : 'make', 'for': 'typescript' }
     " Emmet for easier html code snippet
     Plug 'mattn/emmet-vim'
     " JavaScript
@@ -102,6 +101,10 @@ call plug#end()
     set softtabstop=4          " Tab key indents by 4 spaces.
     set shiftwidth=4           " >> indents by 4 spaces.
     set expandtab              " space over tab
+    autocmd Filetype javascript.jsx setlocal tabstop=2 softtabstop=2 shiftwidth=2
+    autocmd Filetype typescript setlocal tabstop=2 softtabstop=2 shiftwidth=2
+    autocmd Filetype yaml setlocal tabstop=2 softtabstop=2 shiftwidth=2
+    autocmd Filetype css setlocal tabstop=2 softtabstop=2 shiftwidth=2
 
     " update time faster for gitgutter
     set updatetime=100
@@ -238,6 +241,10 @@ call plug#end()
     map <leader>ft  :BTags<CR>
     " Search for vimwiki files
     map <leader>fd  :Files ~/Dropbox/wiki<CR>
+
+    " tsuquyomi mappings
+    " disable <c-^> mapping for references
+    nmap <Space><C-]> <Plug>(TsuquyomiReferences)
 
     " Goyo settings
     map <leader>gy :Goyo<CR>
