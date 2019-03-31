@@ -23,24 +23,19 @@ export PATH=$PATH:$GOPATH/bin
 # Java & Gradle Settings
 if [[ ! -a /usr/libexec/java_home ]]; then
     export JAVA_HOME=$(/usr/libexec/java_home)
-    export PATH=$PATH:~/.local/bin
 fi
 
 # fzf settings – enables fuzzy search with "**" like `nvim **`
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# Use nvim if local env and vim for ssh connection
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='vim'
-else
-  export EDITOR='nvim'
-fi
 
 # for gpg
 export GPG_TTY=$(tty)
 
 # rust-lang cargo env
 export PATH="$HOME/.cargo/bin:$PATH"
+
+# aws CLI
+export PATH=$PATH:~/.local/bin:~/Library/Python/3.7/bin
 
 # use fd as default find command to traverse the file system while respecting .gitignore
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
@@ -52,3 +47,17 @@ ssh-add -A &> /dev/null
 if [ -x "$(command -v jump)" ]; then
     eval "$(jump shell)"
 fi
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/usr/local/opt/nvm/etc/bash_completion" ] && . "/usr/local/opt/nvm/etc/bash_completion"  # This loads nvm bash_completion
+
+# tabtab source for serverless package
+# uninstall by removing these lines or running `tabtab uninstall serverless`
+[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh
+# tabtab source for sls package
+# uninstall by removing these lines or running `tabtab uninstall sls`
+[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh
+# tabtab source for slss package
+# uninstall by removing these lines or running `tabtab uninstall slss`
+[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh
