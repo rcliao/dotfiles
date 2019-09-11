@@ -10,15 +10,14 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
-# npm i -g pure-prompt
-PURE_GIT_PULL=0
-autoload -U promptinit; promptinit
-prompt pure
-PROMPT='%(1j.[%j] .)%(?.%F{magenta}.%F{red})${PURE_PROMPT_SYMBOL:-❯}%f '
-
 # Go Settings
 export GOPATH="$HOME/dev/go"
 export PATH=$PATH:$GOPATH/bin
+
+export EDITOR=vim
+
+# custom installed binary
+export PATH=$PATH:~/bin
 
 # Java & Gradle Settings
 if [[ ! -a /usr/libexec/java_home ]]; then
@@ -38,7 +37,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export PATH=$PATH:~/.local/bin:~/Library/Python/3.7/bin
 
 # use fd as default find command to traverse the file system while respecting .gitignore
-export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --follow --exclude .git'
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
@@ -61,3 +60,6 @@ export NVM_DIR="$HOME/.nvm"
 # tabtab source for slss package
 # uninstall by removing these lines or running `tabtab uninstall slss`
 [[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh
+
+# starship prompt (github.com/starship/starship)
+eval "$(starship init zsh)"
