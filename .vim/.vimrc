@@ -1,25 +1,14 @@
 scriptencoding utf-8
 
-"" Set up for Vim-Plug {
-    let s:plugpath = '~/.local/share/nvim/plugged'
-    let s:plugvim = '~/.local/share/nvim/site/autoload/plug.vim'
-
-    if !has('nvim')
-        let s:plugpath = '~/.vim/plugged'
-        let s:plugvim = '~/.vim/autoload/plug.vim'
-    endif
-""  }
 " Auto install vim-plug if not installed {
-    if empty(glob(s:plugvim))
-        silent !curl -fLo s:plugvim --create-dirs
-            \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        augroup AutoInstallPlug
-            autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-        augroup END
+    if empty(glob('~/.vim/autoload/plug.vim'))
+      silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+        \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+      autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
     endif
 "" }
 " https://github.com/junegunn/vim-plug
-call plug#begin(s:plugpath)
+call plug#begin('~/.vim/plugged')
 "" Common plugins {
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
