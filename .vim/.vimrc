@@ -24,7 +24,7 @@ call plug#begin(s:plugpath)
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " fast fuzzy finder
-    Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+    Plug '/usr/local/opt/fzf'
     Plug 'junegunn/fzf.vim'
     " Colorscheme
     Plug 'arcticicestudio/nord-vim'
@@ -50,7 +50,6 @@ call plug#begin(s:plugpath)
     Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
     "" Experimental area
     Plug 'junegunn/goyo.vim'
-    Plug 'jparise/vim-graphql'
 "" }
 "" Language specific {
     " Haskell
@@ -68,6 +67,7 @@ call plug#begin(s:plugpath)
     Plug 'pangloss/vim-javascript', { 'for': ['html', 'javascript'] }
     " JSX - React
     Plug 'mxw/vim-jsx', { 'for': ['jsx', 'javascript'] }
+    Plug 'peitalin/vim-jsx-typescript'
     " Ansible
     Plug 'pearofducks/ansible-vim', { 'for': 'ansible' }
     " Vue
@@ -82,6 +82,8 @@ call plug#begin(s:plugpath)
     Plug 'tmux-plugins/vim-tmux', { 'for': 'tmux' }
     " Kotlin
     Plug 'udalov/kotlin-vim'
+    " GraphQL
+    Plug 'jparise/vim-graphql'
 "" }
 "" Initialize plugin system
 call plug#end()
@@ -107,7 +109,7 @@ call plug#end()
     autocmd Filetype css setlocal tabstop=2 softtabstop=2 shiftwidth=2
 
     " update time faster for gitgutter
-    set updatetime=100
+    set updatetime=300
 
     " Enable foldable
     set foldenable
@@ -145,7 +147,6 @@ call plug#end()
     endif
 
     " Change colorscheme and its conifiguration
-    let g:nord_comment_brightness = 12
     colorscheme nord
 
     " Transparent background
@@ -206,8 +207,12 @@ call plug#end()
         \ 'javascript': ['eslint'],
         \ 'html': [],
         \ 'rust': ['rustc'],
-        \ 'typescript': ['tslint']
+        \ 'typescript': ['tsserver', 'eslint']
     \ }
+    " Equivalent to the above.
+    let g:ale_fixers = {'typescript': ['prettier', 'eslint']}
+    " Set this variable to 1 to fix files when you save them.
+    let g:ale_fix_on_save = 1
 
     " VIM-go settings
     let g:go_fmt_command = 'goimports'
@@ -219,6 +224,9 @@ call plug#end()
     let g:UltiSnipsSnippetsDir = $HOME.'/dotfiles/UltiSnips'
     let g:UltiSnipsSnippetDirectories = ['UltiSnips', $HOME.'/dotfiles/UltiSnips']
     let g:UltiSnipsEditSplit = 'vertical'
+
+    " disalbe tsuquyomi check in favor of ALE
+    let g:tsuquyomi_disable_quickfix = 1
 "" }
 
 "" Leader key bindings {
@@ -239,6 +247,7 @@ call plug#end()
     map <leader>fb  :Buffers<CR>
     map <leader>fp  :FZF<CR>
     map <leader>ft  :BTags<CR>
+    map <leader>fm  :Marks<CR>
     " Search for vimwiki files
     map <leader>fd  :Files ~/Dropbox/wiki<CR>
 
@@ -255,5 +264,9 @@ call plug#end()
     nmap <leader>z2 :set foldlevel=2<CR>
     nmap <leader>z3 :set foldlevel=3<CR>
     nmap <leader>z9 :set foldlevel=999<CR>
+
+    " ALE custom map
+    nmap <leader>ln :ALENext<CR>
+    nmap <leader>lp :ALEPrevious<CR>
 "" }
 
