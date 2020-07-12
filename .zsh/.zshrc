@@ -2,7 +2,7 @@
 export ZSH=~/.oh-my-zsh
 
 # Zsh theme
-ZSH_THEME=""
+ZSH_THEME="ys"
 
 plugins=(
   vi-mode
@@ -37,7 +37,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export PATH=$PATH:~/.local/bin:~/Library/Python/3.7/bin
 
 # use fd as default find command to traverse the file system while respecting .gitignore
-export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --follow --exclude .git'
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
@@ -58,3 +58,8 @@ fi
 [[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh
 
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+
+eval "$(starship init zsh)"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
