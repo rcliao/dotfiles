@@ -1,0 +1,15 @@
+[user]
+	name = {{ .name }}
+	email = {{ .email }}
+
+[alias]
+	co = checkout
+	br = branch
+	ci = commit
+	st = status
+	stat = !git diff --stat $(git merge-base HEAD \"$REVIEW_BASE\")
+	files = !git diff --name-only $(git merge-base HEAD \"$REVIEW_BASE\")
+	review = !nvim -p $(git files) +\"tabdo Gdiff $REVIEW_BASE\" +\"let g:gitgutter_diff_base = '$REVIEW_BASE'\"
+	reviewone = !nvim -p +\"tabdo Gdiff $REVIEW_BASE\" +\"let g:gitgutter_diff_base = '$REVIEW_BASE'\"
+[push]
+	default = current
