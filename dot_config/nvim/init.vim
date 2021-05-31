@@ -38,6 +38,9 @@ call plug#begin(data_dir)
     Plug 'vimwiki/vimwiki'
     "" Experimental area
     Plug 'junegunn/goyo.vim'
+    if has('nvim')
+        Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+    endif
 "" }
 "" Language specific {
     " Haskell
