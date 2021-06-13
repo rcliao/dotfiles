@@ -15,7 +15,7 @@ source $ZSH/oh-my-zsh.sh
 export GOPATH="$HOME/dev/go"
 export PATH=$PATH:$GOPATH/bin
 
-export EDITOR=vim
+export EDITOR=nvim
 
 # custom installed binary
 export PATH=$PATH:~/bin
@@ -48,17 +48,8 @@ if [ -x "$(command -v jump)" ]; then
     eval "$(jump shell)"
 fi
 
-# tabtab source for serverless package
-# uninstall by removing these lines or running `tabtab uninstall serverless`
-[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh
-# tabtab source for sls package
-# uninstall by removing these lines or running `tabtab uninstall sls`
-[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh
-# tabtab source for slss package
-# uninstall by removing these lines or running `tabtab uninstall slss`
-[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh
-
-export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
-
-# Added by serverless binary installer
-export PATH="$HOME/.serverless/bin:$PATH"
+# nnn specific configs
+BLK="0B" CHR="0B" DIR="04" EXE="06" REG="00" HARDLINK="06" SYMLINK="06" MISSING="00" ORPHAN="09" FIFO="06" SOCK="0B" OTHER="06"
+export NNN_FCOLORS="$BLK$CHR$DIR$EXE$REG$HARDLINK$SYMLINK$MISSING$ORPHAN$FIFO$SOCK$OTHER"
+export NNN_PLUG='1:bookmarks;p:preview-tui;o:fzz;f:fzcd;j:autojump'
+export NNN_FIFO='/tmp/nnn.fifo'

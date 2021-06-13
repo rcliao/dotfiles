@@ -2,24 +2,42 @@
 #!/bin/bash
 
 brew bundle --no-lock --file=/dev/stdin <<EOF
-brew "reattach-to-user-namespace"
-brew "fzf"
-brew "neovim", args: ['HEAD']
-brew "tmux"
-brew "zsh"
-brew "bat"
-brew "nnn"
+# day to day driver deps
 brew "gnupg"
-brew "gh"
+brew "zsh"
 brew "starship"
+brew "tmux"
+# for tmux copy and paste
+brew "reattach-to-user-namespace"
+# file finder
 brew "fd"
+brew "fzf"
+brew "exa"
+# replacement for cat
+brew "bat"
+# markdown preview
+brew "glow"
+# autojump written in Go
+brew "jump"
+## Installing HEAD for new features, waiting for 16 release on 0.5
+brew "neovim", args: ['HEAD']
+# terminal file browser
+brew "nnn"
+# github cli
+brew "gh"
 brew "git-delta"
+# language specific libs
+## Postgres
 brew "libpq"
+## JavaScript
 brew "node"
 brew "fnm"
 EOF
 
 brew link --force libpq
+
+curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs | sh
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 npm install -g yarn typescript typescript-language-server
 {{ end -}}
