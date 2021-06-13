@@ -39,6 +39,7 @@ call plug#begin(data_dir)
     "" Experimental area
     Plug 'junegunn/goyo.vim'
     if has('nvim')
+        Plug 'neovim/nvim-lspconfig'
         Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
     endif
 "" }
@@ -131,11 +132,6 @@ call plug#end()
 
     " To hide pane split character
     set fillchars=vert:\ ,stl:\ ,stlnc:\ 
-
-    " True color support for nvim
-    if has('nvim-0.1.5')        " True color in neovim wasn't added until 0.1.5
-        set termguicolors
-    endif
 
     " Change colorscheme and its conifiguration
     colorscheme nord
@@ -261,3 +257,6 @@ call plug#end()
     nmap <leader>lp :ALEPrevious<CR>
 "" }
 
+if has('nvim')
+lua require('config')
+endif

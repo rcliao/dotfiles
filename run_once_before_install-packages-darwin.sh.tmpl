@@ -6,8 +6,17 @@ brew "fzf"
 brew "neovim", args: ['HEAD']
 brew "tmux"
 brew "zsh"
+brew "gnupg"
+brew "gh"
 brew "starship"
 brew "fd"
 brew "git-delta"
+brew "libpq"
+brew "node"
+brew "fnm"
 EOF
+
+brew link --force libpq
+
+npm install -g yarn typescript typescript-language-server
 {{ end -}}
