@@ -95,6 +95,19 @@
 (global-set-key (kbd "C-c l") 'org-store-link)
 (global-set-key (kbd "C-c a") 'org-agenda)
 (global-set-key (kbd "C-c c") 'org-capture)
+;; for presenting org mode articles
+(global-set-key (kbd "C-c o p") 'org-tree-slide-mode)
+(with-eval-after-load "org-tree-slide"
+  (define-key org-tree-slide-mode-map (kbd "C-c k") 'org-tree-slide-move-previous-tree)
+  (define-key org-tree-slide-mode-map (kbd "C-c j") 'org-tree-slide-move-next-tree)
+  )
+;; for org-roam
+(global-set-key (kbd "C-c o f") 'org-roam-node-find)
+(global-set-key (kbd "C-c o d") 'org-roam-dailies-capture-today)
+(global-set-key (kbd "C-c o c d") 'org-roam-dailies-capture-date)
+(global-set-key (kbd "C-c o g d") 'org-roam-dailies-goto-date)
+(global-set-key (kbd "C-c o g t") 'org-roam-dailies-goto-today)
+(global-set-key (kbd "C-c o g y") 'org-roam-dailies-goto-yesterday)
 
 ;; org-mode settings
 (setq org-agenda-files '("~/Dropbox/journals/org"))
