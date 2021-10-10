@@ -8,6 +8,9 @@
 (scroll-bar-mode -1)
 (set-fringe-mode 10)
 
+;; wrap long line automatically as I'm typing
+(add-hook 'text-mode-hook #'auto-fill-mode)
+
 ;; setting up straight.el https://github.com/raxod502/straight.el
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -30,6 +33,7 @@
 (straight-use-package 'ivy)
 (straight-use-package 'nord-theme)
 (straight-use-package 'org-roam)
+(straight-use-package 'org-tree-slide)
 (straight-use-package 'doom-modeline)
 
 ;; doom status bar
@@ -37,6 +41,8 @@
 
 ;; overwriting evil mode tab key plugin
 (setq evil-want-C-i-jump nil)
+(setq evil-want-C-u-scroll 1)
+(setq evil-auto-indent nil)
 
 ;; Enable Evil
 (require 'evil)
