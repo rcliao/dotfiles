@@ -19,8 +19,7 @@ brew "bat"
 brew "glow"
 # autojump written in Go
 brew "jump"
-## Installing HEAD for new features, waiting for 16 release on 0.5
-brew "neovim", args: ['HEAD']
+brew "neovim"
 # terminal file browser
 brew "nnn"
 # github cli
@@ -32,12 +31,19 @@ brew "libpq"
 ## JavaScript
 brew "node"
 brew "fnm"
+brew "slides"
+brew "bloomrpc"
+brew "grpc"
+brew "protobuf"
+tap "bufbuild/buf"
+brew "buf"
+brew "aws-vault"
+brew "k9s"
+brew "act"
 EOF
 
 brew link --force libpq
 
 curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs | sh
 sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-npm install -g yarn typescript typescript-language-server
 {{ end -}}
