@@ -32,6 +32,7 @@
 (straight-use-package 'counsel)
 (straight-use-package 'ivy)
 (straight-use-package 'nord-theme)
+(straight-use-package 'org)
 (straight-use-package 'org-roam)
 (straight-use-package 'org-tree-slide)
 (straight-use-package 'doom-modeline)
@@ -89,7 +90,7 @@
 (global-set-key (kbd "C-c k") 'counsel-ag)
 (global-set-key (kbd "C-x l") 'counsel-locate)
 (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
-(define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+(define-key minibuffer-local-map (kbd "C-c C-r") 'counsel-minibuffer-history)
 
 ;; keybind
 (global-set-key (kbd "C-c l") 'org-store-link)
@@ -101,6 +102,7 @@
   (define-key org-tree-slide-mode-map (kbd "C-c k") 'org-tree-slide-move-previous-tree)
   (define-key org-tree-slide-mode-map (kbd "C-c j") 'org-tree-slide-move-next-tree)
   )
+
 ;; for org-roam
 (global-set-key (kbd "C-c o f") 'org-roam-node-find)
 (global-set-key (kbd "C-c o d") 'org-roam-dailies-capture-today)
@@ -111,3 +113,7 @@
 
 ;; org-mode settings
 (setq org-agenda-files '("~/Dropbox/journals/org"))
+(setq org-ellipsis " >")
+(setq org-agenda-start-with-log-mode t) ;; start with logs with what you are working on
+(setq org-log-done 'time)
+(setq org-log-into-drawer t)
