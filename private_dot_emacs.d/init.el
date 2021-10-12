@@ -1,4 +1,4 @@
-;; disable ui elements to be minimal
+;; disable emacs ui elements to be minimal
 (setq inhibit-startup-message t)
 (setq ns-auto-hide-menu-bar t)
 (tool-bar-mode 0)
@@ -9,7 +9,7 @@
 (set-fringe-mode 10)
 
 ;; wrap long line automatically as I'm typing
-(add-hook 'text-mode-hook #'auto-fill-mode)
+(add-hook 'text-mode-hook #'visual-line-mode)
 
 ;; setting up straight.el https://github.com/raxod502/straight.el
 (defvar bootstrap-version)
@@ -28,14 +28,19 @@
 
 (add-to-list 'custom-theme-load-path (expand-file-name "~/.emacs.d/themes/"))
 
+;; common packages
 (straight-use-package 'evil)
 (straight-use-package 'counsel)
 (straight-use-package 'ivy)
+(straight-use-package 'xclip)
+;; visual improvements
 (straight-use-package 'nord-theme)
+(straight-use-package 'doom-modeline)
+;; org modes
 (straight-use-package 'org)
 (straight-use-package 'org-roam)
 (straight-use-package 'org-tree-slide)
-(straight-use-package 'doom-modeline)
+(straight-use-package 'org-contrib)
 
 ;; doom status bar
 (doom-modeline-mode 1)
@@ -59,7 +64,7 @@
 ;; enable nord theme
 (load-theme 'nord t)
 
-;; enable writing stuff
+;; enable spellcheck in orgmode
 (add-hook 'org-mode-hook 'flyspell-mode)
 
 ;; org-roam
@@ -75,21 +80,8 @@
 ;; enable this if you want `swiper' to use it
 ;; (setq search-default-mode #'char-fold-to-regexp)
 (global-set-key "\C-s" 'swiper)
-(global-set-key (kbd "C-c C-r") 'ivy-resume)
-(global-set-key (kbd "<f6>") 'ivy-resume)
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
-(global-set-key (kbd "<f1> f") 'counsel-describe-function)
-(global-set-key (kbd "<f1> v") 'counsel-describe-variable)
-(global-set-key (kbd "<f1> o") 'counsel-describe-symbol)
-(global-set-key (kbd "<f1> l") 'counsel-find-library)
-(global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
-(global-set-key (kbd "<f2> u") 'counsel-unicode-char)
-(global-set-key (kbd "C-c g") 'counsel-git)
-(global-set-key (kbd "C-c j") 'counsel-git-grep)
-(global-set-key (kbd "C-c k") 'counsel-ag)
-(global-set-key (kbd "C-x l") 'counsel-locate)
-(global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
 (define-key minibuffer-local-map (kbd "C-c C-r") 'counsel-minibuffer-history)
 
 ;; keybind
@@ -103,7 +95,7 @@
   (define-key org-tree-slide-mode-map (kbd "C-c j") 'org-tree-slide-move-next-tree)
   )
 
-;; for org-roam
+;; keybind for org-roam
 (global-set-key (kbd "C-c o f") 'org-roam-node-find)
 (global-set-key (kbd "C-c o d") 'org-roam-dailies-capture-today)
 (global-set-key (kbd "C-c o c d") 'org-roam-dailies-capture-date)
@@ -117,3 +109,9 @@
 (setq org-agenda-start-with-log-mode t) ;; start with logs with what you are working on
 (setq org-log-done 'time)
 (setq org-log-into-drawer t)
+(require 'ox-md)
+(require 'ox-confluence)
+
+;; copy and paste in tmux
+(require 'xclip)
+(xclip-mode 1)
