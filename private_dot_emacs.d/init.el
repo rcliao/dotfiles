@@ -97,6 +97,7 @@
 
 ;; keybind for org-roam
 (global-set-key (kbd "C-c o f") 'org-roam-node-find)
+(global-set-key (kbd "C-c o i") 'org-roam-node-insert)
 (global-set-key (kbd "C-c o d") 'org-roam-dailies-capture-today)
 (global-set-key (kbd "C-c o c d") 'org-roam-dailies-capture-date)
 (global-set-key (kbd "C-c o g d") 'org-roam-dailies-goto-date)
