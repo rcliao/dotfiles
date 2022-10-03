@@ -14,7 +14,7 @@ call plug#begin(data_dir)
     " show git gutter (indication on what has changed)
     Plug 'airblade/vim-gitgutter'
     " fast fuzzy finder
-    Plug '/usr/local/opt/fzf'
+    Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
     Plug 'junegunn/fzf.vim'
     " Colorscheme
     Plug 'arcticicestudio/nord-vim'

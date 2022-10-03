@@ -1,5 +1,6 @@
 -- set up lsp config
 require'lspconfig'.tsserver.setup{}
+require'lspconfig'.rust_analyzer.setup{}
 
 local nvim_lsp = require('lspconfig')
 
