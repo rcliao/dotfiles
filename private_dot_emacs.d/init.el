@@ -25,6 +25,7 @@
 
 ;; common packages
 (straight-use-package 'evil)
+(straight-use-package 'evil-collection)
 (straight-use-package 'counsel)
 (straight-use-package 'ivy)
 (straight-use-package 'xclip)
@@ -43,10 +44,12 @@
 (setq evil-want-C-i-jump nil)
 (setq evil-want-C-u-scroll 1)
 (setq evil-auto-indent nil)
+(setq evil-want-keybinding nil)
 
 ;; Enable Evil
 (require 'evil)
 (evil-mode 1)
+(evil-collection-init)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.

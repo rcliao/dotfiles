@@ -51,7 +51,6 @@ call plug#begin(data_dir)
     Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries', 'for': 'go' }
     " TypeScript
     Plug 'leafgarland/typescript-vim', { 'for': 'typescript' }
-    Plug 'quramy/tsuquyomi', { 'for': 'typescript' }
     " Emmet for easier html code snippet
     Plug 'mattn/emmet-vim'
     " JavaScript
