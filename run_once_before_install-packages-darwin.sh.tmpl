@@ -3,6 +3,8 @@
 
 brew bundle --no-lock --file=/dev/stdin <<EOF
 # day to day driver deps
+brew "koekeishiya/formulae/yabai"
+brew "koekeishiya/formulae/skhd"
 brew "gnupg"
 brew "zsh"
 brew "starship"
@@ -14,7 +16,6 @@ brew "reattach-to-user-namespace"
 # file finder
 brew "fd"
 brew "fzf"
-brew "exa"
 # replacement for cat
 brew "bat"
 # markdown preview
@@ -22,7 +23,7 @@ brew "glow"
 # autojump written in Go
 brew "jump"
 # terminal file browser
-brew "nnn"
+brew "yazi"
 # github cli
 brew "gh"
 brew "git-delta"
@@ -34,7 +35,6 @@ brew "node"
 brew "fnm"
 # Experimental stuff
 brew "slides"
-# brew "bloomrpc"
 brew "grpc"
 brew "protobuf"
 tap "bufbuild/buf"

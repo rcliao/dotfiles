@@ -1,6 +1,6 @@
 [user]
-	name = {{ .name }}
-	email = {{ .email }}
+	name = {{ or .name  "Eric Liao" }}
+	email = {{ or .email "rcliao01@gmail.com" }}
 
 [core]
     editor = nvim

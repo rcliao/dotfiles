@@ -4,15 +4,9 @@ My personal dotfiles containing configurations for NeoVim, Tmux and Zshrc.
 
 ## Get started
 
-### Runtime Dependencies
+### Prerequisites
 
 * Install Chezmoi - https://github.com/twpayne/chezmoi
-* Install NeoVim – https://github.com/neovim/neovim/wiki/Installing-Neovim
-    - `brew install neovim`
-* Install Oh My Zsh – https://github.com/robbyrussell/oh-my-zsh
-    * Install starship prompt – https://starship.rs/guide/#%F0%9F%9A%80-installation
-* Install Tmux – https://github.com/tmux/tmux
-    - `brew install tmux`
 
 ### Set up
 
