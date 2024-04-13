@@ -4,21 +4,23 @@ export ZSH=~/.oh-my-zsh
 # homebrew
 eval $(/opt/homebrew/bin/brew shellenv)
 
+export EDITOR=nvim
+
 # Zsh theme
-eval "$(starship init zsh)"
-ZSH_THEME=""
+# eval "$(starship init zsh)"
+fpath+=("$(brew --prefix)/share/zsh/site-functions")
+autoload -U promptinit; promptinit
+prompt pure
 
 plugins=(
   vi-mode
 )
 
-source $ZSH/oh-my-zsh.sh
+# source $ZSH/oh-my-zsh.sh
 
 # Go Settings
 export GOPATH="$HOME/dev/go"
 export PATH=$PATH:$GOPATH/bin
-
-export EDITOR=nvim
 
 # custom installed binary
 export PATH=$PATH:~/bin
@@ -32,6 +34,8 @@ fi
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --zsh)"
+# use fd as default find command to traverse the file system while respecting .gitignore
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 
 # for gpg
 export GPG_TTY=$(tty)
@@ -42,13 +46,13 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # aws CLI
 export PATH=$PATH:~/.local/bin:~/Library/Python/3.7/bin
 
-# use fd as default find command to traverse the file system while respecting .gitignore
-export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-
 # Load up ssh keys
 ssh-add -A &> /dev/null
 
 # jump for easier dir traversal
 if [ -x "$(command -v jump)" ]; then
     eval "$(jump shell)"
+fi
+if [ -x "$(command -v zoxide)" ]; then
+    eval "$(zoxide init zsh)"
 fi
