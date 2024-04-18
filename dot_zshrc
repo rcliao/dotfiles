@@ -44,7 +44,7 @@ export GPG_TTY=$(tty)
 export PATH="$HOME/.cargo/bin:$PATH"
 
 # aws CLI
-export PATH=$PATH:~/.local/bin:~/Library/Python/3.7/bin
+export PATH=$PATH:/usr/local/bin
 
 # Load up ssh keys
 ssh-add -A &> /dev/null
