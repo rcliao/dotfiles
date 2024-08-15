@@ -57,6 +57,8 @@ keybinds {
         bind "b" { BreakPane; SwitchToMode "Normal"; }
         bind "]" { BreakPaneRight; SwitchToMode "Normal"; }
         bind "[" { BreakPaneLeft; SwitchToMode "Normal"; }
+        bind "H" { MoveTab "Left"; SwitchToMode "Normal"; }
+        bind "L" { MoveTab "Right"; SwitchToMode "Normal"; }
         bind "1" { GoToTab 1; SwitchToMode "Normal"; }
         bind "2" { GoToTab 2; SwitchToMode "Normal"; }
         bind "3" { GoToTab 3; SwitchToMode "Normal"; }
@@ -206,9 +208,6 @@ plugins {
 //
 simplified_ui true
 
-// default, compact
-default_layout "compact"
-
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
 //
@@ -223,7 +222,7 @@ default_shell "zsh"
 //   - true (default)
 //   - false
 //
-pane_frames false
+pane_frames true
 
 // Toggle between having Zellij lay out panes according to a predefined set of layouts whenever possible
 // Options:
@@ -294,7 +293,7 @@ theme "nord"
 // The name of the default layout to load on startup
 // Default: "default"
 //
-// default_layout "compact"
+default_layout "compact"
 
 // Choose the mode that zellij uses when starting up.
 // Default: normal

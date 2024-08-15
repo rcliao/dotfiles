@@ -23,17 +23,19 @@
 
 (add-to-list 'custom-theme-load-path (expand-file-name "~/.emacs.d/themes/"))
 
-;; common packages
+;; common packages (evil for vim keybinding - since I'm mostly vim user)
 (straight-use-package 'evil)
 (straight-use-package 'evil-collection)
+;; common packages (ivy/counsel for file finding)
 (straight-use-package 'counsel)
 (straight-use-package 'ivy)
 (straight-use-package 'xclip)
 ;; org modes
 (straight-use-package 'org)
-(straight-use-package 'org-roam)
-(straight-use-package 'org-tree-slide)
-(straight-use-package 'org-contrib)
+;; temp commented out to use org mode as it is
+;;(straight-use-package 'org-roam)
+;;(straight-use-package 'org-tree-slide)
+;;(straight-use-package 'org-contrib)
 ;; visual improvements
 (straight-use-package 'nord-theme)
 (straight-use-package 'doom-modeline)
@@ -64,12 +66,6 @@
 ;; enable spellcheck in orgmode
 (add-hook 'org-mode-hook 'flyspell-mode)
 
-;; org-roam
-(setq org-roam-directory (file-truename "~/Dropbox/journals/org"))
-(setq org-roam-v2-ack t)
-(org-roam-db-autosync-mode)
-(setq org-roam-dailies-directory "~/Dropbox/journals/org/daily/")
-
 ;; ivy configuration
 (ivy-mode)
 (setq ivy-use-virtual-buffers t)
@@ -85,46 +81,31 @@
 (global-set-key (kbd "C-c l") 'org-store-link)
 (global-set-key (kbd "C-c a") 'org-agenda)
 (global-set-key (kbd "C-c c") 'org-capture)
-;; for presenting org mode articles
-(global-set-key (kbd "C-c o p") 'org-tree-slide-mode)
-(with-eval-after-load "org-tree-slide"
-  (define-key org-tree-slide-mode-map (kbd "C-c k") 'org-tree-slide-move-previous-tree)
-  (define-key org-tree-slide-mode-map (kbd "C-c j") 'org-tree-slide-move-next-tree)
-  )
-
-;; keybind for org-roam
-(global-set-key (kbd "C-c o f") 'org-roam-node-find)
-(global-set-key (kbd "C-c o i") 'org-roam-node-insert)
-(global-set-key (kbd "C-c o d") 'org-roam-dailies-capture-today)
-(global-set-key (kbd "C-c o c d") 'org-roam-dailies-capture-date)
-(global-set-key (kbd "C-c o g d") 'org-roam-dailies-goto-date)
-(global-set-key (kbd "C-c o g t") 'org-roam-dailies-goto-today)
-(global-set-key (kbd "C-c o g y") 'org-roam-dailies-goto-yesterday)
 
 ;; org-mode settings
-(setq org-directory "~/Dropbox/journals/org")
-(setq org-agenda-files (list "inbox.org" "agenda.org" "notes.org"))
+(setq org-directory "~/org")
+(setq org-agenda-files (list "inbox.org" "gtd.org"))
 (setq org-ellipsis " >")
-(setq org-agenda-start-with-log-mode t) ;; start with logs with what you are working on
 (setq org-log-done 'time)
 (setq org-log-into-drawer t)
-(require 'ox-md)
-(require 'ox-confluence)
+(setq org-agenda-start-with-log-mode t) ;; start with logs with what you are working on
+(setq org-agenda-window-steup 'otherwindow)
 
 (setq org-capture-templates
-      `(("i" "Inbox" entry  (file "inbox.org")
+      `(("i" "Inbox" entry  (file+headline "inbox.org" "Inbox")
         ,(concat "* TODO %?\n"
-                 "/Entered on/ %U"))
-        ("m" "Meeting" entry  (file+headline "agenda.org" "Future")
-        ,(concat "* %? :meeting:\n"
-                 "<%<%Y-%m-%d %a %H:00>>"))
-        ("n" "Note" entry  (file "notes.org")
-        ,(concat "* Note (%a)\n"
-                 "/Entered on/ %U\n" "\n" "%?"))))
+                 "CAPUTRED:/ %U"))))
 (setq org-log-done 'time)
 
-;; to open capture mode in full window
-(add-hook 'org-capture-mode-hook 'delete-other-windows)
+;; set up easy key for capture inbox
+(defun org-capture-inbox ()
+  (interactive)
+  (org-capture nil "i"))
+(global-set-key (kbd "C-c i") 'org-capture-inbox)
+
+;; TODO keyword highlights
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "HOLD(h)" "|" "DONE(d)")))
 
 ;; org-agenda settings
 (setq org-agenda-hide-tags-regexp ".")
@@ -161,25 +142,22 @@
 (setq org-refile-use-outline-path 'file)
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-targets
-      '(("projects.org" :regexp . "\\(?:\\(?:Note\\|Task\\)s\\)")))
-(setq org-agenda-files 
-      (mapcar 'file-truename 
-          (file-expand-wildcards "~/Dropbox/journals/org/*.org")))
-;; Save the corresponding buffers
-(defun gtd-save-org-buffers ()
-  "Save `org-agenda-files' buffers without user confirmation.
-See also `org-save-all-org-buffers'"
-  (interactive)
-  (message "Saving org-agenda-files buffers...")
-  (save-some-buffers t (lambda () 
-             (when (member (buffer-file-name) org-agenda-files) 
-               t)))
-  (message "Saving org-agenda-files buffers... done"))
-
+      '("gtd.org"))
 ;; Add it after refile
 (advice-add 'org-refile :after
         (lambda (&rest _)
           (gtd-save-org-buffers)))
+
+;; org archive
+(defun get-current-quarter ()
+  "return the current quarter based on the curreht month."
+  (let* ((month (string-to-number (format-time-string "%m")))
+         (quarter (ceiling (/ month 3.0))))
+    (format "Q%d" quarter)))
+(setq org-archive-location
+      (format "~/org/archives/%s-%s_archive::"
+              (format-time-string "%Y") ; year
+              (get-current-quarter)))   ; quarter
 
 ;; copy and paste in tmux
 (require 'xclip)
