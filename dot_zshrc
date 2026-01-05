@@ -46,6 +46,9 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # aws CLI
 export PATH=$PATH:/usr/local/bin
 
+# claude code
+export PATH="$HOME/.local/bin:$PATH"
+
 # Load up ssh keys
 ssh-add -A &> /dev/null
 
