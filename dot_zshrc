@@ -43,14 +43,15 @@ export GPG_TTY=$(tty)
 # rust-lang cargo env
 export PATH="$HOME/.cargo/bin:$PATH"
 
-# aws CLI
-export PATH=$PATH:/usr/local/bin
+# aws CLI, and $HOME/.local/bin for claude code
+export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 
-# claude code
-export PATH="$HOME/.local/bin:$PATH"
+# python
+export PATH="/opt/homebrew/opt/python/libexec/bin:$PATH"
 
-# Load up ssh keys
-ssh-add -A &> /dev/null
+# SSH keys load on demand: ~/.ssh/config sets AddKeysToAgent + UseKeychain on
+# every host, so the passphrase comes from Keychain at first use. An eager
+# `ssh-add -A` here cost ~420ms of every shell start for no benefit.
 
 # jump for easier dir traversal
 if [ -x "$(command -v jump)" ]; then
@@ -59,3 +60,32 @@ fi
 if [ -x "$(command -v zoxide)" ]; then
     eval "$(zoxide init zsh)"
 fi
+
+# Added by Antigravity
+export PATH="/Users/rcliao/.antigravity/antigravity/bin:$PATH"
+
+# Java
+export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/rcliao/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/rcliao/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+
+# Initialize completions once, reusing ~/.zcompdump unless it is over a day
+# old. gcloud's completion.zsh.inc below runs its own uncached `compinit` when
+# compdef is undefined, which rebuilds the dump from scratch (~190ms). Doing it
+# here first means that branch is skipped.
+# NOTE: the glob must be in an array assignment — [[ ]] suppresses globbing, so
+# the common `[[ -n ~/.zcompdump(#qNmh+24) ]]` idiom is always true.
+autoload -Uz compinit
+_zcompdump_stale=(~/.zcompdump(N.mh+24))
+if (( ${#_zcompdump_stale} )); then compinit; else compinit -C; fi
+unset _zcompdump_stale
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/rcliao/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/rcliao/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+
+# Zero CLI
+export PATH="$HOME/.zero/bin:$PATH"
+
+# Zero runner (added by the zero plugin SessionStart hook)
+export PATH="$HOME/.zero/runtime/bin:$PATH"
