@@ -1,10 +1,16 @@
-# ~/.claude holds config next to a lot of machine-local runtime state.
-# Only CLAUDE.md, settings.json and hooks/ are tracked; everything below is
-# either regenerated, machine-specific, or large enough to bloat the repo.
-# Listed explicitly so `chezmoi add ~/.claude` can never sweep it in.
+# ~/.claude holds two files worth versioning next to a lot of machine-local
+# runtime state. Only CLAUDE.md and settings.json are tracked — the things I
+# actually author. Everything below is regenerated, tool-managed, or large
+# enough to bloat the repo, and is listed explicitly so `chezmoi add ~/.claude`
+# can never sweep it in.
 #
 # NOTE: no inline comments — chezmoi treats the rest of the line as part of
 # the pattern, so a trailing "# ..." silently stops the entry from matching.
+
+# Installed and overwritten by `herdr integration install claude`, and stamped
+# with its own HERDR_INTEGRATION_VERSION. Tracking it claims ownership of a
+# file herdr rewrites on every upgrade.
+.claude/hooks
 
 # ~32M of session transcripts, which quote file contents
 .claude/projects
