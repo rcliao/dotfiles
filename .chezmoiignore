@@ -1,0 +1,41 @@
+# ~/.claude holds config next to a lot of machine-local runtime state.
+# Only CLAUDE.md, settings.json and hooks/ are tracked; everything below is
+# either regenerated, machine-specific, or large enough to bloat the repo.
+# Listed explicitly so `chezmoi add ~/.claude` can never sweep it in.
+#
+# NOTE: no inline comments — chezmoi treats the rest of the line as part of
+# the pattern, so a trailing "# ..." silently stops the entry from matching.
+
+# ~32M of session transcripts, which quote file contents
+.claude/projects
+.claude/sessions
+.claude/session-env
+.claude/shell-snapshots
+# ~5M
+.claude/file-history
+# ~1.3M of prompt history
+.claude/history.jsonl
+.claude/statsig
+.claude/telemetry
+.claude/debug
+.claude/cache
+.claude/paste-cache
+.claude/tasks
+.claude/ide
+.claude/chrome
+.claude/backups
+# managed by the plugin system, has its own caches
+.claude/plugins
+# currently only plugin-provided skills
+.claude/skills
+.claude/stats-cache.json
+.claude/mcp-needs-auth-cache.json
+.claude/.last-*
+.claude/*.bak-*
+.claude/*.pre-*
+
+# herdr keeps sockets, logs and a multi-megabyte session history beside its config
+.config/herdr/*.log
+.config/herdr/*.sock
+.config/herdr/session*.json
+.config/herdr/.plugins.lock
