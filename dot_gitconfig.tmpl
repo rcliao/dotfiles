@@ -12,6 +12,36 @@
 	reviewone = !nvim -p +\"tabdo Gdiff $REVIEW_BASE\" +\"let g:gitgutter_diff_base = '$REVIEW_BASE'\"
 [push]
 	default = current
+	# push.default=current picks the branch name; this also sets the upstream,
+	# so an agent's first push on a new branch needs no -u.
+	autoSetupRemote = true
+
+[fetch]
+	# Agents create and delete branches constantly; drop remote-tracking refs
+	# whose upstream is gone.
+	prune = true
+	pruneTags = true
+
+[rerere]
+	# Replay previously recorded conflict resolutions. Agents rebase often and
+	# hit the same conflicts repeatedly.
+	enabled = true
+	autoUpdate = true
+
+[merge]
+	# zdiff3 shows the common ancestor inside the markers. Agents resolve
+	# conflicts far more reliably with it than with the default two-sided view.
+	conflictStyle = zdiff3
+
+[diff]
+	algorithm = histogram
+	colorMoved = default
+
+[branch]
+	sort = -committerdate
+
+[column]
+	ui = auto
 
 [pager]
 	diff = delta
