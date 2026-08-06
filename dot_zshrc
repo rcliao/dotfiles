@@ -6,6 +6,17 @@ eval $(/opt/homebrew/bin/brew shellenv)
 
 export EDITOR=nvim
 
+# History. The defaults keep 1000 entries and each shell overwrites the file on
+# exit, which loses almost everything when several herdr panes run at once.
+# SHARE_HISTORY + INC_APPEND_HISTORY make panes append to a common file live.
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+setopt SHARE_HISTORY INC_APPEND_HISTORY EXTENDED_HISTORY
+setopt HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS
+setopt HIST_IGNORE_SPACE      # a leading space keeps a command out of history
+setopt HIST_VERIFY            # expand !! and friends for review instead of running
+
 # Zsh theme
 # eval "$(starship init zsh)"
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
