@@ -1,0 +1,121 @@
+# herdr configuration — tuned to match ~/.tmux.conf muscle memory
+#
+# Mental model mapping:
+#   tmux session  -> herdr workspace
+#   tmux window   -> herdr tab
+#   tmux pane     -> herdr pane
+
+onboarding = false
+
+[theme]
+# "terminal" inherits the host terminal palette, closest to the minimal
+# tmux theme (status-bg default, no heavy chrome).
+name = "terminal"
+
+[theme.custom]
+panel_bg = "reset"
+
+[terminal]
+# tmux: splits use -c "#{pane_current_path}"
+new_cwd = "follow"
+
+[keys]
+prefix = "ctrl+a"                    # tmux: set -g prefix C-a
+
+# --- splits ---------------------------------------------------------------
+# NOTE: herdr names splits by divider orientation, the OPPOSITE of tmux flags.
+#   herdr split_horizontal = stacked (new pane below) == tmux split-window -v
+#   herdr split_vertical   = side by side (new pane right) == tmux split-window -h
+split_horizontal = "prefix+v"        # tmux: bind v split-window -v
+split_vertical   = "prefix+s"        # tmux: bind s split-window -h
+settings         = "prefix+shift+s"  # moved off prefix+s
+
+# --- pane navigation (tmux: bind -r h/j/k/l select-pane) ------------------
+focus_pane_left  = "prefix+h"
+focus_pane_down  = "prefix+j"
+focus_pane_up    = "prefix+k"
+focus_pane_right = "prefix+l"
+
+# tmux has no directional swap (only < / > cycle); these are the closest fit.
+swap_pane_left  = "prefix+shift+h"
+swap_pane_down  = "prefix+shift+j"
+swap_pane_up    = "prefix+shift+k"
+swap_pane_right = "prefix+shift+l"
+
+# tmux default: prefix o = select next pane
+cycle_pane_next     = "prefix+o"
+cycle_pane_previous = "prefix+shift+o"
+
+# --- tab (tmux window) navigation ----------------------------------------
+previous_tab = "prefix+ctrl+h"       # tmux: bind -r C-h previous-window
+next_tab     = "prefix+ctrl+l"       # tmux: bind -r C-l next-window
+new_tab      = "prefix+c"            # tmux default
+close_tab    = "prefix+shift+x"
+switch_tab   = "prefix+1..9"         # tmux: base-index 1 matches herdr
+
+# tmux `bind Tab last-window` has no direct herdr equivalent (no last_tab
+# action). last_pane is the nearest thing: jump back to wherever you were,
+# across tabs and workspaces.
+last_pane = "prefix+tab"
+
+# --- workspace (tmux session) navigation ---------------------------------
+# tmux uses prefix ( / ) — parens aren't reliably bindable, so mirror the
+# ctrl+h/ctrl+l tab pattern one level up.
+previous_workspace = "prefix+ctrl+k"
+next_workspace     = "prefix+ctrl+j"
+workspace_picker   = "prefix+w"      # tmux: prefix w = choose-tree
+switch_workspace   = "prefix+shift+1..9"
+
+# --- misc ----------------------------------------------------------------
+copy_mode     = "prefix+enter"       # tmux: bind Enter copy-mode
+detach        = "prefix+d"           # tmux default (herdr default was prefix+q)
+reload_config = "prefix+r"           # tmux: bind r source-file ~/.tmux.conf
+resize_mode   = "prefix+shift+r"     # displaced by reload_config
+close_pane    = "prefix+x"           # tmux default
+zoom          = "prefix+z"           # tmux default
+# tmux unbinds n/p, so prefix+n is free for notifications. Leaving
+# new_workspace on its herdr default of prefix+shift+n.
+new_workspace            = "prefix+shift+n"
+open_notification_target = "prefix+n"
+
+# Jump straight to the Nth agent regardless of workspace. Unset by default.
+focus_agent = "prefix+alt+1..9"
+
+[ui]
+# tmux: set-option -g status-position bottom
+tab_bar_position = "bottom"
+
+# tmux window-status-current-style fg=colour4
+accent = "blue"
+
+# tmux has no sidebar; keep it out of the way but one keypress (prefix+b) away.
+sidebar_start_collapsed = true
+sidebar_collapsed_mode = "compact"
+
+# Attention queue: blocked/done agents float to the top instead of staying
+# grouped by workspace. Better when several agents run in parallel.
+agent_panel_sort = "priority"
+
+# tmux `bind c` opens a window immediately, no name prompt.
+prompt_new_tab_name = false
+prompt_new_workspace_name = false
+
+# tmux status bar is always visible, so keep the tab row always visible too.
+hide_tab_bar_when_single_tab = false
+
+# Default rows render as "● briefly/1 · claude" three times over. Claude Code
+# sets a meaningful terminal title, so show that instead of the agent kind.
+# NOTE: keep table headers last — bare keys after one belong to that table.
+show_agent_labels_on_pane_borders = true
+[ui.sidebar.agents]
+rows_by_agent.claude = [
+  ["state_icon", "workspace", "tab"],
+  ["terminal_title_stripped"],
+]
+
+[experimental]
+# Keep pane scrollback across full server restarts.
+pane_history = true
+
+[ui.sound]
+enabled = false
