@@ -55,12 +55,19 @@
     "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); dir_name=$(basename \"$cwd\"); git_info=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then branch=$(git -C \"$cwd\" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || git -C \"$cwd\" --no-optional-locks rev-parse --short HEAD 2>/dev/null); [ -n \"$branch\" ] && git_info=\" ($branch)\"; fi; printf \"%s%s \u2022 %s\" \"$dir_name\" \"$git_info\" \"$model\""
   },
   "enabledPlugins": {
+    "comments@comments": true,
     "gopls-lsp@claude-plugins-official": true,
     "slack@claude-plugins-official": true,
     "posthog@claude-plugins-official": true,
     "zero@zero-plugins": true
   },
   "extraKnownMarketplaces": {
+    "comments": {
+      "source": {
+        "source": "github",
+        "repo": "rcliao/comments"
+      }
+    },
     "zero-plugins": {
       "source": {
         "source": "github",

@@ -63,22 +63,16 @@ export PATH="/opt/homebrew/opt/python/libexec/bin:$PATH"
 # every host, so the passphrase comes from Keychain at first use. An eager
 # `ssh-add -A` here cost ~420ms of every shell start for no benefit.
 
-# jump for easier dir traversal
-if [ -x "$(command -v jump)" ]; then
-    eval "$(jump shell)"
-fi
+# directory jumping
 if [ -x "$(command -v zoxide)" ]; then
     eval "$(zoxide init zsh)"
 fi
-
-# Added by Antigravity
-export PATH="/Users/rcliao/.antigravity/antigravity/bin:$PATH"
 
 # Java
 export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/rcliao/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/rcliao/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"; fi
 
 # Initialize completions once, reusing ~/.zcompdump unless it is over a day
 # old. gcloud's completion.zsh.inc below runs its own uncached `compinit` when
@@ -92,7 +86,7 @@ if (( ${#_zcompdump_stale} )); then compinit; else compinit -C; fi
 unset _zcompdump_stale
 
 # The next line enables shell command completion for gcloud.
-if [ -f '/Users/rcliao/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/rcliao/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"; fi
 
 # Zero CLI
 export PATH="$HOME/.zero/bin:$PATH"
