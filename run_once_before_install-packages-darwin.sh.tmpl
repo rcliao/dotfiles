@@ -1,25 +1,42 @@
 {{- if (eq .chezmoi.os "darwin") -}}
 #!/bin/bash
 
+# Synced against `brew leaves` + `brew list --cask` on 2026-08-07. Anything a
+# tracked dotfile actually depends on belongs here — chezmoi itself, the shells,
+# the multiplexers, and the CLIs referenced from .zshrc / .gitconfig /
+# settings.json. Regenerate the list with `brew leaves` and diff before editing.
+
 brew bundle --file=/dev/stdin <<EOF
-# day to day driver deps
-# experimenting with aerospace as tile manager
-# brew "koekeishiya/formulae/yabai"
-# brew "koekeishiya/formulae/skhd"
-brew "gnupg"
-brew "zellij"
-brew "tmux"
-brew "emacs"
-brew "neovim"
+# --- bootstrap -----------------------------------------------------------
+# chezmoi manages this repo; a new machine needs it before anything else, so
+# this entry is really a self-check rather than the install path.
+brew "chezmoi"
+
+# --- shell ---------------------------------------------------------------
 brew "zsh"
 brew "pure"
-brew "asciinema"
-brew "agg"
+# jq backs the Claude Code status line; macOS ships one, but pin it anyway.
+brew "jq"
+
+# --- terminal multiplexers -----------------------------------------------
+brew "tmux"
+brew "zellij"
+# agent-oriented multiplexer; ~/.config/herdr/config.toml is tracked here
+brew "herdr"
 # for tmux copy and paste
 brew "reattach-to-user-namespace"
-# file finder
+
+# --- editors -------------------------------------------------------------
+brew "neovim"
+brew "emacs"
+# language spell checking
+brew "ispell"
+
+# --- command line productivity -------------------------------------------
+# file finders
 brew "fd"
 brew "fzf"
+brew "ripgrep"
 # replacement for cat
 brew "bat"
 # markdown preview
@@ -28,35 +45,79 @@ brew "glow"
 brew "zoxide"
 # terminal file browser
 brew "yazi"
-# github cli
+# terminal slides
+brew "slides"
+# terminal session recording
+brew "asciinema"
+brew "agg"
+
+# --- git -----------------------------------------------------------------
 brew "gh"
+# .gitconfig sets delta as the pager for diff/log/show
 brew "git-delta"
-# language specific libs
-## Postgres
-brew "libpq"
+
+# --- languages and runtimes ----------------------------------------------
 ## JavaScript
 brew "node"
 brew "fnm"
-# Experimental stuff
-cask "alacritty"
-brew "slides"
+brew "nvm"
+brew "pnpm"
+## Go
+brew "go"
+## Rust
+brew "rust-analyzer"
+## Python
+brew "uv"
+## Java — .zshrc puts /opt/homebrew/opt/openjdk/bin on PATH
+brew "openjdk"
+## Postgres client libs
+brew "libpq"
+
+# --- rpc / schemas -------------------------------------------------------
 brew "grpc"
-brew "protobuf"
 tap "bufbuild/buf"
 brew "buf"
-brew "aws-vault"
-brew "k9s"
-brew "act"
-# Language spell checking
-brew "ispell"
-# Rust stuff
-brew "rust-analyzer"
-brew "sops"
-brew "kubectl"
+
+# --- infra and cloud -----------------------------------------------------
+brew "terraform"
+brew "kubernetes-cli"
 brew "kustomize"
-cask "1password-cli"
+brew "k9s"
+brew "sops"
+brew "aws-vault"
+brew "doppler"
+brew "cloudflared"
+brew "tailscale"
+brew "render"
 brew "go-task"
+# run GitHub Actions locally
+brew "act"
+# load testing
+brew "k6"
+
+# --- data ----------------------------------------------------------------
+brew "duckdb"
+brew "redis"
+# diagrams as code
+brew "d2"
+
+# --- media / misc --------------------------------------------------------
+brew "ffmpeg"
+brew "poppler"
+brew "watchman"
+brew "yt-dlp"
+
+# --- casks ---------------------------------------------------------------
+cask "ghostty"
+cask "alacritty"
+cask "1password-cli"
+# tiling window manager; ~/.aerospace.toml is tracked here
 cask "nikitabobko/tap/aerospace"
+cask "tailscale-app"
+cask "mitmproxy"
+# experimenting with aerospace as tile manager instead
+# brew "koekeishiya/formulae/yabai"
+# brew "koekeishiya/formulae/skhd"
 EOF
 
 # curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs | sh
