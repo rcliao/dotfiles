@@ -29,14 +29,17 @@ jobs:
         run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 
       - name: shellcheck the hook scripts
-        run: shellcheck dot_claude/hooks/executable_*.sh
+        # -S error only: these scripts predate CI and trip a pile of style and
+        # info findings (SC2086 where word splitting is deliberate, SC2002,
+        # SC2181). Gate on things that actually break, not on style.
+        run: shellcheck -S error dot_claude/hooks/executable_*.sh
 
       - name: shellcheck the rendered package script
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           chezmoi execute-template --source="$GITHUB_WORKSPACE" \
             < run_onchange_before_install-packages-darwin.sh.tmpl > /tmp/pkg.sh
-          shellcheck /tmp/pkg.sh
+          shellcheck -S error /tmp/pkg.sh
 
       - name: Every template parses
         run: |
@@ -79,21 +82,27 @@ jobs:
           dest="$(mktemp -d)"; cfgdir="$(mktemp -d)"
           echo "DEST=$dest" >> "$GITHUB_ENV"
           echo "CFG=$cfgdir/chezmoi.toml" >> "$GITHUB_ENV"
+          # sourceDir/destDir are NOT put in this file on purpose: `chezmoi init`
+          # regenerates the config from .chezmoi.toml.tmpl, which only emits
+          # [data]. Anything else here is silently dropped, and the next command
+          # then falls back to the real source dir and the real $HOME. Always
+          # pass --source/--destination explicitly.
           cat > "$cfgdir/chezmoi.toml" <<EOF
-          sourceDir = "$GITHUB_WORKSPACE"
-          destDir = "$dest"
           [data]
               name = "CI Runner"
               email = "ci@example.com"
               ghost = ${{ matrix.ghost }}
           EOF
           # --exclude=scripts keeps this fast; the packages job covers the rest.
-          chezmoi --config "$cfgdir/chezmoi.toml" init --apply --promptDefaults --exclude=scripts
+          chezmoi --config "$cfgdir/chezmoi.toml" \
+            --source="$GITHUB_WORKSPACE" --destination="$dest" \
+            init --apply --promptDefaults --exclude=scripts
 
       - name: Apply is idempotent
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          chezmoi --config "$CFG" apply --exclude=scripts
+          chezmoi --config "$CFG" --source="$GITHUB_WORKSPACE" --destination="$DEST" \
+            apply --exclude=scripts
 
       - name: Expected targets exist
         run: |
@@ -138,7 +147,8 @@ jobs:
           # No target argument: a path passed to apply is resolved against the
           # real destDir, not the one in --config, so it would be rejected as
           # "not in destination directory".
-          chezmoi --config "$CFG" apply --force --exclude=scripts
+          chezmoi --config "$CFG" --source="$GITHUB_WORKSPACE" --destination="$DEST" \
+            apply --force --exclude=scripts
           jq -e '.enabledPlugins["ci-only-plugin"] == true and .ciOnlyState.keep == 1' \
             "$DEST/.claude/settings.json" > /dev/null \
             || { echo "::error::modify_ merge dropped untracked keys"; exit 1; }
@@ -158,18 +168,20 @@ jobs:
         run: |
           dest="$(mktemp -d)"; cfgdir="$(mktemp -d)"
           cat > "$cfgdir/chezmoi.toml" <<EOF
-          sourceDir = "$GITHUB_WORKSPACE"
-          destDir = "$dest"
           [data]
               name = "CI Runner"
               email = "ci@example.com"
               ghost = false
           EOF
-          chezmoi --config "$cfgdir/chezmoi.toml" init --apply --promptDefaults
+          chezmoi --config "$cfgdir/chezmoi.toml" \
+            --source="$GITHUB_WORKSPACE" --destination="$dest" \
+            init --apply --promptDefaults
           echo "CFG=$cfgdir/chezmoi.toml" >> "$GITHUB_ENV"
+          echo "DEST=$dest" >> "$GITHUB_ENV"
 
       - name: The package script actually ran
         run: |
-          chezmoi --config "$CFG" state get-bucket --bucket=scriptState \
+          chezmoi --config "$CFG" --source="$GITHUB_WORKSPACE" --destination="$DEST" \
+            state get-bucket --bucket=scriptState \
             | grep -q 'install-packages-darwin.sh' \
             || { echo "::error::package script was not recorded as run"; exit 1; }

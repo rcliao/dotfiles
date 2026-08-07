@@ -81,11 +81,21 @@ Run the real bootstrap into a throwaway destination:
 
 ```sh
 T=$(mktemp -d); mkdir -p "$T/home" "$T/cfg"
-cp -R ~/.local/share/chezmoi "$T/src"; rm -rf "$T/src/.git"
-printf 'sourceDir = "%s/src"\ndestDir = "%s/home"\n' "$T" "$T" > "$T/cfg/chezmoi.toml"
-chezmoi --config "$T/cfg/chezmoi.toml" init --apply --promptDefaults
+printf '[data]\n  name = "Test"\n  email = "t@example.com"\n  ghost = false\n' > "$T/cfg/chezmoi.toml"
+CM="chezmoi --config $T/cfg/chezmoi.toml --source $PWD --destination $T/home"
+$CM init --apply --promptDefaults --exclude=scripts
+$CM apply --exclude=scripts   # second run proves idempotence
+[ "$($CM data | jq -r '.chezmoi.destDir')" = "$T/home" ] || echo "NOT confined!"
 find "$T/home" -type f | sort
 ```
+
+**Pass `--source` and `--destination` as flags, never as `sourceDir`/`destDir` in
+the test config.** `chezmoi init` regenerates the config file from
+`.chezmoi.toml.tmpl`, which emits only `[data]` — everything else in that file is
+silently dropped. The next command then falls back to the real source directory
+and **the real `$HOME`**, and quietly rewrites your actual dotfiles. This has
+already happened once; it overwrote a git identity and a hand-kept ghostty
+config. The `destDir` assertion above is cheap insurance.
 
 Check both `ghost = true` and `ghost = false`, and that any JSON you generate is
 still valid: `jq empty "$T/home/.claude/settings.json"`.
