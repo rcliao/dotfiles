@@ -1,6 +1,7 @@
 # Repo docs, not dotfiles. Without this chezmoi treats them as targets and a
-# fresh `chezmoi init --apply` drops a stray ~/README.md in the home directory.
+# fresh `chezmoi init --apply` drops stray copies in the home directory.
 README.md
+CLAUDE.md
 
 # ~/.claude holds a handful of authored files next to a lot of machine-local
 # runtime state. Tracked: CLAUDE.md, settings.json, and the hook scripts I
