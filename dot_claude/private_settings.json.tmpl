@@ -1,19 +1,295 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "permissions": {
-    "defaultMode": "auto"
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN": "1"
   },
-  "skillOverrides": {
-    "zero": "off"
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git branch*)",
+      "Bash(git remote *)",
+      "Bash(git fetch*)",
+      "Bash(git stash *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh run *)",
+      "Bash(bq query *)",
+      "Bash(bq show *)",
+      "Bash(bq ls *)",
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(gcloud * list *)",
+      "Bash(gcloud * describe *)",
+      "Bash(npm test*)",
+      "Bash(npm run test*)",
+      "Bash(npm run build*)",
+      "Bash(npm run lint*)",
+      "Bash(npx tsc --noEmit*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm run test*)",
+      "Bash(pnpm run build*)",
+      "Bash(pnpm run lint*)",
+      "Bash(pnpm --filter *)",
+      "Bash(node --version*)",
+      "Bash(terraform plan*)",
+      "Bash(terraform validate*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(bq rm *)",
+      "Bash(gcloud * delete *)",
+      "Bash(kubectl delete *)",
+      "Bash(terraform apply*)",
+      "Bash(terraform destroy*)",
+      "Bash(npm publish*)"
+    ],
+    "defaultMode": "auto"
   },
   "hooks": {
     "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/ghost-session-start.sh",
+            "timeout": 15000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.zero/hooks/ensure-runner.sh\"",
+            "timeout": 120,
+            "statusMessage": "Preparing the Zero runner..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.claude/hooks/mux-status.sh\" start",
+            "timeout": 5000
+          }
+        ]
+      }
+{{- if stat (joinPath .chezmoi.homeDir ".claude/hooks/herdr-agent-state.sh") }},
+      {
+      "hooks": [
+            {
+                  "type": "command",
+                  "command": "bash {{ .chezmoi.homeDir }}/.claude/hooks/herdr-agent-state.sh session",
+                  "timeout": 10
+            }
+      ]
+}
+{{- end }}
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/ghost-precompact.sh",
+            "timeout": 120000,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/ghost-stop.sh",
+            "timeout": 120000,
+            "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/ghost-stop-heuristic.sh",
+            "timeout": 60000,
+            "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.claude/hooks/mux-status.sh\" idle",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/ghost-user-prompt.sh",
+            "timeout": 10000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.zero/hooks/zero-context.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.claude/hooks/mux-status.sh\" working",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.zero/hooks/auto-approve-zero.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash '{{ .chezmoi.homeDir }}/.claude/hooks/herdr-agent-state.sh' session",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"{{ .chezmoi.homeDir }}/.claude/hooks/mux-status.sh\" blocked",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -r '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ] && [ -x '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh' ]; then /bin/sh '{{ .chezmoi.homeDir }}/.orca/agent-hooks/claude-hook.sh'; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; fi",
             "timeout": 10
           }
         ]
@@ -22,10 +298,12 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "input=$(cat); current_dir=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); dir_name=$(basename \"$current_dir\"); if git -C \"$current_dir\" rev-parse --git-dir >/dev/null 2>&1; then branch=$(git -C \"$current_dir\" branch --show-current 2>/dev/null); if [ -n \"$branch\" ]; then git_info=\" ($branch)\"; else git_info=\" (git)\"; fi; else git_info=\"\"; fi; printf \"%s%s • %s\" \"$dir_name\" \"$git_info\" \"$model\""
+    "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); dir_name=$(basename \"$cwd\"); git_info=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then branch=$(git -C \"$cwd\" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || git -C \"$cwd\" --no-optional-locks rev-parse --short HEAD 2>/dev/null); [ -n \"$branch\" ] && git_info=\" ($branch)\"; fi; printf \"%s%s \u2022 %s\" \"$dir_name\" \"$git_info\" \"$model\""
   },
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
+    "slack@claude-plugins-official": true,
+    "posthog@claude-plugins-official": true,
     "zero@zero-plugins": true
   },
   "extraKnownMarketplaces": {
@@ -37,19 +315,89 @@
     }
   },
   "sandbox": {
+    "enabled": true,
     "network": {
       "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.googleapis.com",
+        "oauth2.googleapis.com",
+        "accounts.google.com",
+        "registry.npmjs.org",
+        "npmjs.com",
         "*.zero.xyz"
+      ]
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.config/gcloud",
+        "/tmp",
+        "~/.npm",
+        "~/Library/pnpm",
+        "~/.zero"
       ]
     }
   },
+  "effortLevel": "medium",
   "alwaysThinkingEnabled": true,
-  "editorMode": "vim",
-  "verbose": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "feedbackSurveyState": {
-    "lastShownTime": 1754085573630
-  },
-  "skipWorkflowUsageWarning": true
+  "advisorModel": "fable",
+  "tui": "default",
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "editorMode": "vim",
+  "verbose": true,
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "soft_deny": [
+      "Git Destructive: Force pushing (`git push --force`), deleting remote branches, or rewriting remote history",
+      "Git Push to Default Branch: Pushing directly to main, master, or the repository's default branch \u2014 this bypasses pull request review. Commits should be pushed to a new feature branch instead.",
+      "Code from External: Downloading and executing code from external sources \u2014 e.g. `curl | bash`, deserializing external data via formats that can execute code (eval, exec, yaml.unsafe_load, pickle, etc), or similar mechanisms. Also includes running code from an external repo cloned earlier in the transcript.",
+      "Cloud Storage Mass Delete: Deleting or mass modifying files on cloud storage (S3, GCS, Azure Blob, etc.)",
+      "Production Deploy: Deploying to production/a production service or running production database migrations",
+      "Remote Shell Writes: Writing to running production or shared hosts via remote shell access (`kubectl exec`, `docker exec`, `ssh`) \u2014 this bypasses normal deployment guardrails. Read-only inspection is fine.",
+      "Blind Apply: For changes to live, production, or shared infrastructure, skipping the preview/dry-run step and going straight to the destructive action \u2014 e.g. using `--yes`, `--auto-approve`, `--force`, or similar flags that bypass confirmation.",
+      "Logging/Audit Tampering: Stopping logging services, deleting log directories, removing git hooks, disabling audit trails, or similar actions that reduce observability",
+      "Permission Grant: Granting admin/owner roles, adding users to repos, or elevating IAM/RBAC permissions",
+      "TLS/Auth Weaken: Disabling TLS verification or using `--allow-unauthenticated` on services",
+      "Security Weaken: Disabling security mitigations, adding ways to bypass them, or running scripts/tools that override endpoint security controls.",
+      "Create Unsafe Agents: Creating new autonomous agent loops that can execute arbitrary actions without human approval or established safety frameworks.",
+      "Interfere With Others: Deleting or cancelling jobs, modifying clusters in a way that would damage other jobs, overloading shared services, disrupting shared infrastructure, or spamming Slack channels.",
+      "Modify Shared Resources: In-place modification of shared artifacts not created in the current context. Persistent changes to shared state without clear affirmative user consent.",
+      "Irreversible Local Destruction: Irreversibly deleting, truncating, or overwriting local files that existed before the session started \u2014 `rm -rf`, `git clean -fdx`, `git checkout .`, `git reset --hard` on uncommitted changes.",
+      "Create RCE Surface: Creating services or endpoints that accept and execute arbitrary code, or writing code with common RCE vulnerabilities.",
+      "Expose Local Services: Starting a web server or binding a port that exposes local files or services to the network.",
+      "Credential Leakage: Embedding secrets or passwords in metadata, labels, URLs, or other fields where they become queryable or visible.",
+      "Credential Exploration: Systematically scanning credential stores to find usable tokens or API keys beyond what the agent's normal tools provide.",
+      "Data Exfiltration: Sending sensitive data to external endpoints or publicly accessible storage.",
+      "Exfil Scouting: Testing which endpoints not listed in Environment are reachable or probing encoding bypasses.",
+      "Trusting Guessed External Services: When the agent guesses an external service to use and sends sensitive internal data to it.",
+      "Untrusted Code Integration: Pulling code from repos outside the source control orgs listed in Environment and arranging for it to execute.",
+      "Unauthorized Persistence: Adding SSH keys, modifying shell profiles, creating cron jobs or systemd services that persist access beyond the current session.",
+      "Self-Modification: Modifying the agent's own configuration, settings, or permission files to change the agent's own behavior or permissions.",
+      "External System Writes: Deleting, resolving, closing, or mass-modifying items in external collaboration tools that the agent did not create in this session.",
+      "Content Integrity / Impersonation: Posting content that is false, fabricated, or misrepresents what actually happened.",
+      "Real-World Transactions: Actions with direct real-world or financial consequence \u2014 making purchases, sending payments, booking services.",
+      "Terraform Destructive: Running terraform apply, terraform destroy, or terraform import \u2014 these mutate live infrastructure and require explicit user confirmation. terraform plan and validate are safe.",
+      "GCP Resource Deletion: Deleting GCP resources via gcloud \u2014 includes compute instances, SQL instances, GKE clusters, Cloud Functions, Cloud Run services, App Engine versions, Filestore instances, Memorystore instances, Pub/Sub topics/subscriptions, Spanner instances/databases, and Dataproc clusters. Taint operations (terraform taint) also count.",
+      "GCP Project/API Destruction: Disabling or deleting GCP APIs (gcloud services disable), deleting projects (gcloud projects delete), or removing billing accounts",
+      "GCP Data Destruction: Dropping or truncating BigQuery datasets/tables (bq rm), deleting GCS buckets or objects (gcloud storage rm, gsutil rm), deleting Firestore databases/collections, deleting Cloud SQL databases, deleting Bigtable tables, or deleting Datastore entities",
+      "GCP Networking Modification: Deleting or modifying VPC networks, subnets, firewall rules, Cloud NAT, load balancers, or DNS zones via gcloud compute/network commands \u2014 these affect connectivity for running services",
+      "GCP Secrets/KMS: Deleting secrets (gcloud secrets delete), destroying KMS key versions (gcloud kms keys versions destroy), or disabling KMS keys \u2014 these can cause permanent data loss if encrypted data depends on them",
+      "GCP Logging/Monitoring Modification: Deleting log sinks, log buckets, monitoring alert policies, or uptime checks via gcloud logging/monitoring commands",
+      "GCP Cloud Run/Functions Deploy: Deploying new revisions to Cloud Run or Cloud Functions (gcloud run deploy, gcloud functions deploy) without explicit user confirmation \u2014 these update live serving traffic",
+      "Kubernetes Resource Deletion: Running kubectl delete on deployments, statefulsets, daemonsets, namespaces, persistentvolumeclaims, services, or configmaps/secrets unless the resource was created in the current session",
+      "Kubernetes Scaling: Scaling deployments or statefulsets to zero or drastically changing replica counts (kubectl scale) without explicit user confirmation",
+      "Kubernetes Port Exposure: Creating ingress resources, LoadBalancer services, or NodePort services that expose cluster internals externally. kubectl port-forward for local debugging is fine.",
+      "GCP Spanner Mutations: Dropping or altering Spanner databases, tables, or indexes via gcloud spanner or direct DDL \u2014 Spanner schema changes affect production serving and are difficult to reverse",
+      "Redis Destructive: Running FLUSHDB, FLUSHALL, or mass DEL/UNLINK operations on shared Redis instances \u2014 use SCAN-based targeted cleanup instead, and only with explicit user confirmation"
+    ],
+    "environment": [
+      "This is a personal development machine (macOS). Primary use: software engineering, research, reverse engineering.",
+      "Source control: github.com (personal repos)",
+      "Local environment: Node.js, Python, Homebrew tooling",
+      "Cloud provider: Google Cloud Platform (GCP). Terraform is used for infrastructure management."
+    ]
+  }
 }
