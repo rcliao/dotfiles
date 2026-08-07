@@ -1,0 +1,10 @@
+# Load keys into the agent on first use and take the passphrase from the macOS
+# Keychain. ~/.zshrc deliberately does not run `ssh-add -A` at startup (it cost
+# ~420ms per shell); these two options are what replace it, so they must apply
+# to every host, not just GitHub.
+Host *
+  AddKeysToAgent yes
+  UseKeychain yes
+
+Host github.com
+  IdentityFile ~/.ssh/id_ed25519
