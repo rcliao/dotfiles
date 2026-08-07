@@ -1,0 +1,17 @@
+{{/*
+Generates ~/.config/chezmoi/chezmoi.toml on `chezmoi init`.
+
+Per-machine values live here, NOT in .chezmoidata.toml, so a work laptop and a
+personal workstation can share the same source repo with different git
+identities. promptStringOnce only asks when the value is not already set, so
+re-running `chezmoi init` on an existing machine is non-interactive.
+
+Values in this file override .chezmoidata.toml, which supplies the defaults
+below for a fully unattended `chezmoi init --promptDefaults`.
+*/ -}}
+{{- $name  := promptStringOnce . "name"  "Full name for git commits" .name -}}
+{{- $email := promptStringOnce . "email" "Git email for THIS machine (work vs personal)" .email -}}
+
+[data]
+    name = {{ $name | quote }}
+    email = {{ $email | quote }}
