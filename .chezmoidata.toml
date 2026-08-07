@@ -1,2 +1,5 @@
 name = "Eric Liao"
 email = "rcliao01@gmail.com"
+
+# Ghost MCP memory hooks are opt-in per machine; see .chezmoiignore.
+ghost = false

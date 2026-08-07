@@ -1,16 +1,36 @@
-# ~/.claude holds two files worth versioning next to a lot of machine-local
-# runtime state. Only CLAUDE.md and settings.json are tracked — the things I
-# actually author. Everything below is regenerated, tool-managed, or large
-# enough to bloat the repo, and is listed explicitly so `chezmoi add ~/.claude`
-# can never sweep it in.
+# ~/.claude holds a handful of authored files next to a lot of machine-local
+# runtime state. Tracked: CLAUDE.md, settings.json, and the hook scripts I
+# wrote. Everything below is regenerated, tool-managed, or large enough to
+# bloat the repo, and is listed explicitly so `chezmoi add ~/.claude` can
+# never sweep it in.
 #
 # NOTE: no inline comments — chezmoi treats the rest of the line as part of
 # the pattern, so a trailing "# ..." silently stops the entry from matching.
 
-# Installed and overwritten by `herdr integration install claude`, and stamped
-# with its own HERDR_INTEGRATION_VERSION. Tracking it claims ownership of a
-# file herdr rewrites on every upgrade.
-.claude/hooks
+# ~/.claude/hooks is shared: the ghost-* and mux-* scripts are mine and are
+# tracked, the two entries below are not. Anything a future
+# `herdr integration install claude` drops in here must be added to this list,
+# otherwise `chezmoi add ~/.claude` will sweep it in.
+#
+# Installed and overwritten by herdr, stamped with its own
+# HERDR_INTEGRATION_VERSION. Tracking it claims ownership of a file herdr
+# rewrites on every upgrade.
+.claude/hooks/herdr-agent-state.sh
+# Per-pane status cache, hundreds of tiny files regenerated constantly.
+.claude/hooks/.mux-status
+
+# The ghost-* hooks drive the Ghost MCP memory server, which a fresh machine
+# does not have. They are versioned here but only installed when a machine
+# opts in with `ghost = true` in ~/.config/chezmoi/chezmoi.toml. settings.json
+# wires each hook only if its script is present, so a machine without the flag
+# gets a settings.json with no Ghost references at all.
+{{ if not .ghost }}
+.claude/hooks/ghost-precompact.sh
+.claude/hooks/ghost-session-start.sh
+.claude/hooks/ghost-stop-heuristic.sh
+.claude/hooks/ghost-stop.sh
+.claude/hooks/ghost-user-prompt.sh
+{{ end }}
 
 # ~32M of session transcripts, which quote file contents
 .claude/projects
