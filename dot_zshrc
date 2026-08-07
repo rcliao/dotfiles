@@ -93,3 +93,10 @@ export PATH="$HOME/.zero/bin:$PATH"
 
 # Zero runner (added by the zero plugin SessionStart hook)
 export PATH="$HOME/.zero/runtime/bin:$PATH"
+
+# Per-project runtime versions (mise.toml / .tool-versions). Deliberately last:
+# mise prepends to PATH, and every export above would otherwise shadow the
+# versions a project pins. Guarded so a machine without mise still starts.
+if [ -x "$(command -v mise)" ]; then
+    eval "$(mise activate zsh)"
+fi

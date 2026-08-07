@@ -48,9 +48,14 @@ brew "gh"
 brew "git-delta"
 
 # --- languages and runtimes ----------------------------------------------
+# Per-project runtime pinning. Several repos I work in commit a mise.toml or
+# .tool-versions; without mise installed those pins are inert and everything
+# silently builds against whatever version brew happens to have. The brew
+# entries below stay as the global fallback — mise only takes over inside a
+# directory that pins something.
+brew "mise"
 ## JavaScript
 brew "node"
-brew "fnm"
 brew "pnpm"
 ## Go
 brew "go"
