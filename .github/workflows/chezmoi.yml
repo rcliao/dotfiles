@@ -21,12 +21,16 @@ permissions:
 jobs:
   lint:
     name: lint
-    runs-on: ubuntu-latest
+    # macOS, not Ubuntu: the package script is guarded on
+    # `eq .chezmoi.os "darwin"`, so on Linux it renders to an empty file and
+    # shellchecking it is a silent no-op that reports success without ever
+    # looking at the script.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install chezmoi
-        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+      - name: Install chezmoi and shellcheck
+        run: brew install chezmoi shellcheck
 
       - name: shellcheck the hook scripts
         # -S error only: these scripts predate CI and trip a pile of style and
@@ -36,14 +40,14 @@ jobs:
 
       - name: shellcheck the rendered package script
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
           chezmoi execute-template --source="$GITHUB_WORKSPACE" \
             < run_onchange_before_install-packages-darwin.sh.tmpl > /tmp/pkg.sh
+          # Guard against the check quietly passing on an empty render.
+          [ -s /tmp/pkg.sh ] || { echo "::error::package script rendered empty"; exit 1; }
           shellcheck -S error /tmp/pkg.sh
 
       - name: Every template parses
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
           fail=0
           while IFS= read -r tmpl; do
               # .chezmoi.toml.tmpl uses promptStringOnce, which is only valid in
