@@ -10,10 +10,12 @@ contributing here.
 
 ## Ground rules
 
-**This repo is public.** Nothing employer-specific — no `piedotorg`, `pie.org`,
-internal hostnames, or private repo names. Machine- or work-specific values go
-in `~/.config/chezmoi/chezmoi.toml`, which is never committed. Grep before you
-push anything under `dot_claude/`.
+**This repo is public.** Nothing employer-specific — no employer or internal
+org names, private repo names, internal hostnames, or work email addresses.
+Machine- and work-specific values go in `~/.config/chezmoi/chezmoi.toml`, which
+is never committed; the work email there is the pattern to follow. Before
+pushing anything under `dot_claude/`, grep the diff for the employer's domain
+and org name. Do not write those literals into this file either.
 
 **More than one machine writes here, and neither is automatically right.** A
 commit from the other machine can be a downgrade on this one. Always
