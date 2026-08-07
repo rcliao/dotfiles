@@ -1,0 +1,32 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+
+Merge the settings chezmoi owns into whatever is already on disk, instead of
+replacing the file.
+
+Claude Code rewrites ~/.claude/settings.json itself — reordering keys, recording
+UI state, registering plugins you install from inside a session. A plain
+template fought with that: every apply reverted those changes, and anything
+deliberately kept out of this public repo (work-only plugins) was stripped.
+
+mergeOverwrite lets the managed side win on the keys it names while leaving every
+other key alone. Nested maps merge, so enabledPlugins and extraKnownMarketplaces
+gain our entries without losing yours. Arrays are replaced wholesale, which is
+what we want for hooks.
+
+Consequence worth knowing: this can add and change keys but never remove one.
+Dropping a managed key from the template leaves it in place on machines that
+already have it — delete it from ~/.claude/settings.json by hand.
+
+*/ -}}
+{{- /* .chezmoi.stdin is absent, not empty, outside an actual apply (chezmoi cat
+       and chezmoi status render without it), so test for the key rather than
+       its value or the template errors with "map has no entry for key". */ -}}
+{{- $current := dict -}}
+{{- if hasKey .chezmoi "stdin" -}}
+{{-   if trim .chezmoi.stdin -}}
+{{-     $current = .chezmoi.stdin | fromJson -}}
+{{-   end -}}
+{{- end -}}
+{{- $managed := includeTemplate "claude-settings.json" . | fromJson -}}
+{{- mergeOverwrite (deepCopy $current) $managed | toPrettyJson }}

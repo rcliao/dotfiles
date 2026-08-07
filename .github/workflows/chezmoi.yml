@@ -1,0 +1,175 @@
+name: chezmoi
+
+# Every bug this catches was found by hand first: a config template that broke
+# `chezmoi init` outright, a failing package script that aborted apply before
+# anything was written, and repo docs deploying into the home directory. All of
+# them rendered fine — only actually applying to a clean machine exposed them.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Weekly, so upstream drift (a formula disappearing, a cask needing trust)
+    # surfaces on its own rather than during a real machine setup.
+    - cron: "0 16 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+
+      - name: shellcheck the hook scripts
+        run: shellcheck dot_claude/hooks/executable_*.sh
+
+      - name: shellcheck the rendered package script
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          chezmoi execute-template --source="$GITHUB_WORKSPACE" \
+            < run_onchange_before_install-packages-darwin.sh.tmpl > /tmp/pkg.sh
+          shellcheck /tmp/pkg.sh
+
+      - name: Every template parses
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          fail=0
+          while IFS= read -r tmpl; do
+              # .chezmoi.toml.tmpl uses promptStringOnce, which is only valid in
+              # `chezmoi init` context — the bootstrap job covers that one.
+              case "$tmpl" in */.chezmoi.toml.tmpl) continue ;; esac
+              if ! chezmoi execute-template --source="$GITHUB_WORKSPACE" < "$tmpl" > /dev/null; then
+                  echo "::error file=$tmpl::template failed to render"
+                  fail=1
+              fi
+          done < <(find . -name '*.tmpl' -type f -not -path './.git/*')
+          # the modify_ script is a template without the .tmpl suffix
+          if ! chezmoi execute-template --source="$GITHUB_WORKSPACE" \
+                 < dot_claude/modify_private_settings.json > /dev/null; then
+              echo "::error::modify_private_settings.json failed to render"
+              fail=1
+          fi
+          exit "$fail"
+
+  bootstrap:
+    name: init --apply (${{ matrix.os }}, ghost=${{ matrix.ghost }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ghost: ["false", "true"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+
+      - name: chezmoi init --apply into a throwaway home
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          dest="$(mktemp -d)"; cfgdir="$(mktemp -d)"
+          echo "DEST=$dest" >> "$GITHUB_ENV"
+          echo "CFG=$cfgdir/chezmoi.toml" >> "$GITHUB_ENV"
+          cat > "$cfgdir/chezmoi.toml" <<EOF
+          sourceDir = "$GITHUB_WORKSPACE"
+          destDir = "$dest"
+          [data]
+              name = "CI Runner"
+              email = "ci@example.com"
+              ghost = ${{ matrix.ghost }}
+          EOF
+          # --exclude=scripts keeps this fast; the packages job covers the rest.
+          chezmoi --config "$cfgdir/chezmoi.toml" init --apply --promptDefaults --exclude=scripts
+
+      - name: Apply is idempotent
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          chezmoi --config "$CFG" apply --exclude=scripts
+
+      - name: Expected targets exist
+        run: |
+          for f in .zshrc .gitconfig .ssh/config .claude/settings.json \
+                   .claude/CLAUDE.md .config/herdr/config.toml .config/git/ignore; do
+              [ -f "$DEST/$f" ] || { echo "::error::missing $f"; exit 1; }
+          done
+
+      - name: Repo docs did not leak into the home directory
+        run: |
+          for f in README.md CLAUDE.md Brewfile; do
+              [ -f "$DEST/$f" ] && { echo "::error::$f was deployed to \$HOME"; exit 1; }
+          done
+          exit 0
+
+      - name: settings.json is valid JSON and Ghost gating is correct
+        run: |
+          jq empty "$DEST/.claude/settings.json"
+          refs=$(grep -c ghost "$DEST/.claude/settings.json" || true)
+          scripts=$(ls "$DEST/.claude/hooks/" 2>/dev/null | grep -c ghost || true)
+          echo "ghost refs=$refs scripts=$scripts (flag=${{ matrix.ghost }})"
+          if [ "${{ matrix.ghost }}" = "true" ]; then
+              [ "$refs" -gt 0 ] && [ "$scripts" -eq 5 ]
+          else
+              # With the flag off neither the hooks nor their scripts may appear,
+              # and PreCompact — which only ever held a Ghost hook — must be gone
+              # rather than left as an empty array.
+              [ "$refs" -eq 0 ] && [ "$scripts" -eq 0 ] \
+                && [ "$(jq '.hooks | has("PreCompact")' "$DEST/.claude/settings.json")" = "false" ]
+          fi
+
+      - name: modify_ merge preserves keys this repo does not track
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          # settings.json is a modify_ template precisely so Claude Code's own
+          # edits, and machine-local plugins kept out of this public repo, are
+          # not wiped on every apply. Prove it still merges rather than replaces.
+          tmp="$(mktemp)"
+          jq '.enabledPlugins["ci-only-plugin"] = true | .ciOnlyState = {"keep": 1}' \
+            "$DEST/.claude/settings.json" > "$tmp"
+          mv "$tmp" "$DEST/.claude/settings.json"
+          # No target argument: a path passed to apply is resolved against the
+          # real destDir, not the one in --config, so it would be rejected as
+          # "not in destination directory".
+          chezmoi --config "$CFG" apply --force --exclude=scripts
+          jq -e '.enabledPlugins["ci-only-plugin"] == true and .ciOnlyState.keep == 1' \
+            "$DEST/.claude/settings.json" > /dev/null \
+            || { echo "::error::modify_ merge dropped untracked keys"; exit 1; }
+
+  packages:
+    name: brew bundle (macOS)
+    runs-on: macos-latest
+    # Slow and network-dependent, so it is not gating on every push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: brew install chezmoi
+
+      - name: Full init --apply with the package script enabled
+        run: |
+          dest="$(mktemp -d)"; cfgdir="$(mktemp -d)"
+          cat > "$cfgdir/chezmoi.toml" <<EOF
+          sourceDir = "$GITHUB_WORKSPACE"
+          destDir = "$dest"
+          [data]
+              name = "CI Runner"
+              email = "ci@example.com"
+              ghost = false
+          EOF
+          chezmoi --config "$cfgdir/chezmoi.toml" init --apply --promptDefaults
+          echo "CFG=$cfgdir/chezmoi.toml" >> "$GITHUB_ENV"
+
+      - name: The package script actually ran
+        run: |
+          chezmoi --config "$CFG" state get-bucket --bucket=scriptState \
+            | grep -q 'install-packages-darwin.sh' \
+            || { echo "::error::package script was not recorded as run"; exit 1; }

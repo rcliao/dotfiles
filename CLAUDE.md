@@ -36,14 +36,48 @@ add it there rather than relying on a glob.
 | `private_foo` | mode `0600` |
 | `executable_foo` | mode `0755` |
 | `foo.tmpl` | rendered as a Go template |
-| `run_once_before_*` | script, runs before apply, re-runs when its content changes |
+| `run_onchange_before_*` | script, runs before apply, re-runs when its content changes |
+| `modify_foo` | script/template that *edits* the target instead of replacing it |
 
-A mode-only difference still shows as `M` in `chezmoi status`. That is not a bug.
+Type prefixes come first: `modify_private_settings.json`, not
+`private_modify_...`. A mode-only difference still shows as `M` in
+`chezmoi status`. That is not a bug.
+
+Prefer `run_onchange_` over `run_once_`. `run_once_` keys on whether a given
+script body has ever succeeded, so reverting a change is skipped as
+already-seen content.
+
+## settings.json is a `modify_` template, on purpose
+
+`~/.claude/settings.json` is written by Claude Code as well as by us — it
+reorders keys, records UI state, and registers plugins installed mid-session.
+`dot_claude/modify_private_settings.json` therefore *merges* rather than
+replaces: `mergeOverwrite` lets our keys win while every other key survives.
+The managed content lives in `.chezmoitemplates/claude-settings.json`.
+
+Three things to know before editing it:
+
+- **No `.tmpl` suffix.** With one, chezmoi renders the template to produce a
+  *script* and then executes it — you get `exec format error` on the JSON. The
+  `chezmoi:modify-template` marker is what makes it a template.
+- **`.chezmoi.stdin` is absent, not empty,** outside a real apply (`chezmoi cat`
+  and `status` render without it). Test with `hasKey .chezmoi "stdin"`.
+- **A merge can add and change keys but never remove one.** Dropping a key from
+  the template leaves it on machines that already have it; delete it by hand.
+
+This is also what keeps machine-local, work-only plugins working without their
+names appearing in this public repo.
 
 ## Verify by applying, not by reading
 
-Rendering a template proves nothing about whether a new machine works. Run the
-real bootstrap into a throwaway destination:
+CI does this on every push — `.github/workflows/chezmoi.yml` runs
+`chezmoi init --apply` into a throwaway home on macOS and Ubuntu, for both
+`ghost` states, then applies a second time to prove idempotence and checks that
+the `modify_` merge still preserves untracked keys. If a change is worth making
+it is worth letting that job run.
+
+Locally, rendering a template proves nothing about whether a new machine works.
+Run the real bootstrap into a throwaway destination:
 
 ```sh
 T=$(mktemp -d); mkdir -p "$T/home" "$T/cfg"
@@ -75,6 +109,13 @@ still valid: `jq empty "$T/home/.claude/settings.json"`.
   config. Feeding a pty with `script` just hangs.
 - **`chezmoi apply` wants a TTY** when a target changed since chezmoi last wrote
   it (`MM` status). Use `--force` in a non-interactive session.
+- **A target path passed to `apply` is resolved against the real `destDir`,** not
+  the one in `--config`. In a scratch-destination test, apply everything rather
+  than naming a path, or it fails with "not in destination directory".
+- **A script that reads a separate file needs that file's hash in its body,**
+  otherwise its own contents never change and `run_onchange_` never fires:
+  `# Brewfile hash: {{ include "Brewfile" | sha256sum }}`. And the file itself
+  must be in `.chezmoiignore`, or it deploys to `$HOME`.
 
 ## Deciding where something belongs
 

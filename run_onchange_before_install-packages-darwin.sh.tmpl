@@ -1,0 +1,41 @@
+{{- if (eq .chezmoi.os "darwin") -}}
+#!/bin/bash
+
+# Installs everything in the Brewfile next to this script.
+#
+# run_onchange_ rather than run_once_: run_once_ keys on whether a given script
+# body has ever succeeded, so reverting a package change would be silently
+# skipped as already-seen content. run_onchange_ re-runs on any change,
+# including a revert. It is also what chezmoi's own macOS guide recommends.
+#
+# The hash below is what makes that work — the Brewfile is a separate file, so
+# without embedding its checksum this script's own contents would never change
+# and edits to the package list would never trigger a run.
+#
+# Brewfile hash: {{ include "Brewfile" | sha256sum }}
+
+BREWFILE={{ joinPath .chezmoi.sourceDir "Brewfile" | quote }}
+
+# A package problem must not block the dotfiles. This is a `before_` script, so
+# a non-zero exit aborts the whole `chezmoi apply` and nothing gets written —
+# which is how a single unavailable formula used to leave a machine with no
+# config at all. Report and carry on instead.
+brew_bundle_failed=0
+brew bundle --file="$BREWFILE" || brew_bundle_failed=1
+
+# aerospace is the tiling window manager ~/.aerospace.toml configures, but it
+# lives in a third-party tap and recent Homebrew refuses casks from untrusted
+# taps, which fails the whole bundle. Trusting a tap is a security decision, so
+# it stays a deliberate manual step rather than something this script does.
+if ! brew list --cask aerospace >/dev/null 2>&1; then
+    echo "note: aerospace not installed. To add it:" >&2
+    echo "      brew trust nikitabobko/tap && brew install --cask nikitabobko/tap/aerospace" >&2
+fi
+
+if [ "$brew_bundle_failed" -ne 0 ]; then
+    echo "warning: brew bundle reported errors above; dotfiles were still applied." >&2
+    echo "         re-run 'chezmoi apply' after fixing to retry the packages." >&2
+fi
+
+exit 0
+{{ end -}}

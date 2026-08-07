@@ -2,6 +2,9 @@
 # fresh `chezmoi init --apply` drops stray copies in the home directory.
 README.md
 CLAUDE.md
+# Package list, read by the install script via its source path. Without this it
+# would be deployed as ~/Brewfile.
+Brewfile
 
 # ~/.claude holds a handful of authored files next to a lot of machine-local
 # runtime state. Tracked: CLAUDE.md, settings.json, and the hook scripts I

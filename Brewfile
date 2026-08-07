@@ -1,17 +1,3 @@
-{{- if (eq .chezmoi.os "darwin") -}}
-#!/bin/bash
-
-# Synced against `brew leaves` + `brew list --cask` on 2026-08-07. Anything a
-# tracked dotfile actually depends on belongs here — chezmoi itself, the shells,
-# the multiplexers, and the CLIs referenced from .zshrc / .gitconfig /
-# settings.json. Regenerate the list with `brew leaves` and diff before editing.
-
-# A package problem must not block the dotfiles. This is a `run_once_before_`
-# script, so a non-zero exit aborts the whole `chezmoi apply` and nothing gets
-# written — which is how a single unavailable formula used to leave a machine
-# with no config at all. Report and carry on instead.
-brew_bundle_failed=0
-brew bundle --file=/dev/stdin <<EOF || brew_bundle_failed=1
 # --- bootstrap -----------------------------------------------------------
 # chezmoi manages this repo; a new machine needs it before anything else, so
 # this entry is really a self-check rather than the install path.
@@ -120,23 +106,3 @@ cask "mitmproxy"
 # experimenting with aerospace as tile manager instead
 # brew "koekeishiya/formulae/yabai"
 # brew "koekeishiya/formulae/skhd"
-EOF
-
-# aerospace is the tiling window manager ~/.aerospace.toml configures, but it
-# lives in a third-party tap and recent Homebrew refuses casks from untrusted
-# taps, which fails the whole bundle. Trusting a tap is a security decision, so
-# it stays a deliberate manual step rather than something this script does.
-if ! brew list --cask aerospace >/dev/null 2>&1; then
-    echo "note: aerospace not installed. To add it:" >&2
-    echo "      brew trust nikitabobko/tap && brew install --cask nikitabobko/tap/aerospace" >&2
-fi
-
-if [ "$brew_bundle_failed" -ne 0 ]; then
-    echo "warning: brew bundle reported errors above; dotfiles were still applied." >&2
-    echo "         re-run 'chezmoi apply' after fixing to retry the packages." >&2
-fi
-
-# curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs | sh
-# sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-exit 0
-{{ end -}}
