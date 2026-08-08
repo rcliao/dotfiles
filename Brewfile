@@ -82,7 +82,6 @@ brew "sops"
 brew "aws-vault"
 brew "doppler"
 brew "cloudflared"
-brew "tailscale"
 brew "render"
 brew "go-task"
 # run GitHub Actions locally
@@ -106,6 +105,16 @@ brew "yt-dlp"
 cask "ghostty"
 cask "alacritty"
 cask "1password-cli"
+# The Standalone variant, which is the one Tailscale recommends: it ships
+# security fixes without waiting on App Store review, and unlike the App Store
+# build it supports Funnel, full exit nodes and Tailscale SSH.
+#
+# Deliberately NOT alongside `brew "tailscale"`. That formula is the third
+# variant (tailscaled, CLI-only, unsandboxed), and Tailscale's docs are explicit
+# that two variants must not run on one machine — the extension fails to launch.
+# Having both listed here left a machine with the App Store app serving the
+# tailnet, an erroring homebrew.mxcl.tailscale launch agent, and a CLI one
+# version ahead of the daemon it was talking to.
 cask "tailscale-app"
 cask "mitmproxy"
 # experimenting with aerospace as tile manager instead
