@@ -46,6 +46,37 @@ jobs:
           [ -s /tmp/pkg.sh ] || { echo "::error::package script rendered empty"; exit 1; }
           shellcheck -S error /tmp/pkg.sh
 
+      - name: Every Brewfile name resolves
+        # The `packages` job installs for real, but it only runs weekly and on
+        # dispatch, so a formula disappearing from homebrew/core stayed
+        # invisible for as long as a week — and `brew bundle` aborts the entire
+        # batch on one unresolvable name, so the cost is every package, not one.
+        # Resolving a name is cheap where installing is not, which is why this
+        # lives here and runs on every push.
+        #
+        # Trust is deliberately not enforced: this step asks "does this name
+        # exist", and listing a tap in the Brewfile is itself the repo-level
+        # decision to use it. Whether a machine has run `brew trust` is a
+        # per-machine matter, and the weekly `brew bundle check` covers it.
+        env:
+          HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
+        run: |
+          while IFS= read -r t; do brew tap "$t"; done \
+            < <(sed -n 's/^tap "\([^"]*\)".*/\1/p' Brewfile)
+
+          fail=0
+          while IFS= read -r n; do
+              brew info --formula "$n" >/dev/null 2>&1 \
+                || { echo "::error file=Brewfile::formula \"$n\" does not resolve"; fail=1; }
+          done < <(sed -n 's/^brew "\([^"]*\)".*/\1/p' Brewfile)
+
+          while IFS= read -r n; do
+              brew info --cask "$n" >/dev/null 2>&1 \
+                || { echo "::error file=Brewfile::cask \"$n\" does not resolve"; fail=1; }
+          done < <(sed -n 's/^cask "\([^"]*\)".*/\1/p' Brewfile)
+
+          exit "$fail"
+
       - name: Every template parses
         run: |
           fail=0
@@ -189,3 +220,20 @@ jobs:
             state get-bucket --bucket=scriptState \
             | grep -q 'install-packages-darwin.sh' \
             || { echo "::error::package script was not recorded as run"; exit 1; }
+
+      - name: Every Brewfile entry resolves and installed
+        # The check above only proves the script ran. It cannot fail on a broken
+        # Brewfile: the script deliberately swallows a `brew bundle` failure and
+        # exits 0 so a bad package can never abort the apply, and chezmoi records
+        # any zero-exit script as run. So the assertion passed while `terraform`
+        # had been removed from homebrew/core, `brew bundle` aborted the whole
+        # batch on the unresolvable name, and *nothing* was installed.
+        #
+        # `brew bundle check` asserts the outcome instead, and exits non-zero
+        # when any entry is unresolvable or missing — including the tap-trust
+        # case, where an untrusted entry is silently ignored rather than failing.
+        run: |
+          if ! brew bundle check --file="$GITHUB_WORKSPACE/Brewfile" --verbose; then
+              echo "::error::Brewfile entries unresolved or uninstalled (see above)"
+              exit 1
+          fi
