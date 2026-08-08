@@ -74,7 +74,23 @@ tap "bufbuild/buf"
 brew "buf"
 
 # --- infra and cloud -----------------------------------------------------
-brew "terraform"
+# HashiCorp's BUSL relicense got terraform removed from homebrew/core, so the
+# bare name no longer resolves anywhere. It has to come from their own tap.
+# This matters more than a missing package usually would: `brew bundle` resolves
+# the whole file before installing anything, so one unresolvable name installs
+# NOTHING — a bare `brew "terraform"` silently cost a machine all 16 packages.
+#
+# Two manual steps a fresh machine still needs, neither of which this file can
+# do for you:
+#   1. `brew trust --formula hashicorp/tap/terraform`. Tap trust applies to
+#      formulae, not just casks — see the aerospace note below. Untrusted tap
+#      entries are ignored rather than installed.
+#   2. Current Xcode Command Line Tools. This tap ships no bottles, so terraform
+#      is compiled from source and a stale CLT fails the build.
+# `brew "opentofu"` from homebrew/core is bottled and needs neither, if the
+# HashiCorp-specific bits are ever not required.
+tap "hashicorp/tap"
+brew "hashicorp/tap/terraform"
 brew "kubernetes-cli"
 brew "kustomize"
 brew "k9s"
