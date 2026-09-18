@@ -132,6 +132,3 @@ cask "1password-cli"
 # version ahead of the daemon it was talking to.
 cask "tailscale-app"
 cask "mitmproxy"
-# experimenting with aerospace as tile manager instead
-# brew "koekeishiya/formulae/yabai"
-# brew "koekeishiya/formulae/skhd"

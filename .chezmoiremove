@@ -5,3 +5,6 @@
 # Homebrew disabled the alacritty cask on 2026-09-01 (fails Gatekeeper); ghostty
 # is the terminal now.
 .alacritty.toml
+
+# yabai was replaced by aerospace (~/.aerospace.toml).
+.yabairc

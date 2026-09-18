@@ -62,8 +62,7 @@ it wins over the PATH exports above it. Homebrew still provides the global node,
 go, and python; mise only takes over inside a directory that pins a version in
 `mise.toml` or `.tool-versions`.
 
-**Window management** — [aerospace](https://github.com/nikitabobko/AeroSpace),
-plus a leftover `.yabairc`.
+**Window management** — [aerospace](https://github.com/nikitabobko/AeroSpace).
 
 **Claude Code** — `CLAUDE.md`, `settings.json`, and the hook scripts under
 `.claude/hooks`. `settings.json` is a template: hooks belonging to tools that
