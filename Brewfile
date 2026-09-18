@@ -91,7 +91,6 @@ brew "libpq"
 
 # --- rpc / schemas -------------------------------------------------------
 brew "grpc"
-tap "bufbuild/buf"
 brew "buf"
 
 # --- infra and cloud -----------------------------------------------------

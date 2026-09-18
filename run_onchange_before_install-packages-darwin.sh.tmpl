@@ -29,7 +29,7 @@ brew bundle --file="$BREWFILE" || brew_bundle_failed=1
 # it stays a deliberate manual step rather than something this script does.
 if ! brew list --cask aerospace >/dev/null 2>&1; then
     echo "note: aerospace not installed. To add it:" >&2
-    echo "      brew trust nikitabobko/tap && brew install --cask nikitabobko/tap/aerospace" >&2
+    echo "      brew trust --cask nikitabobko/tap/aerospace && brew install --cask nikitabobko/tap/aerospace" >&2
 fi
 
 if [ "$brew_bundle_failed" -ne 0 ]; then

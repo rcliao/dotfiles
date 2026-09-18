@@ -89,7 +89,7 @@ Homebrew refuses casks from untrusted taps, and trusting one is a decision
 worth making deliberately, so the bundle does not install aerospace:
 
 ```sh
-brew trust nikitabobko/tap
+brew trust --cask nikitabobko/tap/aerospace   # this one cask, not the whole tap
 brew install --cask nikitabobko/tap/aerospace
 ```
 
