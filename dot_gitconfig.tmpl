@@ -6,6 +6,10 @@
 	br = branch
 	ci = commit
 	st = status
+	# difftastic: structural diff, for when delta shows a reformat as a rewrite
+	dft = -c diff.external=difft diff
+	dlog = -c diff.external=difft log -p --ext-diff
+	dshow = -c diff.external=difft show --ext-diff
 	stat = !git diff --stat $(git merge-base HEAD \"$REVIEW_BASE\")
 	files = !git diff --name-only $(git merge-base HEAD \"$REVIEW_BASE\")
 	review = !nvim -p $(git files) +\"tabdo Gdiffsplit $REVIEW_BASE\" +\"let g:gitgutter_diff_base = '$REVIEW_BASE'\"

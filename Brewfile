@@ -6,6 +6,8 @@ brew "chezmoi"
 # --- shell ---------------------------------------------------------------
 brew "zsh"
 brew "pure"
+# shell history in SQLite, searchable by directory / exit code; takes over ^R
+brew "atuin"
 # jq backs the Claude Code status line; macOS ships one, but pin it anyway.
 brew "jq"
 
@@ -54,6 +56,8 @@ brew "agg"
 brew "gh"
 # .gitconfig sets delta as the pager for diff/log/show
 brew "git-delta"
+# syntax-aware diff that ignores reformatting; `git dft` / `git dlog` use it
+brew "difftastic"
 # terminal UI for staging, rebasing and browsing history
 brew "lazygit"
 # Jujutsu: git-compatible VCS, works in an existing clone via `jj git init --colocate`
@@ -73,6 +77,9 @@ brew "node"
 brew "pnpm"
 ## Go
 brew "go"
+# repos pin their own version in CI; this is the local copy so a lint run does
+# not have to `go run` it off the network
+brew "golangci-lint"
 ## Rust
 brew "rust-analyzer"
 ## Python
@@ -118,6 +125,10 @@ brew "just"
 # lint and format shell scripts; CI holds this repo's hooks to both
 brew "shellcheck"
 brew "shfmt"
+# lints GitHub Actions workflows, and shellchecks their run: blocks
+brew "actionlint"
+# structural search and replace on tree-sitter patterns, not regexes
+brew "ast-grep"
 # vulnerability and misconfiguration scanner for images, IaC and lockfiles
 brew "trivy"
 # statistical command benchmarking

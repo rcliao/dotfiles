@@ -45,6 +45,14 @@ eval "$(fzf --zsh)"
 # use fd as default find command to traverse the file system while respecting .gitignore
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 
+# atuin: history search that knows each command's directory, exit code and
+# duration. Must come after fzf, since both bind ^R and the last one wins.
+# The up arrow is left alone; ~/.zsh_history keeps being written as before, so
+# removing these lines is all it takes to back out.
+if [ -x "$(command -v atuin)" ]; then
+    eval "$(atuin init zsh --disable-up-arrow)"
+fi
+
 # for gpg
 export GPG_TTY=$(tty)
 
