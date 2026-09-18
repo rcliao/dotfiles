@@ -18,6 +18,15 @@ brew "reattach-to-user-namespace"
 
 # --- editors -------------------------------------------------------------
 brew "neovim"
+# Compiles the treesitter parsers listed in ~/.config/nvim/init.lua.
+brew "tree-sitter-cli"
+# Language servers init.lua enables when present (rust-analyzer is under Rust
+# below). Without one, that language just has no LSP; nothing errors.
+brew "gopls"
+brew "typescript-language-server"
+brew "basedpyright"
+brew "ruff"
+brew "terraform-ls"
 brew "emacs"
 # language spell checking
 brew "ispell"

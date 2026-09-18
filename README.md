@@ -56,7 +56,8 @@ replaces the `ssh-add -A` that used to run on every shell start).
 tmux muscle memory), tmux as the fallback. The old zellij config is kept
 under `archive/`, which is not deployed.
 
-**Editors** — neovim, emacs.
+**Editors** — neovim (0.12+: one `init.lua`, plugins via the built-in `vim.pack`,
+LSP for Go, TypeScript, Rust, Python and Terraform from Brewfile-installed servers), emacs.
 
 **Runtimes** — [mise](https://mise.jdx.dev), activated at the end of `.zshrc` so
 it wins over the PATH exports above it. Homebrew still provides the global node,

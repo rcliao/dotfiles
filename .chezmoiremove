@@ -11,3 +11,8 @@
 
 # zellij was replaced by herdr; its config lives on under archive/ in the repo.
 .config/zellij
+
+# Replaced by ~/.config/nvim/init.lua. nvim refuses to start when both an
+# init.vim and an init.lua exist, so this one is not optional.
+.config/nvim/init.vim
+.config/nvim/lua/config.lua
