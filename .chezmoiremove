@@ -8,3 +8,6 @@
 
 # yabai was replaced by aerospace (~/.aerospace.toml).
 .yabairc
+
+# zellij was replaced by herdr; its config lives on under archive/ in the repo.
+.config/zellij

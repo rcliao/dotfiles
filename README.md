@@ -53,7 +53,8 @@ replaces the `ssh-add -A` that used to run on every shell start).
 **Terminals** — [ghostty](https://ghostty.org).
 
 **Multiplexers** — [herdr](https://herdr.dev) (primary, keys mapped to match
-tmux muscle memory), tmux, zellij.
+tmux muscle memory), tmux as the fallback. The old zellij config is kept
+under `archive/`, which is not deployed.
 
 **Editors** — neovim, emacs.
 

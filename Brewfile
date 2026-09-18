@@ -11,7 +11,6 @@ brew "jq"
 
 # --- terminal multiplexers -----------------------------------------------
 brew "tmux"
-brew "zellij"
 # agent-oriented multiplexer; ~/.config/herdr/config.toml is tracked here
 brew "herdr"
 # for tmux copy and paste
