@@ -119,7 +119,6 @@ brew "yt-dlp"
 
 # --- casks ---------------------------------------------------------------
 cask "ghostty"
-cask "alacritty"
 cask "1password-cli"
 # The Standalone variant, which is the one Tailscale recommends: it ships
 # security fixes without waiting on App Store review, and unlike the App Store

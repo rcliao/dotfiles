@@ -50,7 +50,7 @@ shared history across panes, cached `compinit`), `.gitconfig`
 `.config/git/ignore`, `.ssh/config` (keychain-backed agent loading — this is what
 replaces the `ssh-add -A` that used to run on every shell start).
 
-**Terminals** — [ghostty](https://ghostty.org) (primary), alacritty.
+**Terminals** — [ghostty](https://ghostty.org).
 
 **Multiplexers** — [herdr](https://herdr.dev) (primary, keys mapped to match
 tmux muscle memory), tmux, zellij.

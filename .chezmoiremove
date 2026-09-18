@@ -1,0 +1,7 @@
+# Targets this repo used to deploy. chezmoi does not delete a file just because
+# its source went away, so each retired config is listed here to be removed on
+# the next apply. No inline comments, same as .chezmoiignore.
+
+# Homebrew disabled the alacritty cask on 2026-09-01 (fails Gatekeeper); ghostty
+# is the terminal now.
+.alacritty.toml
