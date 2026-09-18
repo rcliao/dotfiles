@@ -1,0 +1,6 @@
+#!/bin/sh
+# Git does not version hooks, so a fresh clone of this repo pushes unchecked
+# until core.hooksPath points at .githooks. Doing it here means `chezmoi apply`
+# is enough. Never fails the apply: a missing git is not worth aborting for.
+# pre-push hash, so this re-runs if the hook changes: {{ include ".githooks/pre-push" | sha256sum }}
+git -C "{{ .chezmoi.sourceDir }}" config core.hooksPath .githooks 2> /dev/null || true

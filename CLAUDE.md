@@ -13,9 +13,19 @@ contributing here.
 **This repo is public.** Nothing employer-specific — no employer or internal
 org names, private repo names, internal hostnames, or work email addresses.
 Machine- and work-specific values go in `~/.config/chezmoi/chezmoi.toml`, which
-is never committed; the work email there is the pattern to follow. Before
-pushing anything under `dot_claude/`, grep the diff for the employer's domain
-and org name. Do not write those literals into this file either.
+is never committed; the work email there is the pattern to follow. Do not write
+those literals into this file either.
+
+`.githooks/pre-push` enforces this on every push: it runs gitleaks over the
+outgoing commits, then greps their added lines for each regex in
+`~/.config/chezmoi/forbidden-words` (one per line, per-machine, never
+committed — that file is where the employer's domain and org name belong). A
+machine without that file only gets the gitleaks half, so create it on any
+machine that knows names worth blocking. `chezmoi apply` points
+`core.hooksPath` at `.githooks`; CI repeats the gitleaks scan over all history.
+
+Shell scripts must pass `shellcheck` and `shfmt -d` with no flags (settings live
+in `.editorconfig`); CI fails otherwise. Run `shfmt -w` on what you touched.
 
 **More than one machine writes here, and neither is automatically right.** A
 commit from the other machine can be a downgrade on this one. Always

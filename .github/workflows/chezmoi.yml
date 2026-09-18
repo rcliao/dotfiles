@@ -28,23 +28,38 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # full history, so gitleaks scans every commit rather than the tip
+          fetch-depth: 0
 
-      - name: Install chezmoi and shellcheck
-        run: brew install chezmoi shellcheck
+      - name: Install chezmoi, shellcheck, shfmt and gitleaks
+        run: brew install chezmoi shellcheck shfmt gitleaks
+
+      - name: No secrets anywhere in history
+        # The repo is public. .githooks/pre-push runs the same scan before a
+        # push, but a hook only exists on a machine that has applied; this is
+        # the check that cannot be skipped.
+        run: gitleaks git --no-banner --redact --log-opts="--all"
 
       - name: shellcheck the hook scripts
-        # -S error only: these scripts predate CI and trip a pile of style and
-        # info findings (SC2086 where word splitting is deliberate, SC2002,
-        # SC2181). Gate on things that actually break, not on style.
-        run: shellcheck -S error dot_claude/hooks/executable_*.sh
+        # Default severity, style findings included. The scripts were cleaned up
+        # to pass, so anything new is either a real problem or deserves a
+        # `# shellcheck disable=` with a reason next to it.
+        run: shellcheck dot_claude/hooks/executable_*.sh .githooks/pre-push
 
-      - name: shellcheck the rendered package script
+      - name: shfmt the hook scripts
+        # Settings come from .editorconfig, so a local `shfmt -w` agrees.
+        run: shfmt -d dot_claude/hooks/executable_*.sh .githooks/pre-push
+
+      - name: shellcheck the rendered scripts
         run: |
-          chezmoi execute-template --source="$GITHUB_WORKSPACE" \
-            < run_onchange_before_install-packages-darwin.sh.tmpl > /tmp/pkg.sh
-          # Guard against the check quietly passing on an empty render.
-          [ -s /tmp/pkg.sh ] || { echo "::error::package script rendered empty"; exit 1; }
-          shellcheck -S error /tmp/pkg.sh
+          for tmpl in run_onchange_before_install-packages-darwin.sh.tmpl \
+                      run_onchange_after_enable-git-hooks.sh.tmpl; do
+            chezmoi execute-template --source="$GITHUB_WORKSPACE" < "$tmpl" > /tmp/rendered.sh
+            # Guard against the check quietly passing on an empty render.
+            [ -s /tmp/rendered.sh ] || { echo "::error::$tmpl rendered empty"; exit 1; }
+            shellcheck /tmp/rendered.sh
+          done
 
       - name: Every Brewfile name resolves
         # The `packages` job installs for real, but it only runs weekly and on
