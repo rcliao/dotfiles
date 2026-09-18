@@ -32,8 +32,12 @@ jobs:
           # full history, so gitleaks scans every commit rather than the tip
           fetch-depth: 0
 
-      - name: Install chezmoi, shellcheck, shfmt and gitleaks
-        run: brew install chezmoi shellcheck shfmt gitleaks
+      - name: Install chezmoi, shellcheck, shfmt, gitleaks and actionlint
+        run: brew install chezmoi shellcheck shfmt gitleaks actionlint
+
+      - name: actionlint the workflows
+        # Also shellchecks every run: block, which the steps below cannot see.
+        run: actionlint
 
       - name: No secrets anywhere in history
         # The repo is public. .githooks/pre-push runs the same scan before a
@@ -193,7 +197,7 @@ jobs:
         run: |
           jq empty "$DEST/.claude/settings.json"
           refs=$(grep -c ghost "$DEST/.claude/settings.json" || true)
-          scripts=$(ls "$DEST/.claude/hooks/" 2>/dev/null | grep -c ghost || true)
+          scripts=$(find "$DEST/.claude/hooks" -maxdepth 1 -name 'ghost-*' 2>/dev/null | wc -l | tr -d ' ')
           echo "ghost refs=$refs scripts=$scripts (flag=${{ matrix.ghost }})"
           if [ "${{ matrix.ghost }}" = "true" ]; then
               [ "$refs" -gt 0 ] && [ "$scripts" -eq 5 ]
