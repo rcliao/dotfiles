@@ -28,7 +28,7 @@ CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
 PROJECT_NAME=$(basename "${CWD:-unknown}")
 
 if [ -z "$QUERY" ] || [ ${#QUERY} -lt 10 ]; then
-  exit 0  # Skip trivial prompts
+  exit 0 # Skip trivial prompts
 fi
 
 # Buffer the raw prompt for the mechanical capture tier (ghost-stop-heuristic.sh).
@@ -53,16 +53,16 @@ PROMPT_BUF="/tmp/ghost-prompt-buffer/${SESSION_ID:-default}.txt"
 mkdir -p "$(dirname "$PROMPT_BUF")" 2>/dev/null || true
 QLOW=$(printf '%s' "$QUERY" | tr '[:upper:]' '[:lower:]')
 case "$QLOW" in
-  /*|'<'*|"run ~/"*) : ;;                        # slash command, harness tag, cron prompt
-  *"ghost-monitor.sh"*) : ;;                     # scheduled monitor prompt
-  *\?|\(*) : ;;                                  # question
-  can\ *|could\ *|is\ *|are\ *|does\ *|do\ *|did\ *|should\ *|would\ *|will\ *) : ;;
-  what\ *|why\ *|how\ *|where\ *|when\ *|who\ *|which\ *) : ;;
-  lets\ *|"let's "*|go\ ahead*|okay*|ok\ *|sure*|yes*|yeah*|nice*|thanks*) : ;;
-  also\ *|oh,\ *|"actually,"*|hmm*|great*|perfect*) : ;;
-  it\ would\ *|maybe\ *|please\ *|try\ *|we\ can\ *|we\ could\ *|"i think we"*) : ;;
-  *root@*|*"-----"*) : ;;                        # pasted terminal output / log dumps
-  *) printf 'User: %s\n' "$(printf '%s' "$QUERY" | tr '\n\r' '  ')" >> "$PROMPT_BUF" 2>/dev/null || true ;;
+/* | '<'* | "run ~/"*) : ;; # slash command, harness tag, cron prompt
+*"ghost-monitor.sh"*) : ;;  # scheduled monitor prompt
+*\? | \(*) : ;;             # question
+can\ * | could\ * | is\ * | are\ * | does\ * | do\ * | did\ * | should\ * | would\ * | will\ *) : ;;
+what\ * | why\ * | how\ * | where\ * | when\ * | who\ * | which\ *) : ;;
+lets\ * | "let's "* | go\ ahead* | okay* | ok\ * | sure* | yes* | yeah* | nice* | thanks*) : ;;
+also\ * | oh,\ * | "actually,"* | hmm* | great* | perfect*) : ;;
+it\ would\ * | maybe\ * | please\ * | try\ * | we\ can\ * | we\ could\ * | "i think we"*) : ;;
+*root@* | *"-----"*) : ;; # pasted terminal output / log dumps
+*) printf 'User: %s\n' "$(printf '%s' "$QUERY" | tr '\n\r' '  ')" >>"$PROMPT_BUF" 2>/dev/null || true ;;
 esac
 
 # Build dedup key set from SessionStart

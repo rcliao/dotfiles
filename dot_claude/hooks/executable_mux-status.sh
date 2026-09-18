@@ -19,35 +19,42 @@
 
 state="${1:-idle}"
 STATE_DIR="$HOME/.claude/hooks/.mux-status"
-export LC_CTYPE="${LC_CTYPE:-UTF-8}"   # so sed treats multibyte glyphs as one char
+export LC_CTYPE="${LC_CTYPE:-UTF-8}" # so sed treats multibyte glyphs as one char
 
 # --- symbols (edit to taste) -------------------------------------------------
-SYM_WORKING="◐"   # thinking / generic working
-SYM_IDLE="✓"      # done, waiting on you
-SYM_BLOCKED="⚠"   # needs input / permission
-SYM_START="○"     # fresh session
+SYM_WORKING="◐" # thinking / generic working
+SYM_IDLE="✓"    # done, waiting on you
+SYM_BLOCKED="⚠" # needs input / permission
+SYM_START="○"   # fresh session
 # per-tool activity glyphs (PreToolUse)
-SYM_BASH="⚡"; SYM_EDIT="✎"; SYM_READ="▤"; SYM_SEARCH="◍"
-SYM_TASK="▶"; SYM_TODO="☰"; SYM_MCP="◇"; SYM_TOOL="◆"
+SYM_BASH="⚡"
+SYM_EDIT="✎"
+SYM_READ="▤"
+SYM_SEARCH="◍"
+SYM_TASK="▶"
+SYM_TODO="☰"
+SYM_MCP="◇"
+SYM_TOOL="◆"
 # every glyph we might emit — stripped when reading a name back
 ALL_SYMS="◐✓⚠○⚡✎▤◍▶☰◇◆●"
 
 # map a PreToolUse tool name to an activity glyph
 tool_sym() {
   case "$1" in
-    Bash|BashOutput|KillShell)                printf '%s' "$SYM_BASH" ;;
-    Edit|Write|MultiEdit|NotebookEdit|Update) printf '%s' "$SYM_EDIT" ;;
-    Read)                                     printf '%s' "$SYM_READ" ;;
-    Grep|Glob|WebSearch|WebFetch|ToolSearch)  printf '%s' "$SYM_SEARCH" ;;
-    Task|Agent)                               printf '%s' "$SYM_TASK" ;;
-    TodoWrite|TaskCreate|TaskUpdate)          printf '%s' "$SYM_TODO" ;;
-    mcp__*)                                   printf '%s' "$SYM_MCP" ;;
-    *)                                        printf '%s' "$SYM_TOOL" ;;
+  Bash | BashOutput | KillShell) printf '%s' "$SYM_BASH" ;;
+  Edit | Write | MultiEdit | NotebookEdit | Update) printf '%s' "$SYM_EDIT" ;;
+  Read) printf '%s' "$SYM_READ" ;;
+  Grep | Glob | WebSearch | WebFetch | ToolSearch) printf '%s' "$SYM_SEARCH" ;;
+  Task | Agent) printf '%s' "$SYM_TASK" ;;
+  TodoWrite | TaskCreate | TaskUpdate) printf '%s' "$SYM_TODO" ;;
+  mcp__*) printf '%s' "$SYM_MCP" ;;
+  *) printf '%s' "$SYM_TOOL" ;;
   esac
 }
 
 # --- read hook JSON on stdin (cwd, tool_name) --------------------------------
-cwd=""; tool_name=""
+cwd=""
+tool_name=""
 if [ ! -t 0 ]; then
   payload="$(cat 2>/dev/null)"
   cwd="$(printf '%s' "$payload" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
@@ -58,12 +65,12 @@ repo="$(basename "$cwd")"
 
 # --- pick the symbol for this event ------------------------------------------
 case "$state" in
-  working) sym="$SYM_WORKING" ;;
-  idle)    sym="$SYM_IDLE" ;;
-  blocked) sym="$SYM_BLOCKED" ;;
-  start)   sym="$SYM_START" ;;
-  tool)    sym="$(tool_sym "$tool_name")" ;;
-  *)       sym="$SYM_IDLE" ;;
+working) sym="$SYM_WORKING" ;;
+idle) sym="$SYM_IDLE" ;;
+blocked) sym="$SYM_BLOCKED" ;;
+start) sym="$SYM_START" ;;
+tool) sym="$(tool_sym "$tool_name")" ;;
+*) sym="$SYM_IDLE" ;;
 esac
 
 # --- strip any leading status symbol from a name -----------------------------
@@ -130,8 +137,8 @@ fi
 # remember base + symbol so mux-name.sh can re-render on demand
 if [ -n "$key" ]; then
   mkdir -p "$STATE_DIR" 2>/dev/null
-  printf '%s' "$sym"  > "$keyfile.sym"  2>/dev/null
-  printf '%s' "$base" > "$keyfile.base" 2>/dev/null
+  printf '%s' "$sym" >"$keyfile.sym" 2>/dev/null
+  printf '%s' "$base" >"$keyfile.base" 2>/dev/null
 fi
 
 exit 0

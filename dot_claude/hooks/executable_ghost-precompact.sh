@@ -24,7 +24,7 @@ trap 'echo "ghost-precompact.sh failed at line $LINENO" >&2; echo "Error at line
 
 HOOK_INPUT=$(cat)
 
-echo "=== $(date -Iseconds) ===" >> "$DEBUG_LOG"
+echo "=== $(date -Iseconds) ===" >>"$DEBUG_LOG"
 
 # Extract transcript path from hook input
 TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
@@ -33,22 +33,22 @@ if [ -z "$TRANSCRIPT_PATH" ]; then
   SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
   if [ -n "$SESSION_ID" ]; then
     TRANSCRIPT_PATH=$(find ~/.claude/projects -name "${SESSION_ID}*.jsonl" 2>/dev/null | head -1)
-    echo "Found transcript via session_id: $TRANSCRIPT_PATH" >> "$DEBUG_LOG"
+    echo "Found transcript via session_id: $TRANSCRIPT_PATH" >>"$DEBUG_LOG"
   fi
 fi
 
 if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ]; then
-  echo "No readable transcript found, skipping" >> "$DEBUG_LOG"
+  echo "No readable transcript found, skipping" >>"$DEBUG_LOG"
   exit 0
 fi
 
-echo "Processing transcript: $TRANSCRIPT_PATH" >> "$DEBUG_LOG"
+echo "Processing transcript: $TRANSCRIPT_PATH" >>"$DEBUG_LOG"
 
 # Truncate to ~60k chars to avoid "prompt too long" with claude -p
 TRANSCRIPT_TAIL=$(tail -70 "$TRANSCRIPT_PATH" 2>/dev/null | head -c 60000 || echo "")
 
 if [ -z "$TRANSCRIPT_TAIL" ]; then
-  echo "Transcript empty or unreadable" >> "$DEBUG_LOG"
+  echo "Transcript empty or unreadable" >>"$DEBUG_LOG"
   exit 0
 fi
 
@@ -85,13 +85,13 @@ Output a JSON array of objects. Each object has:
 
 Output ONLY valid JSON. No markdown fences, no explanation.'
 
-RESULT=$(echo "$TRANSCRIPT_TAIL" | claude -p --no-session-persistence --model "$LLM_MODEL" "$PROMPT" 2>> "$DEBUG_LOG")
+RESULT=$(echo "$TRANSCRIPT_TAIL" | claude -p --no-session-persistence --model "$LLM_MODEL" "$PROMPT" 2>>"$DEBUG_LOG")
 
-echo "Claude output:" >> "$DEBUG_LOG"
-echo "$RESULT" >> "$DEBUG_LOG"
+echo "Claude output:" >>"$DEBUG_LOG"
+echo "$RESULT" >>"$DEBUG_LOG"
 
 if [ -z "$RESULT" ]; then
-  echo "No output from claude" >> "$DEBUG_LOG"
+  echo "No output from claude" >>"$DEBUG_LOG"
   exit 0
 fi
 
@@ -100,18 +100,18 @@ RESULT=$(echo "$RESULT" | sed '/^```/d')
 RESULT=$(echo "$RESULT" | sed -n '/^\[/,/^\]/p')
 
 # Validate JSON
-if ! echo "$RESULT" | jq 'type' > /dev/null 2>&1; then
-  echo "Invalid JSON output, skipping" >> "$DEBUG_LOG"
+if ! echo "$RESULT" | jq 'type' >/dev/null 2>&1; then
+  echo "Invalid JSON output, skipping" >>"$DEBUG_LOG"
   exit 0
 fi
 
 COUNT=$(echo "$RESULT" | jq 'length')
 if [ "$COUNT" -eq 0 ]; then
-  echo "No learnings found" >> "$DEBUG_LOG"
+  echo "No learnings found" >>"$DEBUG_LOG"
   exit 0
 fi
 
-echo "Processing $COUNT learnings..." >> "$DEBUG_LOG"
+echo "Processing $COUNT learnings..." >>"$DEBUG_LOG"
 
 echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
   KEY=$(echo "$item" | jq -r '.key')
@@ -126,8 +126,8 @@ echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
     TIER="stm"
   fi
 
-  echo "Storing: $KEY (tier=$TIER)" >> "$DEBUG_LOG"
-  $GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" --dedup "$CONTENT" >> "$DEBUG_LOG" 2>&1 || echo "Failed to store: $KEY" >> "$DEBUG_LOG"
+  echo "Storing: $KEY (tier=$TIER)" >>"$DEBUG_LOG"
+  $GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" --dedup "$CONTENT" >>"$DEBUG_LOG" 2>&1 || echo "Failed to store: $KEY" >>"$DEBUG_LOG"
 done
 
-echo "Done" >> "$DEBUG_LOG"
+echo "Done" >>"$DEBUG_LOG"

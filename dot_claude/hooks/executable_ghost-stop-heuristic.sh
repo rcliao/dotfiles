@@ -42,7 +42,7 @@ DEBUG_LOG="/tmp/ghost-stop-heuristic-debug.log"
 trap 'echo "ghost-stop-heuristic.sh failed at line $LINENO" >&2; echo "Error at line $LINENO" >> "$DEBUG_LOG"' ERR
 
 HOOK_INPUT=$(cat)
-echo "=== $(date -Iseconds) ===" >> "$DEBUG_LOG"
+echo "=== $(date -Iseconds) ===" >>"$DEBUG_LOG"
 
 SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
@@ -52,7 +52,7 @@ SESSION_TAG="session:${SESSION_ID:-$(date +%s)}"
 
 PROMPT_BUF="/tmp/ghost-prompt-buffer/${SESSION_ID:-default}.txt"
 if [ ! -f "$PROMPT_BUF" ]; then
-  echo "No prompt buffer for session ${SESSION_ID:-?}, skipping" >> "$DEBUG_LOG"
+  echo "No prompt buffer for session ${SESSION_ID:-?}, skipping" >>"$DEBUG_LOG"
   exit 0
 fi
 
@@ -64,23 +64,25 @@ GROWTH_THRESHOLD="${GHOST_CAPTURE_GROWTH:-3}"
 STATE_DIR="/tmp/ghost-stop-heuristic-state"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 STATE_FILE="$STATE_DIR/${SESSION_ID:-nosession}.lines"
-CUR_LINES=$(wc -l < "$PROMPT_BUF" 2>/dev/null | tr -d ' '); CUR_LINES=${CUR_LINES:-0}
-LAST_LINES=$(cat "$STATE_FILE" 2>/dev/null || echo 0); LAST_LINES=${LAST_LINES:-0}
+CUR_LINES=$(wc -l <"$PROMPT_BUF" 2>/dev/null | tr -d ' ')
+CUR_LINES=${CUR_LINES:-0}
+LAST_LINES=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+LAST_LINES=${LAST_LINES:-0}
 if [ "$((CUR_LINES - LAST_LINES))" -lt "$GROWTH_THRESHOLD" ]; then
-  echo "Debounce: $((CUR_LINES - LAST_LINES)) new prompts (<$GROWTH_THRESHOLD), skipping" >> "$DEBUG_LOG"
+  echo "Debounce: $((CUR_LINES - LAST_LINES)) new prompts (<$GROWTH_THRESHOLD), skipping" >>"$DEBUG_LOG"
   exit 0
 fi
 # Advance the watermark immediately so overlapping Stop fires don't all proceed.
-echo "$CUR_LINES" > "$STATE_FILE" 2>/dev/null || true
+echo "$CUR_LINES" >"$STATE_FILE" 2>/dev/null || true
 
 PROMPT_TEXT=$(tail -n "+$((LAST_LINES + 1))" "$PROMPT_BUF" | tail -200)
 
 if [ -z "$(echo "$PROMPT_TEXT" | tr -d '[:space:]')" ]; then
-  echo "Buffer delta empty, skipping" >> "$DEBUG_LOG"
+  echo "Buffer delta empty, skipping" >>"$DEBUG_LOG"
   exit 0
 fi
 
-echo "Capturing from $(echo "$PROMPT_TEXT" | wc -l | tr -d ' ') user prompts (ns=$AGENT_NS)" >> "$DEBUG_LOG"
+echo "Capturing from $(echo "$PROMPT_TEXT" | wc -l | tr -d ' ') user prompts (ns=$AGENT_NS)" >>"$DEBUG_LOG"
 
 echo "$PROMPT_TEXT" | "$GHOST" capture \
   -n "$AGENT_NS" \
@@ -89,9 +91,9 @@ echo "$PROMPT_TEXT" | "$GHOST" capture \
   --min-salience "$MIN_SALIENCE" \
   --max "$MAX_CAP" \
   --speaker user \
-  >> "$DEBUG_LOG" 2>&1 || echo "capture failed (non-fatal)" >> "$DEBUG_LOG"
+  >>"$DEBUG_LOG" 2>&1 || echo "capture failed (non-fatal)" >>"$DEBUG_LOG"
 
 # Lightweight reflect so new memories flow through the lifecycle. Silent on error.
-"$GHOST" reflect --ns "$AGENT_NS" >> "$DEBUG_LOG" 2>&1 || echo "reflect failed (non-fatal)" >> "$DEBUG_LOG"
+"$GHOST" reflect --ns "$AGENT_NS" >>"$DEBUG_LOG" 2>&1 || echo "reflect failed (non-fatal)" >>"$DEBUG_LOG"
 
-echo "Done" >> "$DEBUG_LOG"
+echo "Done" >>"$DEBUG_LOG"

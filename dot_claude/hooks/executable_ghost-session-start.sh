@@ -48,6 +48,8 @@ MEMORIES=""
 # Agent-level memories — 2000 tokens total, with project tag filtering when available
 if [ -n "$TAG_ARGS" ]; then
   # First: project-scoped context (1500 tokens)
+  # $TAG_ARGS is two words (-t project:x) and must split
+  # shellcheck disable=SC2086
   PROJECT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" $TAG_ARGS --budget 1500 --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
   PROJECT_MEM=$(echo "$PROJECT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
   # Extract project keys for dedup
@@ -84,9 +86,12 @@ fi
 # Write loaded keys to temp file for UserPromptSubmit dedup
 KEYS_FILE="/tmp/ghost-session-keys-${SESSION_ID:-default}"
 if [ -n "$TAG_ARGS" ]; then
-  { echo "$PROJECT_RAW"; echo "$GENERAL_RAW"; } 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | sort -u > "$KEYS_FILE" 2>/dev/null || true
+  {
+    echo "$PROJECT_RAW"
+    echo "$GENERAL_RAW"
+  } 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | sort -u >"$KEYS_FILE" 2>/dev/null || true
 else
-  echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | sort -u > "$KEYS_FILE" 2>/dev/null || true
+  echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | sort -u >"$KEYS_FILE" 2>/dev/null || true
 fi
 
 CURATE_HINT="**Memory hygiene**: After your first substantive task, scan the memories above and curate — ghost_curate(op='boost') relevant ones, ghost_curate(op='diminish') irrelevant ones. This trains the utility signal."

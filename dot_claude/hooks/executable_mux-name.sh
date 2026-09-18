@@ -6,7 +6,6 @@
 # status symbol. Run it from inside the tmux window / zellij tab you want named.
 
 STATE_DIR="$HOME/.claude/hooks/.mux-status"
-ALL_SYMS="◐✓⚠○"
 
 # --- per-tab key (MUST match mux_key() in mux-status.sh) ---------------------
 if [ -n "$TMUX" ] && [ -n "$TMUX_PANE" ]; then
@@ -29,7 +28,7 @@ else
     echo "usage: mux-name.sh \"My Name\"   |   mux-name.sh --clear" >&2
     exit 1
   fi
-  printf '%s' "$name" > "$keyfile.name"
+  printf '%s' "$name" >"$keyfile.name"
   base="$name"
   echo "mux-name: pinned this tab as \"$name\""
 fi

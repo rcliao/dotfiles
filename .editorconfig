@@ -1,0 +1,10 @@
+root = true
+
+# shfmt reads this, so `shfmt -d` needs no flags locally or in CI.
+[*.sh]
+indent_style = space
+indent_size = 2
+
+[.githooks/*]
+indent_style = space
+indent_size = 2
