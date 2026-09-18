@@ -114,7 +114,7 @@ pcall(vim.cmd.colorscheme, 'nord')
 local parsers = {
   'bash', 'css', 'diff', 'dockerfile', 'go', 'gomod', 'gosum', 'graphql', 'hcl', 'html',
   'javascript', 'json', 'kotlin', 'lua', 'markdown', 'markdown_inline', 'proto', 'python',
-  'rust', 'sql', 'terraform', 'tmux', 'toml', 'tsx', 'typescript', 'vim', 'vimdoc', 'yaml',
+  'rust', 'sql', 'terraform', 'toml', 'tsx', 'typescript', 'vim', 'vimdoc', 'yaml',
 }
 local ok, treesitter = pcall(require, 'nvim-treesitter')
 if ok and vim.fn.executable('tree-sitter') == 1 then
