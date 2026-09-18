@@ -54,6 +54,12 @@ brew "agg"
 brew "gh"
 # .gitconfig sets delta as the pager for diff/log/show
 brew "git-delta"
+# terminal UI for staging, rebasing and browsing history
+brew "lazygit"
+# Jujutsu: git-compatible VCS, works in an existing clone via `jj git init --colocate`
+brew "jj"
+# scans for committed secrets; .githooks/pre-push in this repo runs it
+brew "gitleaks"
 
 # --- languages and runtimes ----------------------------------------------
 # Per-project runtime pinning. Several repos I work in commit a mise.toml or
@@ -108,6 +114,14 @@ brew "doppler"
 brew "cloudflared"
 brew "render"
 brew "go-task"
+brew "just"
+# lint and format shell scripts; CI holds this repo's hooks to both
+brew "shellcheck"
+brew "shfmt"
+# vulnerability and misconfiguration scanner for images, IaC and lockfiles
+brew "trivy"
+# statistical command benchmarking
+brew "hyperfine"
 # run GitHub Actions locally
 brew "act"
 # load testing
@@ -128,6 +142,8 @@ brew "yt-dlp"
 # --- casks ---------------------------------------------------------------
 cask "ghostty"
 cask "1password-cli"
+# .zshrc looks for the SDK here first, then in ~/Downloads/google-cloud-sdk
+cask "gcloud-cli"
 # The Standalone variant, which is the one Tailscale recommends: it ships
 # security fixes without waiting on App Store review, and unlike the App Store
 # build it supports Funnel, full exit nodes and Tailscale SSH.
