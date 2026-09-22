@@ -108,7 +108,6 @@ hide_tab_bar_when_single_tab = false
 # sets a meaningful terminal title, so show that instead of the agent kind.
 # NOTE: keep table headers last — bare keys after one belong to that table.
 show_agent_labels_on_pane_borders = true
-status_indicators = "symbols"
 [ui.sidebar.agents]
 rows_by_agent.claude = [
   ["state_icon", "workspace", "tab"],
