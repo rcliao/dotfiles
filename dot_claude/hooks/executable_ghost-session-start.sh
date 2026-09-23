@@ -83,15 +83,22 @@ if [ -z "$MEMORIES" ]; then
   exit 0
 fi
 
-# Write loaded keys to temp file for UserPromptSubmit dedup
+# Write loaded keys to temp file for UserPromptSubmit dedup. On resume the whole
+# transcript comes back, so keep what the session already saw; on startup, clear
+# and compact the earlier injections are gone from context, so start fresh.
 KEYS_FILE="/tmp/ghost-session-keys-${SESSION_ID:-default}"
+PREV_KEYS=/dev/null
+if [ "$SOURCE" = "resume" ] && [ -f "$KEYS_FILE" ]; then
+  PREV_KEYS="${KEYS_FILE}.prev"
+  cp "$KEYS_FILE" "$PREV_KEYS" 2>/dev/null || PREV_KEYS=/dev/null
+fi
 if [ -n "$TAG_ARGS" ]; then
   {
     echo "$PROJECT_RAW"
     echo "$GENERAL_RAW"
-  } 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | sort -u >"$KEYS_FILE" 2>/dev/null || true
+  } 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | cat - "$PREV_KEYS" | sort -u >"$KEYS_FILE" 2>/dev/null || true
 else
-  echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | sort -u >"$KEYS_FILE" 2>/dev/null || true
+  echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | cat - "$PREV_KEYS" | sort -u >"$KEYS_FILE" 2>/dev/null || true
 fi
 
 CURATE_HINT="**Memory hygiene**: After your first substantive task, scan the memories above and curate — ghost_curate(op='boost') relevant ones, ghost_curate(op='diminish') irrelevant ones. This trains the utility signal."

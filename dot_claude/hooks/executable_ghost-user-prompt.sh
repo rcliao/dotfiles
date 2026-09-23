@@ -66,6 +66,19 @@ it\ would\ * | maybe\ * | please\ * | try\ * | we\ can\ * | we\ could\ * | "i th
 esac
 
 # Build dedup key set from SessionStart
+# Injection gate. A 2026-09-23 eval over 45 sessions found per-prompt injection
+# was 80% of injected tokens but used ~2% of the time (chance level), and 18 of
+# 30 sampled injections were irrelevant. The worst came from harness turns
+# (task notifications, agent hand-backs) and short follow-ups ("how did it go
+# now?"), which carry no topic and pull random old session summaries.
+case "$QUERY" in
+'<'* | '['* | *'<task-notification>'* | *'<agent-message'* | 'Another Claude session sent a message'*) exit 0 ;;
+esac
+WORDS=$(printf '%s' "$QUERY" | wc -w | tr -d ' ')
+if [ "${WORDS:-0}" -le "${GHOST_INJECT_MIN_WORDS:-5}" ]; then
+  exit 0
+fi
+
 KEYS_FILE="/tmp/ghost-session-keys-${SESSION_ID:-default}"
 LOADED_KEYS=""
 if [ -f "$KEYS_FILE" ]; then
@@ -113,5 +126,8 @@ else
 fi
 
 if [ -n "$MEM" ]; then
+  # Record what was injected so later prompts in this session don't repeat it
+  # (without this, one key was re-injected up to 106 times in a session).
+  echo -e "$MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p' >>"$KEYS_FILE" 2>/dev/null || true
   echo -e "[Ghost Memory — Relevant]\n$MEM\n[End Ghost Memory]"
 fi

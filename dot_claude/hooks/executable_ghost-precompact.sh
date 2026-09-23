@@ -67,6 +67,7 @@ ONLY store memories that pass this bar — would a future session benefit from k
 - Patterns noticed but not confirmed
 - What was being worked on (too ephemeral)
 - Anything re-derivable from code or git log
+- Status snapshots that go stale ("PR #422 awaiting merge", "feature X is planned on branch Y") — capture the durable lesson, not the state
 
 ## Rules
 - Use tier "stm" for all learnings. Do NOT use "sensory" or "ltm".

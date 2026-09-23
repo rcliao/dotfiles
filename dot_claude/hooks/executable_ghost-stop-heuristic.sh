@@ -26,6 +26,10 @@
 #   GHOST_CAPTURE_MIN   — min salience 0..1 (default: 0.55)
 #   GHOST_CAPTURE_MAX   — max memories per capture (default: 8)
 #   GHOST_CAPTURE_GROWTH — min new buffered prompts before capturing (default: 3)
+#   GHOST_PROMPT_CAPTURE — 1 to store user prompts as memories (default: 0). Off
+#                          since 2026-09-23: an eval found captures were mostly
+#                          one-off instructions ("think-fine-lets", "stop") that
+#                          accrued access and got promoted to ltm.
 set -uo pipefail
 
 GHOST="${GHOST_BIN:-ghost}"
@@ -79,6 +83,12 @@ PROMPT_TEXT=$(tail -n "+$((LAST_LINES + 1))" "$PROMPT_BUF" | tail -200)
 
 if [ -z "$(echo "$PROMPT_TEXT" | tr -d '[:space:]')" ]; then
   echo "Buffer delta empty, skipping" >>"$DEBUG_LOG"
+  exit 0
+fi
+
+if [ "${GHOST_PROMPT_CAPTURE:-0}" != "1" ]; then
+  echo "Prompt capture off (GHOST_PROMPT_CAPTURE!=1), reflect only" >>"$DEBUG_LOG"
+  "$GHOST" reflect --ns "$AGENT_NS" >>"$DEBUG_LOG" 2>&1 || echo "reflect failed (non-fatal)" >>"$DEBUG_LOG"
   exit 0
 fi
 

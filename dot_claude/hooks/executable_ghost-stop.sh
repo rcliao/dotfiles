@@ -105,6 +105,7 @@ ONLY store memories that pass this bar — would a future session benefit from k
 - What was being worked on (session summaries cover this)
 - Anything that could be re-derived by reading the code or git log
 - Git status, branch names, PR numbers without technical insight
+- Status snapshots that go stale ("PR #422 awaiting merge", "feature X is planned on branch Y", "package Z is fully implemented") — capture the durable lesson, not the state
 
 ## Rules
 - Use tier "stm" for all learnings. Do NOT use "sensory" or "ltm".
