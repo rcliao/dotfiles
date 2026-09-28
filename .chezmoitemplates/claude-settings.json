@@ -133,7 +133,8 @@
     }
   },
   "effortLevel": "medium",
-  "alwaysThinkingEnabled": true,
+  "maxEffortLevel": "xhigh",
+  "cleanupPeriodDays": 90,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "advisorModel": "fable",
