@@ -63,8 +63,12 @@ archive
 .claude/backups
 # managed by the plugin system, has its own caches
 .claude/plugins
-# currently only plugin-provided skills
-.claude/skills
+# Skills are local by default. This repo is public, so only generic skills are
+# un-ignored below; work-specific ones stay on the machine. The *.bak line keeps
+# local backup copies out.
+.claude/skills/*
+!.claude/skills/tech-design
+.claude/skills/tech-design/*.bak
 .claude/stats-cache.json
 .claude/mcp-needs-auth-cache.json
 .claude/.last-*
