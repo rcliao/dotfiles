@@ -74,6 +74,16 @@ archive
 .claude/.last-*
 .claude/*.bak-*
 .claude/*.pre-*
+# Mods (dot_claude/mods) are tracked, but the engine writes this build's type
+# declarations into each one when it loads it, and collision-guard keeps
+# per-session state outside them. dev-mods is a session's hot-reload scratch area.
+.claude/mods/failure-streak/.claude-plugin/types
+.claude/mods/run-ledger/.claude-plugin/types
+.claude/mods/jobs/.claude-plugin/types
+.claude/mods/collision-guard/.claude-plugin/types
+.claude/mods/README.md
+.claude/mods-data
+.claude/dev-mods
 
 # herdr keeps sockets, logs and a multi-megabyte session history beside its config
 .config/herdr/*.log

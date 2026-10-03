@@ -1,0 +1,6 @@
+{
+  "name": "jobs",
+  "version": "0.1.0",
+  "description": "Progress of background shells, background agents and watched log files, as a status line, a /jobs pane and finish toasts.",
+  "types": "./types/index.d.ts"
+}

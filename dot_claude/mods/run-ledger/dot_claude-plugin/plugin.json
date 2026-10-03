@@ -1,0 +1,6 @@
+{
+  "name": "run-ledger",
+  "version": "0.1.0",
+  "description": "Live ledger of what a run changed and sent out (PRs, commits, tags, publishes, paid calls, outward writes, files) plus context-window use, as a band, /ledger, and a tool for the end-of-run report.",
+  "types": "./types/index.d.ts"
+}

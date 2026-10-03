@@ -1,0 +1,5 @@
+{
+  "name": "failure-streak",
+  "version": "0.1.0",
+  "description": "Flags likely sandbox blocks on failed Bash calls and stops the 4th identical failing command."
+}
