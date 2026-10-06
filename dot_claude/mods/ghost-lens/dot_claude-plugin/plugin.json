@@ -1,0 +1,6 @@
+{
+  "name": "ghost-lens",
+  "version": "0.1.0",
+  "description": "Shows which ghost memories were recalled this session, judges whether the agent actually used each one (shadow log, correctable in a pane), and nudges explicit ghost_context calls.",
+  "types": "./types/index.d.ts"
+}

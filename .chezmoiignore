@@ -81,6 +81,8 @@ archive
 .claude/mods/run-ledger/.claude-plugin/types
 .claude/mods/jobs/.claude-plugin/types
 .claude/mods/collision-guard/.claude-plugin/types
+.claude/mods/ghost-lens/.claude-plugin/types
+.claude/mods/ghost-lens/tsconfig.json
 .claude/mods/README.md
 .claude/mods-data
 .claude/dev-mods

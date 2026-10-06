@@ -27,7 +27,16 @@ SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
 PROJECT_NAME=$(basename "${CWD:-unknown}")
 
+# Trace for viewers (ghost-lens mod): what was loaded, scores, skip reasons.
+# shellcheck source=/dev/null
+. "$(dirname "$0")/ghost-trace.sh" 2>/dev/null || {
+  ghost_trace() { :; }
+  ghost_trace_phase() { :; }
+  ghost_trace_spent() { printf 0; }
+}
+
 if [ -z "$QUERY" ] || [ ${#QUERY} -lt 10 ]; then
+  ghost_trace prompt skipped "trivial prompt (<10 chars)" "$QUERY" ""
   exit 0 # Skip trivial prompts
 fi
 
@@ -72,11 +81,38 @@ esac
 # (task notifications, agent hand-backs) and short follow-ups ("how did it go
 # now?"), which carry no topic and pull random old session summaries.
 case "$QUERY" in
-'<'* | '['* | *'<task-notification>'* | *'<agent-message'* | 'Another Claude session sent a message'*) exit 0 ;;
+'<'* | '['* | *'<task-notification>'* | *'<agent-message'* | 'Another Claude session sent a message'*)
+  ghost_trace prompt skipped "harness turn" "$QUERY" ""
+  exit 0
+  ;;
 esac
 WORDS=$(printf '%s' "$QUERY" | wc -w | tr -d ' ')
 if [ "${WORDS:-0}" -le "${GHOST_INJECT_MIN_WORDS:-5}" ]; then
+  ghost_trace prompt skipped "prompt is ${WORDS} words (gate <= ${GHOST_INJECT_MIN_WORDS:-5})" "$QUERY" ""
   exit 0
+fi
+
+# Session token cap. --budget caps one call, but this hook runs on every
+# prompt, so without a cap ghost's share of the context grows without bound
+# (2026-09-23 eval: per-prompt injection was 80% of ghost's tokens, used ~2%).
+# Spent = tokens this hook already injected this session (from the trace).
+# Budgets shrink to what is left; past the cap the hook skips. 0 disables.
+CAP="${GHOST_SESSION_TOKEN_CAP:-6000}"
+PROJ_BUDGET=1000
+GEN_BUDGET=500
+SINGLE_BUDGET=1500
+if [ "$CAP" -gt 0 ] 2>/dev/null; then
+  SPENT=$(ghost_trace_spent prompt)
+  REMAIN=$((CAP - ${SPENT:-0}))
+  if [ "$REMAIN" -lt 100 ]; then
+    ghost_trace prompt skipped "session cap reached (${SPENT} of ${CAP} tok)" "$QUERY" ""
+    exit 0
+  fi
+  [ "$REMAIN" -lt "$SINGLE_BUDGET" ] && SINGLE_BUDGET=$REMAIN
+  [ "$REMAIN" -lt $((PROJ_BUDGET + GEN_BUDGET)) ] && {
+    PROJ_BUDGET=$((REMAIN * 2 / 3))
+    GEN_BUDGET=$((REMAIN - PROJ_BUDGET))
+  }
 fi
 
 KEYS_FILE="/tmp/ghost-session-keys-${SESSION_ID:-default}"
@@ -91,7 +127,7 @@ fi
 MEM=""
 if [ -n "$PROJECT_NAME" ] && [ "$PROJECT_NAME" != "unknown" ] && [ "$PROJECT_NAME" != "/" ]; then
   # Phase 1: project-scoped (1000 tokens)
-  PROJ_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" -t "project:${PROJECT_NAME}" --budget 1000 "${FILTERS[@]}" 2>/dev/null || echo "{}")
+  PROJ_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" -t "project:${PROJECT_NAME}" --budget "$PROJ_BUDGET" "${FILTERS[@]}" 2>/dev/null || echo "{}")
   if [ -n "$LOADED_KEYS" ]; then
     PROJ_MEM=$(echo "$PROJ_RAW" | jq -r --slurpfile loaded <(echo "$LOADED_KEYS" | jq -R . | jq -s .) \
       '.memories[]? | select(.key as $k | ($loaded[0] // []) | index($k) | not) | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
@@ -104,7 +140,7 @@ if [ -n "$PROJECT_NAME" ] && [ "$PROJECT_NAME" != "unknown" ] && [ "$PROJECT_NAM
 
   # Phase 2: general (500 tokens), dedup against both SessionStart AND Phase 1 keys
   ALL_LOADED=$(printf "%s\n%s" "$LOADED_KEYS" "$PROJ_KEYS" | sort -u)
-  GEN_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" --budget 500 "${FILTERS[@]}" 2>/dev/null || echo "{}")
+  GEN_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" --budget "$GEN_BUDGET" "${FILTERS[@]}" 2>/dev/null || echo "{}")
   if [ -n "$ALL_LOADED" ]; then
     GEN_MEM=$(echo "$GEN_RAW" | jq -r --slurpfile loaded <(echo "$ALL_LOADED" | jq -R . | jq -s .) \
       '.memories[]? | select(.key as $k | ($loaded[0] // []) | index($k) | not) | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
@@ -116,7 +152,7 @@ if [ -n "$PROJECT_NAME" ] && [ "$PROJECT_NAME" != "unknown" ] && [ "$PROJECT_NAM
   [ -n "$GEN_MEM" ] && MEM="${MEM:+${MEM}\n}${GEN_MEM}"
 else
   # No project context — single query
-  RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" --budget 1500 "${FILTERS[@]}" 2>/dev/null || echo "{}")
+  RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" --budget "$SINGLE_BUDGET" "${FILTERS[@]}" 2>/dev/null || echo "{}")
   if [ -n "$LOADED_KEYS" ]; then
     MEM=$(echo "$RAW" | jq -r --slurpfile loaded <(echo "$LOADED_KEYS" | jq -R . | jq -s .) \
       '.memories[]? | select(.key as $k | ($loaded[0] // []) | index($k) | not) | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
@@ -125,9 +161,25 @@ else
   fi
 fi
 
+if [ -n "${PROJ_RAW:-}" ]; then
+  TRACE_PHASES=("$(ghost_trace_phase project "$PROJ_RAW")" "$(ghost_trace_phase general "$GEN_RAW")")
+else
+  TRACE_PHASES=("$(ghost_trace_phase single "${RAW:-}")")
+fi
+# || true: sed exits 1 on an invalid byte (echo -e expands escapes in memory
+# text) and under pipefail that must not abort the injection below.
+INJECTED_KEYS=$(echo -e "$MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p') || true
+if [ -n "$MEM" ]; then
+  ghost_trace prompt injected "" "$QUERY" "$INJECTED_KEYS" "${TRACE_PHASES[@]}"
+elif grep -q '"key"' <<<"${PROJ_RAW:-}${GEN_RAW:-}${RAW:-}"; then
+  ghost_trace prompt deduped "every hit was already loaded this session" "$QUERY" "" "${TRACE_PHASES[@]}"
+else
+  ghost_trace prompt empty "no memory passed min-score ${MIN_SCORE} / min-spread ${MIN_SPREAD}" "$QUERY" "" "${TRACE_PHASES[@]}"
+fi
+
 if [ -n "$MEM" ]; then
   # Record what was injected so later prompts in this session don't repeat it
   # (without this, one key was re-injected up to 106 times in a session).
-  echo -e "$MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p' >>"$KEYS_FILE" 2>/dev/null || true
+  echo "$INJECTED_KEYS" >>"$KEYS_FILE" 2>/dev/null || true
   echo -e "[Ghost Memory — Relevant]\n$MEM\n[End Ghost Memory]"
 fi

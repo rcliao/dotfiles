@@ -11,6 +11,7 @@ not deployed.
 | `failure-streak` | Flags likely sandbox network blocks on failed Bash; refuses the 4th identical failing command (edits, new errors and polling reset it); pinned status from the 2nd repeat. |
 | `run-ledger` | One band line: context tokens/window, growth per turn, turns to auto-compact, named outward actions (PRs, tags, publishes, merges), files edited. `/ledger`, `/ledger reset`, and a model tool for the end-of-run report. |
 | `jobs` | Background shells and agents as band rows with progress (`::progress 12/40 …` / `::status …` lines win over guesses), ETA and stall hints; `/jobs` pane with stop buttons. |
+| `ghost-lens` | Watches the ghost memory hooks. It is quiet by default and keeps a shadow log (`~/.ghost/lens/`) of which memories were injected and whether the agent used them. `/ghost` opens a pane: memories with their scores, tokens and verdicts, hook runs, captured writes, and used/noise corrections. `/ghost debug` turns on a band and status line, and `/ghost report` prints a cross-session report. It also adds one system-prompt sentence nudging the agent to call `ghost_context`. Reads the hook trace that `~/.claude/hooks/ghost-trace.sh` writes. |
 | `collision-guard` | Asks before editing a file another open session changed in the last 30 minutes. Vendored unchanged from `nateherkai/claude-code-mods` at `33a936f` (MIT); reviewed: no network or model calls, writes only `~/.claude/mods-data/collision-guard/`, runs `git ls-files`. |
 
 ## One display per kind of event

@@ -34,6 +34,13 @@ SOURCE=$(echo "$HOOK_INPUT" | jq -r '.source // "startup"' 2>/dev/null)
 PROJECT_NAME=$(basename "${PROJECT_DIR:-unknown}")
 TIMESTAMP=$(date -Iseconds)
 
+# Trace for viewers (ghost-lens mod): what was loaded, scores, skip reasons.
+# shellcheck source=/dev/null
+. "$(dirname "$0")/ghost-trace.sh" 2>/dev/null || {
+  ghost_trace() { :; }
+  ghost_trace_phase() { :; }
+}
+
 # Build environment-aware query so ghost scores relevance properly
 QUERY="working in ${PROJECT_NAME} at ${PROJECT_DIR:-unknown}, session ${SOURCE} at ${TIMESTAMP}"
 
@@ -79,9 +86,19 @@ else
   fi
 fi
 
+if [ -n "$TAG_ARGS" ]; then
+  TRACE_PHASES=("$(ghost_trace_phase project "$PROJECT_RAW")" "$(ghost_trace_phase general "$GENERAL_RAW")")
+  INJECTED_KEYS=$(printf '%s\n%s' "$PROJECT_MEM" "$GENERAL_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
+else
+  TRACE_PHASES=("$(ghost_trace_phase single "$AGENT_RAW")")
+  INJECTED_KEYS=$(printf '%s' "$AGENT_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
+fi
+
 if [ -z "$MEMORIES" ]; then
+  ghost_trace session-start empty "no memory passed min-score ${MIN_SCORE}" "$QUERY" "" "${TRACE_PHASES[@]}"
   exit 0
 fi
+ghost_trace session-start injected "" "$QUERY" "$INJECTED_KEYS" "${TRACE_PHASES[@]}"
 
 # Write loaded keys to temp file for UserPromptSubmit dedup. On resume the whole
 # transcript comes back, so keep what the session already saw; on startup, clear
