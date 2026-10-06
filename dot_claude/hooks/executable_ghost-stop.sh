@@ -79,16 +79,18 @@ fi
 # claude -p call below don't all proceed.
 echo "$CUR_LINES" >"$STATE_FILE" 2>/dev/null || true
 
-# Sample head + tail, truncated to ~60k chars to avoid "prompt too long" with claude -p
-# JSONL lines can be huge, so line count alone isn't safe
-TRANSCRIPT_SAMPLE=$(
-  head -30 "$TRANSCRIPT_PATH" 2>/dev/null
-  echo "---"
-  tail -70 "$TRANSCRIPT_PATH" 2>/dev/null
-)
-TRANSCRIPT_SAMPLE=$(echo "$TRANSCRIPT_SAMPLE" | head -c 60000)
+# The conversation as plain text: opening request + latest ~46k chars (see
+# ghost-transcript.sh). Raw JSONL head+tail cut at 60k kept only the startup
+# preamble, so every capture described an "empty" session.
+# shellcheck source=/dev/null
+. "$(dirname "$0")/ghost-transcript.sh"
+TRANSCRIPT_SAMPLE=$(ghost_transcript_sample "$TRANSCRIPT_PATH" 50000)
+if [ -z "$TRANSCRIPT_SAMPLE" ]; then
+  echo "No conversation text in transcript, skipping" >>"$DEBUG_LOG"
+  exit 0
+fi
 
-EXTRACT_PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (JSONL format) and extract ONLY confirmed, valuable learnings.
+EXTRACT_PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (USER:/ASSISTANT: text; tool payloads omitted; "…" marks a gap between the opening request and the latest part) and extract ONLY confirmed, valuable learnings.
 
 ## What to capture (tier: stm)
 ONLY store memories that pass this bar — would a future session benefit from knowing this?
@@ -155,9 +157,26 @@ if [ "$COUNT" -eq 0 ]; then
   exit 0
 fi
 
-# Separate session summary from individual learnings
-SUMMARY_CONTENT=$(echo "$RESULT" | jq -r '.[] | select(.key == "session-summary") | .content' 2>/dev/null)
-LEARNINGS=$(echo "$RESULT" | jq -c '[.[] | select(.key != "session-summary")]')
+# Separate session summary from individual learnings. Match the summary by
+# prefix: the model often names it session-summary-<date>-<slug>, which slipped
+# past an exact match and was stored as a learning (453 of them by 2026-10-06).
+SUMMARY_CONTENT=$(echo "$RESULT" | jq -r '[.[] | select(.key | startswith("session-summary"))][0].content // empty' 2>/dev/null)
+LEARNINGS=$(echo "$RESULT" | jq -c '[.[] | select(.key | startswith("session-summary") | not)]')
+# Drop empty-session filler the model sometimes emits as a "learning".
+FILTERED="[]"
+while IFS= read -r item; do
+  [ -z "$item" ] && continue
+  if ghost_junk_learning "$(echo "$item" | jq -r '.key')" "$(echo "$item" | jq -r '.content')"; then
+    echo "Dropped junk: $(echo "$item" | jq -r '.key')" >>"$DEBUG_LOG"
+  else
+    FILTERED=$(echo "$FILTERED" | jq -c --argjson i "$item" '. + [$i]')
+  fi
+done < <(echo "$LEARNINGS" | jq -c '.[]')
+LEARNINGS=$FILTERED
+if [ -n "$SUMMARY_CONTENT" ] && ghost_junk_learning "summary" "$SUMMARY_CONTENT"; then
+  echo "Dropped empty-session summary" >>"$DEBUG_LOG"
+  SUMMARY_CONTENT=""
+fi
 LEARNING_COUNT=$(echo "$LEARNINGS" | jq 'length')
 
 echo "Processing $LEARNING_COUNT learnings + summary..." >>"$DEBUG_LOG"

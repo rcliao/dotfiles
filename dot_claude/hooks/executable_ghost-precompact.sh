@@ -44,15 +44,18 @@ fi
 
 echo "Processing transcript: $TRANSCRIPT_PATH" >>"$DEBUG_LOG"
 
-# Truncate to ~60k chars to avoid "prompt too long" with claude -p
-TRANSCRIPT_TAIL=$(tail -70 "$TRANSCRIPT_PATH" 2>/dev/null | head -c 60000 || echo "")
+# The conversation as plain text (see ghost-transcript.sh): raw JSONL tail cut
+# at 60k chars was mostly tool payloads, often cut mid-JSON.
+# shellcheck source=/dev/null
+. "$(dirname "$0")/ghost-transcript.sh"
+TRANSCRIPT_TAIL=$(ghost_transcript_sample "$TRANSCRIPT_PATH" 50000)
 
 if [ -z "$TRANSCRIPT_TAIL" ]; then
   echo "Transcript empty or unreadable" >>"$DEBUG_LOG"
   exit 0
 fi
 
-PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (JSONL format) and extract ONLY confirmed, valuable learnings.
+PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (USER:/ASSISTANT: text; tool payloads omitted) and extract ONLY confirmed, valuable learnings.
 
 ## What to capture (tier: stm)
 ONLY store memories that pass this bar — would a future session benefit from knowing this?
@@ -121,6 +124,12 @@ echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
   TIER=$(echo "$item" | jq -r '.tier // "stm"')
   TAGS=$(echo "$item" | jq -r '.tags')
   CONTENT=$(echo "$item" | jq -r '.content')
+
+  # Summaries and empty-session filler are not learnings (see ghost-transcript.sh).
+  if ghost_junk_learning "$KEY" "$CONTENT"; then
+    echo "Dropped junk: $KEY" >>"$DEBUG_LOG"
+    continue
+  fi
 
   # Never allow hooks to write directly to ltm
   if [ "$TIER" = "ltm" ]; then
