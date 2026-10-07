@@ -14,6 +14,11 @@ export GHOST_ONNXRUNTIME_PATH="${GHOST_ONNXRUNTIME_PATH:-/opt/homebrew/lib}"
 # Utility-weighted scoring: parasite bench on a live snapshot (2026-07-28) showed
 # w=0.5 lifts recall canary 7/8 -> 8/8 and zero-utility share 2% -> 0%.
 export GHOST_UTILITY_WEIGHT="${GHOST_UTILITY_WEIGHT:-0.5}"
+# Drop edge-expansion passengers scoring under 0.05 (contradicts and other
+# reserved edges are exempt). Edge A/B 2026-10-06 (ghost evals/claude-code):
+# removed every near-zero passenger in a 40-query live replay, kept multi-hop
+# traversal intact (edges off broke it), no change in agent outcomes.
+export GHOST_EDGE_MIN_SCORE="${GHOST_EDGE_MIN_SCORE:-0.05}"
 AGENT_NS="${GHOST_AGENT_NS:-agent:claude-code}"
 # Retrieval noise filters (new in ghost): absolute score floor + flat-noise
 # spread collapse. Live-DB calibration: on-topic non-pinned ≥0.66, junk ~0.19.
