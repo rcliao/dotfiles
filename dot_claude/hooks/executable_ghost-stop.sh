@@ -9,6 +9,12 @@
 #   GHOST_LLM_MODEL — model for extraction (default: claude-sonnet-4-6)
 set -uo pipefail
 
+# Capture children (the `claude -p` below runs with GHOST_SESSION_HOOK=1) have
+# nothing worth capturing.
+if [ "${GHOST_SESSION_HOOK:-}" = "1" ]; then
+  exit 0
+fi
+
 GHOST="${GHOST_BIN:-ghost}"
 # ORT reranker backend: hugot loads libonnxruntime.dylib at runtime from this dir
 export GHOST_ONNXRUNTIME_PATH="${GHOST_ONNXRUNTIME_PATH:-/opt/homebrew/lib}"
@@ -132,7 +138,11 @@ Output ONLY valid JSON. No markdown fences, no explanation.'
 # Unset CLAUDECODE to prevent nested detection
 unset CLAUDECODE
 
-RESULT=$(echo "$TRANSCRIPT_SAMPLE" | claude -p --no-session-persistence --model "$LLM_MODEL" "$EXTRACT_PROMPT" 2>>"$DEBUG_LOG")
+# GHOST_SESSION_HOOK=1: the child must not run ghost's own hooks. Without it every
+# capture ran the session-start lookup (~12s, ~1.4k tokens of memories into the
+# summarizer prompt) and showed up as 78 of 98 "sessions" in the lens report
+# (eval 2026-10-07, ghost docs/research/session-start-eval-2026-10-07.md).
+RESULT=$(echo "$TRANSCRIPT_SAMPLE" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$EXTRACT_PROMPT" 2>>"$DEBUG_LOG")
 
 echo "Claude output:" >>"$DEBUG_LOG"
 echo "$RESULT" >>"$DEBUG_LOG"

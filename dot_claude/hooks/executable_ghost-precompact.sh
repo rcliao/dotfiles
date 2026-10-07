@@ -89,7 +89,8 @@ Output a JSON array of objects. Each object has:
 
 Output ONLY valid JSON. No markdown fences, no explanation.'
 
-RESULT=$(echo "$TRANSCRIPT_TAIL" | claude -p --no-session-persistence --model "$LLM_MODEL" "$PROMPT" 2>>"$DEBUG_LOG")
+# GHOST_SESSION_HOOK=1 keeps ghost's own hooks out of the child (see ghost-stop.sh).
+RESULT=$(echo "$TRANSCRIPT_TAIL" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$PROMPT" 2>>"$DEBUG_LOG")
 
 echo "Claude output:" >>"$DEBUG_LOG"
 echo "$RESULT" >>"$DEBUG_LOG"

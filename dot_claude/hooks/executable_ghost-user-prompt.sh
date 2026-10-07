@@ -8,6 +8,12 @@
 #   GHOST_AGENT_NS  — agent namespace (default: agent:claude-code)
 set -euo pipefail
 
+# Capture children: ghost-stop.sh / ghost-precompact.sh run `claude -p` with
+# GHOST_SESSION_HOOK=1. Their prompt is a summarizer input, not a task.
+if [ "${GHOST_SESSION_HOOK:-}" = "1" ]; then
+  exit 0
+fi
+
 GHOST="${GHOST_BIN:-ghost}"
 # ORT reranker backend: hugot loads libonnxruntime.dylib at runtime from this dir
 export GHOST_ONNXRUNTIME_PATH="${GHOST_ONNXRUNTIME_PATH:-/opt/homebrew/lib}"
