@@ -17,6 +17,8 @@ export GHOST_ONNXRUNTIME_PATH="${GHOST_ONNXRUNTIME_PATH:-/opt/homebrew/lib}"
 export GHOST_UTILITY_WEIGHT="${GHOST_UTILITY_WEIGHT:-0.5}"
 AGENT_NS="${GHOST_AGENT_NS:-agent:claude-code}"
 LLM_MODEL="${GHOST_LLM_MODEL:-claude-sonnet-4-6}"
+# Unbuffered, unlike ghost-stop.sh: precompact runs once per compaction, so
+# concurrent runs interleaving in this log are rare.
 DEBUG_LOG="/tmp/ghost-precompact-debug.log"
 
 # Trap errors so Claude Code gets stderr output instead of silent failure
@@ -49,6 +51,9 @@ echo "Processing transcript: $TRANSCRIPT_PATH" >>"$DEBUG_LOG"
 # at 60k chars was mostly tool payloads, often cut mid-JSON.
 # shellcheck source=/dev/null
 . "$(dirname "$0")/ghost-transcript.sh"
+HOOK_CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+PROJECT_KEY=""
+if [ -n "$HOOK_CWD" ]; then PROJECT_KEY=$(ghost_repo_key "$HOOK_CWD"); fi
 TRANSCRIPT_TAIL=$(ghost_transcript_sample "$TRANSCRIPT_PATH" 50000)
 
 if [ -z "$TRANSCRIPT_TAIL" ]; then
@@ -130,7 +135,8 @@ echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
   TIER=$(echo "$item" | jq -r '.tier // "stm"')
   TAGS=$(echo "$item" | jq -r '.tags')
   CONTENT=$(echo "$item" | jq -r '.content')
-  # Same session tag as ghost-stop.sh: gotcha promotion counts distinct sessions.
+  # Same project key and session tag as ghost-stop.sh: promotion counts distinct sessions per repo.
+  TAGS=$(ghost_normalize_project "$TAGS" "$PROJECT_KEY")
   [ -n "$HOOK_SESSION_ID" ] && TAGS="${TAGS},session:${HOOK_SESSION_ID}"
 
   # Summaries and empty-session filler are not learnings (see ghost-transcript.sh).
@@ -153,7 +159,7 @@ echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
 
   echo "Storing: $KEY (tier=$TIER)" >>"$DEBUG_LOG"
   # shellcheck disable=SC2086 # $DEDUP is one flag or nothing
-  $GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" $DEDUP "$CONTENT" >>"$DEBUG_LOG" 2>&1 || echo "Failed to store: $KEY" >>"$DEBUG_LOG"
+  $GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" $DEDUP -- "$CONTENT" >>"$DEBUG_LOG" 2>&1 || echo "Failed to store: $KEY" >>"$DEBUG_LOG"
 done
 
 echo "Done" >>"$DEBUG_LOG"

@@ -23,7 +23,22 @@ export GHOST_ONNXRUNTIME_PATH="${GHOST_ONNXRUNTIME_PATH:-/opt/homebrew/lib}"
 export GHOST_UTILITY_WEIGHT="${GHOST_UTILITY_WEIGHT:-0.5}"
 AGENT_NS="${GHOST_AGENT_NS:-agent:claude-code}"
 LLM_MODEL="${GHOST_LLM_MODEL:-claude-sonnet-4-6}"
-DEBUG_LOG="/tmp/ghost-stop-debug.log"
+# Each run logs to its own buffer and appends it whole on exit: concurrent
+# Stop hooks interleaved in the shared log, and capture output landed under
+# the wrong session (12% of checkable runs, 2026-10-08).
+SHARED_LOG="/tmp/ghost-stop-debug.log"
+DEBUG_LOG=$(mktemp "${TMPDIR:-/tmp}/ghost-stop.XXXXXX" 2>/dev/null) || DEBUG_LOG="$SHARED_LOG"
+KEYS_FILE=""
+ghost_stop_cleanup() {
+  trap - ERR # a failing test here must not re-log into the buffer just removed
+  if [ "$DEBUG_LOG" != "$SHARED_LOG" ]; then
+    cat "$DEBUG_LOG" >>"$SHARED_LOG" 2>/dev/null
+    rm -f "$DEBUG_LOG"
+  fi
+  if [ -n "$KEYS_FILE" ]; then rm -f "$KEYS_FILE"; fi
+  return 0
+}
+trap ghost_stop_cleanup EXIT
 
 # Trap errors so Claude Code gets stderr output instead of silent failure
 trap 'echo "ghost-stop.sh failed at line $LINENO" >&2; echo "Error at line $LINENO" >> "$DEBUG_LOG"' ERR
@@ -35,7 +50,10 @@ echo "=== $(date -Iseconds) ===" >>"$DEBUG_LOG"
 # Extract environment context
 SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
-PROJECT_NAME=$(basename "${CWD:-unknown}")
+# shellcheck source=/dev/null
+. "$(dirname "$0")/ghost-transcript.sh"
+# Main repo (+ unit), not the folder name: worktrees split one repo into many.
+PROJECT_NAME=$(ghost_repo_key "${CWD:-unknown}")
 DATE=$(date +%Y-%m-%d)
 SESSION_TAG="session:${SESSION_ID:-$(date +%s)}"
 
@@ -195,8 +213,7 @@ LEARNING_COUNT=$(echo "$LEARNINGS" | jq 'length')
 echo "Processing $LEARNING_COUNT learnings + summary..." >>"$DEBUG_LOG"
 
 # Store individual learnings, collect keys for consolidation
-KEYS_FILE=$(mktemp)
-trap 'rm -f "$KEYS_FILE"' EXIT
+KEYS_FILE=$(mktemp) # removed by ghost_stop_cleanup
 
 echo "$LEARNINGS" | jq -c '.[]' | while IFS= read -r item; do
   KEY=$(echo "$item" | jq -r '.key')
@@ -210,8 +227,8 @@ echo "$LEARNINGS" | jq -c '.[]' | while IFS= read -r item; do
     TIER="stm"
   fi
 
-  # Append session tag to existing tags
-  TAGS="${TAGS},${SESSION_TAG}"
+  # The model's project tag guesses from paths; use the repo key instead.
+  TAGS="$(ghost_normalize_project "$TAGS" "$PROJECT_NAME"),${SESSION_TAG}"
   # Gotchas: one memory per session (see ghost_is_gotcha), so recurrence is countable.
   DEDUP=--dedup
   if ghost_is_gotcha "$TAGS"; then
@@ -221,7 +238,7 @@ echo "$LEARNINGS" | jq -c '.[]' | while IFS= read -r item; do
 
   echo "Storing: $KEY (tier=$TIER)" >>"$DEBUG_LOG"
   # shellcheck disable=SC2086 # $DEDUP is one flag or nothing
-  if PUT_OUTPUT=$($GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" $DEDUP "$CONTENT" 2>>"$DEBUG_LOG") && [ -n "$PUT_OUTPUT" ]; then
+  if PUT_OUTPUT=$($GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" $DEDUP -- "$CONTENT" 2>>"$DEBUG_LOG") && [ -n "$PUT_OUTPUT" ]; then
     # Dedup may return a different key — use the actual stored key for consolidation
     ACTUAL_KEY=$(echo "$PUT_OUTPUT" | jq -r '.key // empty' 2>/dev/null)
     if [ -n "$ACTUAL_KEY" ]; then
@@ -241,7 +258,7 @@ STORED_KEYS=$(cat "$KEYS_FILE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 # Consolidate under a session summary node if we have >= 2 learnings and a summary
 KEY_COUNT=$(cat "$KEYS_FILE" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$KEY_COUNT" -ge 2 ] && [ -n "$SUMMARY_CONTENT" ]; then
-  SUMMARY_KEY="session-${PROJECT_NAME}-${DATE}-${SESSION_ID:0:8}"
+  SUMMARY_KEY="session-${PROJECT_NAME//\//-}-${DATE}-${SESSION_ID:0:8}"
   SUMMARY_TAGS="project:${PROJECT_NAME},${SESSION_TAG}"
 
   echo "Consolidating $KEY_COUNT learnings under $SUMMARY_KEY" >>"$DEBUG_LOG"
@@ -260,7 +277,7 @@ fi
 echo "Running lightweight reflect..." >>"$DEBUG_LOG"
 $GHOST reflect --ns "$AGENT_NS" >>"$DEBUG_LOG" 2>&1 || echo "Reflect failed (non-fatal)" >>"$DEBUG_LOG"
 
-# Daily: propose CLAUDE.md lines for gotchas hit in 2+ sessions (self-throttled).
-nohup "$(dirname "$0")/ghost-gotcha-promote.sh" >/dev/null 2>&1 &
+# Daily: merge what recurs in 2+ sessions into environment-gotchas and repo notes (self-throttled).
+nohup "$(dirname "$0")/ghost-promote.sh" >/dev/null 2>&1 &
 
 echo "Done" >>"$DEBUG_LOG"

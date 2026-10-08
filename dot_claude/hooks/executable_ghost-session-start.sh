@@ -29,7 +29,7 @@ MIN_SCORE="${GHOST_MIN_SCORE:-0.55}"
 # untagged "general" call (500 tok) had 0 useful of 69 — it only re-found pinned
 # memories, which the project call already returns. Pinned bypass the floor.
 # 1200, not 800: pinned get half the budget, and the pinned environment-gotchas
-# memory (ghost-gotcha-promote.sh, up to ~300 tok) plus the other pins (~300)
+# memory (ghost-promote.sh, up to ~300 tok) plus the other pins (~300)
 # overflowed 400 and dropped two pins (eval 2026-10-08).
 BUDGET="${GHOST_SESSION_BUDGET:-1200}"
 
@@ -44,7 +44,11 @@ HOOK_INPUT=$(cat)
 PROJECT_DIR=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
 SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 SOURCE=$(echo "$HOOK_INPUT" | jq -r '.source // "startup"' 2>/dev/null)
-PROJECT_NAME=$(basename "${PROJECT_DIR:-unknown}")
+# shellcheck source=/dev/null
+. "$(dirname "$0")/ghost-transcript.sh"
+# Main repo (+ unit, e.g. myrepo/api), the same key capture tags with.
+PROJECT_NAME=$([ -n "$PROJECT_DIR" ] && ghost_repo_key "$PROJECT_DIR" || echo unknown)
+FOLDER_NAME=$(basename "${PROJECT_DIR:-unknown}")
 TIMESTAMP=$(date -Iseconds)
 
 # Trace for viewers (ghost-lens mod): what was loaded, scores, skip reasons.
@@ -61,13 +65,42 @@ QUERY="working in ${PROJECT_NAME} at ${PROJECT_DIR:-unknown}, session ${SOURCE} 
 TAG_ARGS=""
 if [ -n "$PROJECT_NAME" ] && [ "$PROJECT_NAME" != "unknown" ] && [ "$PROJECT_NAME" != "/" ]; then
   TAG_ARGS="-t project:${PROJECT_NAME}"
+  # Memories captured before 2026-10-08 carry the folder name (worktree, unit).
+  [ "$FOLDER_NAME" != "$PROJECT_NAME" ] && TAG_ARGS="$TAG_ARGS -t project:${FOLDER_NAME}"
 fi
+
+# Repo notes (ghost-promote.sh): what this repo kept re-teaching, read by key.
+# When there are any, they replace search: search gave ~3 useful memories in 18
+# sessions (ghost docs/research/repo-notes-design-2026-10-08.md).
+# Off until GHOST_REPO_NOTES=1: the first hold-out test couldn't show whether
+# notes cover what sessions re-learn (2 days, nothing first captured before the
+# split), so notes build up in shadow and get measured first.
+NOTES=""
+NOTE_KEYS=""
+REPO="${PROJECT_NAME%%/*}"
+NOTE_CANDIDATES=""
+if [ "${GHOST_REPO_NOTES:-0}" = "1" ]; then
+  NOTE_CANDIDATES="repo-notes-${REPO}"
+  [ "$PROJECT_NAME" != "$REPO" ] && NOTE_CANDIDATES="$NOTE_CANDIDATES repo-notes-${PROJECT_NAME//\//-}"
+fi
+for NK in $NOTE_CANDIDATES; do
+  # || true: no notes yet is normal, and set -e would end the hook here.
+  NC=$($GHOST get -n "$AGENT_NS" -k "$NK" -f json 2>/dev/null | jq -r '.content // empty' 2>/dev/null || true)
+  [ -n "$NC" ] || continue
+  NOTES="${NOTES:+$NOTES$'\n'}[${NK}]"$'\n'"${NC}"
+  NOTE_KEYS="${NOTE_KEYS:+$NOTE_KEYS$'\n'}${NK}"
+done
 
 MEMORIES=""
 # $TAG_ARGS is two words (-t project:x) and must split; empty when no project.
 # shellcheck disable=SC2086
 AGENT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" $TAG_ARGS --budget "$BUDGET" --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
+if [ -n "$NOTES" ]; then
+  # Pinned memories only; the notes stand in for search.
+  AGENT_RAW=$(echo "$AGENT_RAW" | jq -c '.memories = [.memories[]? | select(.via == "pinned")]' 2>/dev/null || echo "{}")
+fi
 AGENT_MEM=$(echo "$AGENT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
+[ -n "$NOTES" ] && AGENT_MEM="${AGENT_MEM:+$AGENT_MEM$'\n'}${NOTES}"
 if [ -n "$AGENT_MEM" ]; then
   if [ -n "$TAG_ARGS" ]; then
     MEMORIES="## Project: ${PROJECT_NAME}"$'\n'"${AGENT_MEM}"
@@ -78,6 +111,7 @@ fi
 
 TRACE_PHASES=("$(ghost_trace_phase "$([ -n "$TAG_ARGS" ] && echo project || echo single)" "$AGENT_RAW")")
 INJECTED_KEYS=$(printf '%s' "$AGENT_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
+[ -n "$NOTE_KEYS" ] && INJECTED_KEYS="${INJECTED_KEYS:+$INJECTED_KEYS$'\n'}${NOTE_KEYS}"
 
 if [ -z "$MEMORIES" ]; then
   ghost_trace session-start empty "no memory passed min-score ${MIN_SCORE}" "$QUERY" "" "${TRACE_PHASES[@]}"

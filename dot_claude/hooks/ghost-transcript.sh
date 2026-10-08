@@ -68,10 +68,49 @@ ghost_failure_digest() {
 # Capture stores these per session (key suffixed with the session id, no
 # --dedup): a same-key put replaces the earlier version's session tag, and
 # --dedup reinforces a paraphrase without adding one, so either would hide that
-# the gotcha recurred. ghost-gotcha-promote.sh does the grouping instead.
+# the gotcha recurred. ghost-promote.sh does the grouping instead.
 ghost_is_gotcha() {
   case ",$(printf '%s' "$1" | tr -d ' ')," in *,gotcha,*) return 0 ;; esac
   return 1
+}
+
+# ghost_repo_key DIR — the project key: the main repo's name, plus /<unit> inside
+# services/<unit>, packages/<unit> or apps/<unit> (e.g. myrepo/api).
+# Worktrees resolve to their main repo: by folder name, one monorepo was logged as
+# ~10 projects (one per worktree or subfolder). Outside git: the folder name.
+# See ghost docs/research/repo-notes-design-2026-10-08.md.
+ghost_repo_key() {
+  local dir=${1:-$PWD} common repo prefix unit
+  common=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+  if [ -z "$common" ]; then
+    basename "$dir"
+    return 0
+  fi
+  repo=$(basename "$(dirname "$common")")
+  prefix=$(git -C "$dir" rev-parse --show-prefix 2>/dev/null)
+  unit=$(printf '%s' "$prefix" | sed -nE 's#^(.*/)?(services|packages|apps)/([^/]+).*#\3#p')
+  printf '%s\n' "${repo}${unit:+/$unit}"
+}
+
+# ghost_normalize_project TAGS KEY — replaces the model's project:* tags with
+# project:KEY. Items without a project tag (cross-project lessons) keep none.
+ghost_normalize_project() {
+  local tags=$1 key=$2 out="" t had=""
+  if [ -z "$key" ]; then
+    printf '%s\n' "$tags"
+    return 0
+  fi
+  local IFS=,
+  for t in $tags; do
+    t=$(printf '%s' "$t" | tr -d ' ')
+    case "$t" in
+      project:*) had=1 ;;
+      "") ;;
+      *) out="${out:+$out,}$t" ;;
+    esac
+  done
+  [ -n "$had" ] && out="${out:+$out,}project:$key"
+  printf '%s\n' "$out"
 }
 
 # The gotcha section both capture prompts share (eval 2026-10-07: catches 7 of

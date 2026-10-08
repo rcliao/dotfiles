@@ -36,7 +36,7 @@ archive
 # wires each hook only if its script is present, so a machine without the flag
 # gets a settings.json with no Ghost references at all.
 {{ if not .ghost }}
-.claude/hooks/ghost-gotcha-promote.sh
+.claude/hooks/ghost-promote.sh
 .claude/hooks/ghost-precompact.sh
 .claude/hooks/ghost-session-start.sh
 .claude/hooks/ghost-stop-heuristic.sh

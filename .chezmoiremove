@@ -16,3 +16,6 @@
 # init.vim and an init.lua exist, so this one is not optional.
 .config/nvim/init.vim
 .config/nvim/lua/config.lua
+
+# Renamed to ghost-promote.sh on 2026-10-08 (also maintains repo notes).
+.claude/hooks/ghost-gotcha-promote.sh
