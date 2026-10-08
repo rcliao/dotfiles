@@ -95,8 +95,10 @@ if [ -z "$TRANSCRIPT_SAMPLE" ]; then
   echo "No conversation text in transcript, skipping" >>"$DEBUG_LOG"
   exit 0
 fi
+# Failures since the last capture, with what came next (the sample has no tool output).
+FAILURES=$(ghost_failure_digest "$TRANSCRIPT_PATH" 12000 "$((LAST_LINES + 1))")
 
-EXTRACT_PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (USER:/ASSISTANT: text; tool payloads omitted; "…" marks a gap between the opening request and the latest part) and extract ONLY confirmed, valuable learnings.
+EXTRACT_PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (USER:/ASSISTANT: text; tool payloads omitted; "…" marks a gap between the opening request and the latest part), then a FAILED TOOL CALLS section (each failed call, its error, and the next call to the same tool) and extract ONLY confirmed, valuable learnings.
 
 ## What to capture (tier: stm)
 ONLY store memories that pass this bar — would a future session benefit from knowing this?
@@ -106,6 +108,7 @@ ONLY store memories that pass this bar — would a future session benefit from k
 - Non-obvious gotchas that were confirmed through testing
 - Solutions that required multiple attempts to find
 
+'"$GHOST_GOTCHA_RULES"'
 ## What NOT to capture
 - Raw observations, file paths, or service names (these are noise, not learnings)
 - Error messages without a resolution
@@ -118,7 +121,7 @@ ONLY store memories that pass this bar — would a future session benefit from k
 ## Rules
 - Use tier "stm" for all learnings. Do NOT use "sensory" or "ltm".
 - If the session was trivial or produced no genuine insights, output an empty array: []
-- Be selective: 2-4 high-quality memories are better than 10 low-quality ones.
+- Be selective: 2-4 high-quality learnings are better than 10 low-quality ones. Gotchas do not count toward this limit.
 - Include the project name in tags when inferrable from file paths or repo names.
 
 ## Output format
@@ -142,7 +145,7 @@ unset CLAUDECODE
 # capture ran the session-start lookup (~12s, ~1.4k tokens of memories into the
 # summarizer prompt) and showed up as 78 of 98 "sessions" in the lens report
 # (eval 2026-10-07, ghost docs/research/session-start-eval-2026-10-07.md).
-RESULT=$(echo "$TRANSCRIPT_SAMPLE" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$EXTRACT_PROMPT" 2>>"$DEBUG_LOG")
+RESULT=$(printf '%s\n\n## FAILED TOOL CALLS\n%s\n' "$TRANSCRIPT_SAMPLE" "${FAILURES:-(none)}" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$EXTRACT_PROMPT" 2>>"$DEBUG_LOG")
 
 echo "Claude output:" >>"$DEBUG_LOG"
 echo "$RESULT" >>"$DEBUG_LOG"
@@ -209,9 +212,16 @@ echo "$LEARNINGS" | jq -c '.[]' | while IFS= read -r item; do
 
   # Append session tag to existing tags
   TAGS="${TAGS},${SESSION_TAG}"
+  # Gotchas: one memory per session (see ghost_is_gotcha), so recurrence is countable.
+  DEDUP=--dedup
+  if ghost_is_gotcha "$TAGS"; then
+    KEY="${KEY}${SESSION_ID:+-${SESSION_ID:0:8}}"
+    DEDUP=
+  fi
 
   echo "Storing: $KEY (tier=$TIER)" >>"$DEBUG_LOG"
-  if PUT_OUTPUT=$($GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" --dedup "$CONTENT" 2>>"$DEBUG_LOG") && [ -n "$PUT_OUTPUT" ]; then
+  # shellcheck disable=SC2086 # $DEDUP is one flag or nothing
+  if PUT_OUTPUT=$($GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" $DEDUP "$CONTENT" 2>>"$DEBUG_LOG") && [ -n "$PUT_OUTPUT" ]; then
     # Dedup may return a different key — use the actual stored key for consolidation
     ACTUAL_KEY=$(echo "$PUT_OUTPUT" | jq -r '.key // empty' 2>/dev/null)
     if [ -n "$ACTUAL_KEY" ]; then
@@ -249,5 +259,8 @@ fi
 # Runs after capture so new memories are included. Silent on error.
 echo "Running lightweight reflect..." >>"$DEBUG_LOG"
 $GHOST reflect --ns "$AGENT_NS" >>"$DEBUG_LOG" 2>&1 || echo "Reflect failed (non-fatal)" >>"$DEBUG_LOG"
+
+# Daily: propose CLAUDE.md lines for gotchas hit in 2+ sessions (self-throttled).
+nohup "$(dirname "$0")/ghost-gotcha-promote.sh" >/dev/null 2>&1 &
 
 echo "Done" >>"$DEBUG_LOG"

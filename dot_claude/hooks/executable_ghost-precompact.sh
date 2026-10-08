@@ -25,6 +25,7 @@ trap 'echo "ghost-precompact.sh failed at line $LINENO" >&2; echo "Error at line
 HOOK_INPUT=$(cat)
 
 echo "=== $(date -Iseconds) ===" >>"$DEBUG_LOG"
+HOOK_SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 
 # Extract transcript path from hook input
 TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
@@ -55,7 +56,10 @@ if [ -z "$TRANSCRIPT_TAIL" ]; then
   exit 0
 fi
 
-PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (USER:/ASSISTANT: text; tool payloads omitted) and extract ONLY confirmed, valuable learnings.
+# Recent failures with what came next (the sample has no tool output).
+FAILURES=$(ghost_failure_digest "$TRANSCRIPT_PATH" 12000)
+
+PROMPT='You are a memory curator for an AI coding agent. Analyze the following Claude Code session transcript (USER:/ASSISTANT: text; tool payloads omitted), then a FAILED TOOL CALLS section (each failed call, its error, and the next call to the same tool) and extract ONLY confirmed, valuable learnings.
 
 ## What to capture (tier: stm)
 ONLY store memories that pass this bar — would a future session benefit from knowing this?
@@ -64,6 +68,7 @@ ONLY store memories that pass this bar — would a future session benefit from k
 - User corrections or stated preferences
 - Non-obvious gotchas that were confirmed through testing
 
+'"$GHOST_GOTCHA_RULES"'
 ## What NOT to capture
 - Raw observations, file paths, or service names (noise, not learnings)
 - Error messages without a resolution
@@ -75,7 +80,7 @@ ONLY store memories that pass this bar — would a future session benefit from k
 ## Rules
 - Use tier "stm" for all learnings. Do NOT use "sensory" or "ltm".
 - If the session was trivial or produced no genuine insights, output an empty array: []
-- Be selective: 2-3 high-quality memories are better than 10 low-quality ones.
+- Be selective: 2-3 high-quality learnings are better than 10 low-quality ones. Gotchas do not count toward this limit.
 - Include the project name in tags when inferrable from file paths or repo names.
 
 ## Output format
@@ -90,7 +95,7 @@ Output a JSON array of objects. Each object has:
 Output ONLY valid JSON. No markdown fences, no explanation.'
 
 # GHOST_SESSION_HOOK=1 keeps ghost's own hooks out of the child (see ghost-stop.sh).
-RESULT=$(echo "$TRANSCRIPT_TAIL" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$PROMPT" 2>>"$DEBUG_LOG")
+RESULT=$(printf '%s\n\n## FAILED TOOL CALLS\n%s\n' "$TRANSCRIPT_TAIL" "${FAILURES:-(none)}" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$PROMPT" 2>>"$DEBUG_LOG")
 
 echo "Claude output:" >>"$DEBUG_LOG"
 echo "$RESULT" >>"$DEBUG_LOG"
@@ -125,6 +130,8 @@ echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
   TIER=$(echo "$item" | jq -r '.tier // "stm"')
   TAGS=$(echo "$item" | jq -r '.tags')
   CONTENT=$(echo "$item" | jq -r '.content')
+  # Same session tag as ghost-stop.sh: gotcha promotion counts distinct sessions.
+  [ -n "$HOOK_SESSION_ID" ] && TAGS="${TAGS},session:${HOOK_SESSION_ID}"
 
   # Summaries and empty-session filler are not learnings (see ghost-transcript.sh).
   if ghost_junk_learning "$KEY" "$CONTENT"; then
@@ -137,8 +144,16 @@ echo "$RESULT" | jq -c '.[]' | while IFS= read -r item; do
     TIER="stm"
   fi
 
+  # Gotchas: one memory per session (see ghost_is_gotcha), so recurrence is countable.
+  DEDUP=--dedup
+  if ghost_is_gotcha "$TAGS"; then
+    KEY="${KEY}${HOOK_SESSION_ID:+-${HOOK_SESSION_ID:0:8}}"
+    DEDUP=
+  fi
+
   echo "Storing: $KEY (tier=$TIER)" >>"$DEBUG_LOG"
-  $GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" --dedup "$CONTENT" >>"$DEBUG_LOG" 2>&1 || echo "Failed to store: $KEY" >>"$DEBUG_LOG"
+  # shellcheck disable=SC2086 # $DEDUP is one flag or nothing
+  $GHOST put -n "$AGENT_NS" -k "$KEY" --kind "$KIND" -p "$PRIORITY" --tier "$TIER" -t "$TAGS" $DEDUP "$CONTENT" >>"$DEBUG_LOG" 2>&1 || echo "Failed to store: $KEY" >>"$DEBUG_LOG"
 done
 
 echo "Done" >>"$DEBUG_LOG"
