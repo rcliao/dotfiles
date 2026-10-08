@@ -24,6 +24,11 @@ AGENT_NS="${GHOST_AGENT_NS:-agent:claude-code}"
 # (live DB: on-topic non-pinned ≥0.66, junk ~0.19; pinned bypass the floor).
 # The flooding gate rescues topically-dominant old memories from this floor.
 MIN_SCORE="${GHOST_MIN_SCORE:-0.55}"
+# One lookup, small budget. Eval 2026-10-07 (ghost docs/research/session-start-eval-2026-10-07.md):
+# ~3 useful memories in 18 sessions, 77% of tokens irrelevant, and the old
+# untagged "general" call (500 tok) had 0 useful of 69 — it only re-found pinned
+# memories, which the project call already returns. Pinned bypass the floor.
+BUDGET="${GHOST_SESSION_BUDGET:-800}"
 
 # Guard against recursive invocation
 if [ "${GHOST_SESSION_HOOK:-}" = "1" ]; then
@@ -56,48 +61,20 @@ if [ -n "$PROJECT_NAME" ] && [ "$PROJECT_NAME" != "unknown" ] && [ "$PROJECT_NAM
 fi
 
 MEMORIES=""
-
-# Agent-level memories — 2000 tokens total, with project tag filtering when available
-if [ -n "$TAG_ARGS" ]; then
-  # First: project-scoped context (1500 tokens)
-  # $TAG_ARGS is two words (-t project:x) and must split
-  # shellcheck disable=SC2086
-  PROJECT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" $TAG_ARGS --budget 1500 --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
-  PROJECT_MEM=$(echo "$PROJECT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
-  # Extract project keys for dedup
-  PROJECT_KEYS=$(echo "$PROJECT_RAW" | jq -r '.memories[]?.key // empty' 2>/dev/null)
-
-  # Then: pinned/general context (500 tokens) without project filter, dedup against project keys
-  GENERAL_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" --budget 500 --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
-  if [ -n "$PROJECT_KEYS" ]; then
-    GENERAL_MEM=$(echo "$GENERAL_RAW" | jq -r --argjson pkeys "$(echo "$PROJECT_KEYS" | jq -R . | jq -s .)" \
-      '.memories[]? | select(.key as $k | ($pkeys | index($k)) | not) | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
+# $TAG_ARGS is two words (-t project:x) and must split; empty when no project.
+# shellcheck disable=SC2086
+AGENT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" $TAG_ARGS --budget "$BUDGET" --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
+AGENT_MEM=$(echo "$AGENT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
+if [ -n "$AGENT_MEM" ]; then
+  if [ -n "$TAG_ARGS" ]; then
+    MEMORIES="## Project: ${PROJECT_NAME}\n${AGENT_MEM}"
   else
-    GENERAL_MEM=$(echo "$GENERAL_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
-  fi
-
-  if [ -n "$PROJECT_MEM" ]; then
-    MEMORIES="## Project: ${PROJECT_NAME}\n${PROJECT_MEM}"
-  fi
-  if [ -n "$GENERAL_MEM" ]; then
-    MEMORIES="${MEMORIES}\n## General\n${GENERAL_MEM}"
-  fi
-else
-  # No project context — general query only
-  AGENT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" --budget 2000 --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
-  AGENT_MEM=$(echo "$AGENT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
-  if [ -n "$AGENT_MEM" ]; then
-    MEMORIES="## Agent Knowledge\n$AGENT_MEM"
+    MEMORIES="## Agent Knowledge\n${AGENT_MEM}"
   fi
 fi
 
-if [ -n "$TAG_ARGS" ]; then
-  TRACE_PHASES=("$(ghost_trace_phase project "$PROJECT_RAW")" "$(ghost_trace_phase general "$GENERAL_RAW")")
-  INJECTED_KEYS=$(printf '%s\n%s' "$PROJECT_MEM" "$GENERAL_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
-else
-  TRACE_PHASES=("$(ghost_trace_phase single "$AGENT_RAW")")
-  INJECTED_KEYS=$(printf '%s' "$AGENT_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
-fi
+TRACE_PHASES=("$(ghost_trace_phase "$([ -n "$TAG_ARGS" ] && echo project || echo single)" "$AGENT_RAW")")
+INJECTED_KEYS=$(printf '%s' "$AGENT_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
 
 if [ -z "$MEMORIES" ]; then
   ghost_trace session-start empty "no memory passed min-score ${MIN_SCORE}" "$QUERY" "" "${TRACE_PHASES[@]}"
@@ -114,14 +91,7 @@ if [ "$SOURCE" = "resume" ] && [ -f "$KEYS_FILE" ]; then
   PREV_KEYS="${KEYS_FILE}.prev"
   cp "$KEYS_FILE" "$PREV_KEYS" 2>/dev/null || PREV_KEYS=/dev/null
 fi
-if [ -n "$TAG_ARGS" ]; then
-  {
-    echo "$PROJECT_RAW"
-    echo "$GENERAL_RAW"
-  } 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | cat - "$PREV_KEYS" | sort -u >"$KEYS_FILE" 2>/dev/null || true
-else
-  echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | cat - "$PREV_KEYS" | sort -u >"$KEYS_FILE" 2>/dev/null || true
-fi
+echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | cat - "$PREV_KEYS" | sort -u >"$KEYS_FILE" 2>/dev/null || true
 
 CURATE_HINT="**Memory hygiene**: After your first substantive task, scan the memories above and curate — ghost_curate(op='boost') relevant ones, ghost_curate(op='diminish') irrelevant ones. This trains the utility signal."
 
