@@ -28,7 +28,10 @@ MIN_SCORE="${GHOST_MIN_SCORE:-0.55}"
 # ~3 useful memories in 18 sessions, 77% of tokens irrelevant, and the old
 # untagged "general" call (500 tok) had 0 useful of 69 — it only re-found pinned
 # memories, which the project call already returns. Pinned bypass the floor.
-BUDGET="${GHOST_SESSION_BUDGET:-800}"
+# 1200, not 800: pinned get half the budget, and the pinned environment-gotchas
+# memory (ghost-gotcha-promote.sh, up to ~300 tok) plus the other pins (~300)
+# overflowed 400 and dropped two pins (eval 2026-10-08).
+BUDGET="${GHOST_SESSION_BUDGET:-1200}"
 
 # Guard against recursive invocation
 if [ "${GHOST_SESSION_HOOK:-}" = "1" ]; then
@@ -67,29 +70,17 @@ AGENT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" $TAG_ARGS --budget "$BUDGET" 
 AGENT_MEM=$(echo "$AGENT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
 if [ -n "$AGENT_MEM" ]; then
   if [ -n "$TAG_ARGS" ]; then
-    MEMORIES="## Project: ${PROJECT_NAME}\n${AGENT_MEM}"
+    MEMORIES="## Project: ${PROJECT_NAME}"$'\n'"${AGENT_MEM}"
   else
-    MEMORIES="## Agent Knowledge\n${AGENT_MEM}"
+    MEMORIES="## Agent Knowledge"$'\n'"${AGENT_MEM}"
   fi
 fi
 
 TRACE_PHASES=("$(ghost_trace_phase "$([ -n "$TAG_ARGS" ] && echo project || echo single)" "$AGENT_RAW")")
 INJECTED_KEYS=$(printf '%s' "$AGENT_MEM" | sed -n 's/^\[\([^]]*\)\] .*/\1/p')
 
-# Proposed CLAUDE.md gotchas (ghost-gotcha-promote.sh): told to one fresh session
-# per new proposal set, not to every parallel session.
-GOTCHA_NOTE=""
-PROPOSALS="$HOME/.ghost/gotcha-proposals.md"
-SEEN="$HOME/.ghost/gotcha-proposals.seen"
-if [ "$SOURCE" = "startup" ] && [ -s "$PROPOSALS" ] && { [ ! -f "$SEEN" ] || [ "$PROPOSALS" -nt "$SEEN" ]; }; then
-  N=$(grep -c '^- ' "$PROPOSALS" 2>/dev/null || echo 0)
-  GOTCHA_NOTE="Ghost proposes ${N} CLAUDE.md gotcha line(s), each hit in 2+ sessions: ${PROPOSALS}. Mention this to the user once, in one line, at a natural pause. Never edit CLAUDE.md without their approval."
-  touch "$SEEN" 2>/dev/null || true
-fi
-
 if [ -z "$MEMORIES" ]; then
   ghost_trace session-start empty "no memory passed min-score ${MIN_SCORE}" "$QUERY" "" "${TRACE_PHASES[@]}"
-  [ -n "$GOTCHA_NOTE" ] && echo -e "[Ghost Memory — Session Start]\n$GOTCHA_NOTE\n[End Ghost Memory]"
   exit 0
 fi
 ghost_trace session-start injected "" "$QUERY" "$INJECTED_KEYS" "${TRACE_PHASES[@]}"
@@ -107,4 +98,5 @@ echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | 
 
 CURATE_HINT="**Memory hygiene**: After your first substantive task, scan the memories above and curate — ghost_curate(op='boost') relevant ones, ghost_curate(op='diminish') irrelevant ones. This trains the utility signal."
 
-echo -e "[Ghost Memory — Session Start]\n$MEMORIES\n\n$CURATE_HINT${GOTCHA_NOTE:+\n$GOTCHA_NOTE}\n[End Ghost Memory]"
+# printf, not echo -e: memory text can hold a literal \n (e.g. a shell gotcha).
+printf '[Ghost Memory — Session Start]\n%s\n\n%s\n[End Ghost Memory]\n' "$MEMORIES" "$CURATE_HINT"
