@@ -38,6 +38,7 @@ archive
 {{ if not .ghost }}
 .claude/hooks/ghost-promote.sh
 .claude/hooks/ghost-precompact.sh
+.claude/hooks/ghost-session-end.sh
 .claude/hooks/ghost-session-start.sh
 .claude/hooks/ghost-stop-heuristic.sh
 .claude/hooks/ghost-stop.sh

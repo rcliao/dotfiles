@@ -255,6 +255,17 @@
         ]
       }
     ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/ghost-session-end.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
 {{- end }}
     "Stop": [
       {

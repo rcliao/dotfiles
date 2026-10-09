@@ -31,6 +31,43 @@ ghost_transcript_sample() {
   printf '%s\n…\n%s\n' "${text:0:4000}" "${text: -$((max - 4000))}"
 }
 
+# ghost_transcript_window PATH FROM_LINE MAX_CHARS OUT_FILE — the conversation
+# (user and assistant text, reminders stripped) from FROM_LINE on, written to
+# OUT_FILE as "USER: …"/"ASSISTANT: …" blocks, at most MAX_CHARS of whole
+# messages. Prints the last transcript line it covered: the end of the file
+# when everything fit, else the last message that fit (the next window starts
+# after it). Capture reads each part of a session once this way; the old
+# sample re-read the latest ~46k chars on every pass, and 15 of 19 dedup hits
+# in a week were a session re-capturing its own lesson (2026-10-08).
+ghost_transcript_window() {
+  local tpath=$1 from=$2 max=$3 out=$4 total
+  total=$(wc -l <"$tpath" | tr -d ' ')
+  tail -n +"$from" "$tpath" | jq -c --argjson base "$from" '
+    select((.type == "user" or .type == "assistant") and ((.isMeta // false) | not) and ((.isSidechain // false) | not)
+      and ((.isCompactSummary // false) | not) and ((.isVisibleInTranscriptOnly // false) | not))
+    | .type as $t
+    | (.message.content
+       | if type == "string" then . else ([.[]? | select(.type == "text") | .text] | join("\n")) end
+       | gsub("<system-reminder>[\\s\\S]*?</system-reminder>"; "") | sub("^\\s+"; "") | sub("\\s+$"; "")) as $c
+    | select(($c | length) > 0)
+    | {n: (input_line_number + $base - 1), s: "\($t | ascii_upcase): \($c)"}' 2>/dev/null |
+    jq -rs --argjson max "$max" --argjson total "$total" '
+      reduce .[] as $m ({text: [], len: 0, last: null, full: true};
+        if .full == false then .
+        elif (.len + ($m.s | length) > $max) and (.len > 0) then .full = false
+        else .text += [$m.s] | .len += ($m.s | length) + 1 | .last = $m.n end)
+      | "\(if .full then $total else .last end)\n\(.text | join("\n"))"' >"$out.raw" 2>/dev/null
+  if [ ! -s "$out.raw" ]; then
+    : >"$out"
+    rm -f "$out.raw"
+    echo "$total"
+    return 0
+  fi
+  head -n 1 "$out.raw"
+  tail -n +2 "$out.raw" >"$out"
+  rm -f "$out.raw"
+}
+
 # ghost_failure_digest PATH [MAX_CHARS] [FROM_LINE] — failed tool calls and what came next.
 # The text sample above drops tool payloads, so capture never saw an error
 # unless the agent narrated it (eval 2026-10-07: 22 of 91 failures were

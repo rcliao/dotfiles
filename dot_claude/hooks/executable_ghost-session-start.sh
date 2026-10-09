@@ -101,7 +101,7 @@ if [ "$SOURCE" = "resume" ] && [ -f "$KEYS_FILE" ]; then
 fi
 echo "$AGENT_RAW" 2>/dev/null | jq -r '.memories[]?.key // empty' 2>/dev/null | cat - "$PREV_KEYS" | sort -u >"$KEYS_FILE" 2>/dev/null || true
 
-CURATE_HINT="**Memory hygiene**: After your first substantive task, scan the memories above and curate — ghost_curate(op='boost') relevant ones, ghost_curate(op='diminish') irrelevant ones. This trains the utility signal."
-
+# No "memory hygiene" curate prompt: in 6,706 memories none was ever marked used
+# (used_count = 0, 2026-10-08), so it was ~60 tokens of ignored text per session.
 # printf, not echo -e: memory text can hold a literal \n (e.g. a shell gotcha).
-printf '[Ghost Memory — Session Start]\n%s\n\n%s\n[End Ghost Memory]\n' "$MEMORIES" "$CURATE_HINT"
+printf '[Ghost Memory — Session Start]\n%s\n[End Ghost Memory]\n' "$MEMORIES"
