@@ -24,13 +24,23 @@ export const MAX_OPEN_DECISIONS = 12
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
 const norm = (s: string): string => clean(s).toLowerCase().replace(/[^a-z0-9 ]/g, '')
 
+/** A list field, also when a client sent it JSON-encoded (a tool schema older than the field does that). */
+const listOf = (v: unknown): unknown => {
+  if (typeof v !== 'string') return v ?? []
+  try {
+    return JSON.parse(v)
+  } catch {
+    return v
+  }
+}
+
 /** The brief tool's input, checked. Errors name the limit so the model can retry. */
 export const validateInput = (input: unknown): { ok: true; value: BriefInput } | { ok: false; error: string } => {
   const o = (input ?? {}) as { status?: unknown; asks?: unknown; decided?: unknown }
   if (typeof o.status !== 'string' || clean(o.status) === '') return { ok: false, error: 'status is required: one line on where the work stands' }
   const status = clean(o.status)
   if (status.length > MAX_STATUS) return { ok: false, error: `status is ${status.length} chars; keep it to ${MAX_STATUS}` }
-  const raw = o.asks ?? []
+  const raw = listOf(o.asks)
   if (!Array.isArray(raw)) return { ok: false, error: 'asks must be a list (empty when you need nothing)' }
   if (raw.length > MAX_ASKS) return { ok: false, error: `${raw.length} asks; list at most ${MAX_ASKS}, the most blocking first` }
   const asks: AskInput[] = []
@@ -42,7 +52,7 @@ export const validateInput = (input: unknown): { ok: true; value: BriefInput } |
     const kind = ASK_KINDS.includes(item.kind as AskKind) ? (item.kind as AskKind) : 'decision'
     asks.push({ text, kind })
   }
-  const rawDecided = o.decided ?? []
+  const rawDecided = listOf(o.decided)
   if (!Array.isArray(rawDecided)) return { ok: false, error: 'decided must be a list (empty when you decided nothing new)' }
   if (rawDecided.length > MAX_ASKS) return { ok: false, error: `${rawDecided.length} decisions in one call; send at most ${MAX_ASKS}` }
   const decided: DecisionInput[] = []

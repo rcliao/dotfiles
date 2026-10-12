@@ -453,3 +453,9 @@ test('queue flow: Claude decides and keeps going; /brief ok accepts; /brief chan
   expect((await cmd('ok')).text).toBe('No open decisions.')
   expect(String((await $.tool.call({ tool: 'mcp__brief__report' })).result)).not.toContain('Decided for you')
 })
+
+test('live finding: a list sent JSON-encoded (client with an older tool schema) is accepted', async () => {
+  const v = validateInput({ status: 's', asks: '[]', decided: '[{"text":"Picked A","alternatives":"B"}]' })
+  expect(v).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', alternatives: 'B', reversible: true }] } })
+  expect(validateInput({ status: 's', asks: [], decided: 'not json' }).ok).toBe(false)
+})
