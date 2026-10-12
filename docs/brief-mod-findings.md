@@ -111,3 +111,13 @@ Goal: Claude keeps going (`/loop`, `/goal`) and stops only when something truly 
 - Gotcha: `$.prompt.submit` is refused from inside a `command.run` hook, because it would wait on the turn the hook holds. The change is sent from `$.clock.after(50)` instead.
 - `CLAUDE.md`: Long Runs now says to record default picks as `decided` and to finish the unblocked work before stopping. Reporting adds a "Decided for you (change if wrong)" sub-list under Blocked on me.
 - Live eval `keeps-going` (slugify + rename + changelog + push to main, no shell): 3/3 finished the work, queued the rename as a decision, and raised only the push as an ask. The first grader asked for ≥2 decisions and was too strict: Claude reasonably didn't queue slugify details or changelog wording. Cost: $1.69.
+
+## Agent-managed queue + loop stress test (2026-10-12)
+
+New: the model can revise a queued decision (`decided[].n`) and settle one (`settled: [{n, as: accepted|withdrawn}]`), for when you agreed in chat or it no longer applies. The tool answers with the numbered queue so the model knows the numbers. `/brief all` lists each session's open decisions. A revision replaces the whole entry; the old alternatives don't carry over.
+
+Stress test (human reads only the brief; workers are `claude -p` sessions resumed between rounds):
+- **wl**, a todo.md worked as a loop: did 4 of 5 items, queued 3 judgment calls (rename, page size 20, email regex), and stopped only on the vault key. Round 2 reply in chat ("1 and 3 fine, page size 50, key is …"): settled 1 and 3 accepted and 2 withdrawn, applied 50, rotated the key, queue empty.
+- **wr**, cleanup + deploy: queued 2 decisions plus a deploy ask. Round 2 used the `/brief change` text: aliases added. **Bug:** the unreviewed decision 2 vanished. The queue lived only in the process's memory, and every `--resume` is a new process. **Fix:** the queue is persisted per session id in `$.store`, restored on start, dropped on `/clear` (session.end reason `clear`), and expires after 14 days. Live re-check: decision 2 survived the resume.
+- **wv**, new info in round 2: withdrew the old decision and queued the corrected one. Accepted per the rule ("when they change it, settle the old one").
+- Cost: $1.42.

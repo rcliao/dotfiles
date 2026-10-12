@@ -6,6 +6,8 @@ import type { BandMode, SessionRecord } from './brief.ts'
 import {
   allViewText,
   appendDecisions,
+  queueText,
+  settleDecisions,
   BAND_MODES,
   openDecisions,
   briefMarkdown,
@@ -68,7 +70,7 @@ const HEARTBEAT_MS = 60_000
 const TAIL_BYTES = '16384'
 
 // Without a prompt rule a model-facing tool goes unused (run-ledger's eval: 0/5 → 3/3).
-const BRIEF_RULE = `Keep the person's glance view current with ${BRIEF_TOOL}. They run many sessions, check each for a few seconds, and want you to keep going. Call it when your phase of work changes, and as your last tool call before you end any turn in which you used tools, with: status, one line of at most 80 characters on where the work stands; asks, only what truly blocks you (an outward or destructive action such as push, deploy, delete or spend; access or a credential; a choice where a wrong guess would waste most of the remaining work), each naming the exact choice with your recommended option first marked (recommended), or an empty list; decided, each new judgment call you made on their behalf so you could keep going (what you chose, the alternatives, whether it is cheap to undo). Do not stop for a decision you can make reasonably and undo cheaply: decide, record it in decided, and continue. Before an end-of-run report (Changed / Blocked on me / Found), call ${REPORT_TOOL}: build Changed from its facts, Blocked on me from its open asks, and list its open decisions under Blocked on me as 'Decided for you (change if wrong)'.`
+const BRIEF_RULE = `Keep the person's glance view current with ${BRIEF_TOOL}. They run many sessions, check each for a few seconds, and want you to keep going. Call it when your phase of work changes, and as your last tool call before you end any turn in which you used tools, with: status, one line of at most 80 characters on where the work stands; asks, only what truly blocks you (an outward or destructive action such as push, deploy, delete or spend; access or a credential; a choice where a wrong guess would waste most of the remaining work), each naming the exact choice with your recommended option first marked (recommended), or an empty list; decided, each new judgment call you made on their behalf so you could keep going (what you chose, the alternatives, whether it is cheap to undo). The tool answers with the numbered queue: to revise a queued decision send it again with its n; when the person agrees in chat, or it no longer applies, list it in settled (accepted or withdrawn); when they change it, settle the old one and act on the change. Do not stop for a decision you can make reasonably and undo cheaply: decide, record it in decided, and continue. Before an end-of-run report (Changed / Blocked on me / Found), call ${REPORT_TOOL}: build Changed from its facts, Blocked on me from its open asks, and list its open decisions under Blocked on me as 'Decided for you (change if wrong)'.`
 const JOBS_RULE =
   'When you start a long-running command with run_in_background and you control its output (a script or loop you write), have it print progress lines `::progress <done>/<total> <what>` (or `::progress <n>%`), and `::status <text>` on a phase change; the user sees them live in the brief band and pane.'
 
@@ -108,6 +110,35 @@ async function sampleTurn($: EngineInterface): Promise<void> {
 
 // Working: a main-loop turn is running, or a background shell or agent it started still is. A turn that
 // ended while its subagents run must not read as done.
+// The decision queue outlives the process: kept per session in $.store, so a resumed session (claude --resume,
+// claude -p --resume) gets back what the person has not reviewed yet. /clear drops it; entries expire after a while.
+const DECISIONS_KEY = 'decisions:'
+const DECISIONS_TTL_MS = 14 * 86_400_000
+
+async function changeDecisions($: EngineInterface, fn: (prev: Decision[]) => Decision[]): Promise<void> {
+  await update($, decisionsAtom, prev => fn(prev ?? []))
+  try {
+    await $.store.set(DECISIONS_KEY + (await $.session.id()), { at: await $.clock.now(), list: await read($, decisionsAtom) })
+  } catch {
+    // best effort: the queue still works for this process
+  }
+}
+
+async function loadDecisions($: EngineInterface): Promise<void> {
+  try {
+    const now = await $.clock.now()
+    const saved = (await $.store.get(DECISIONS_KEY + (await $.session.id()))) as { at?: number; list?: Decision[] } | undefined
+    if (Array.isArray(saved?.list)) await update($, decisionsAtom, () => saved.list as Decision[])
+    for (const key of await $.store.keys()) {
+      if (!key.startsWith(DECISIONS_KEY)) continue
+      const v = (await $.store.get(key)) as { at?: number } | undefined
+      if (typeof v?.at !== 'number' || now - v.at > DECISIONS_TTL_MS) await $.store.delete(key)
+    }
+  } catch {
+    // no store, or an unreadable entry: start with an empty queue
+  }
+}
+
 async function isBusy($: EngineInterface): Promise<boolean> {
   return (await read($, workingAtom)) || (await read($, jobsAtom)).some(j => j.status === 'running' && j.kind !== 'watch')
 }
@@ -211,6 +242,7 @@ async function writeSessionFile($: EngineInterface): Promise<void> {
       isWorking: await isBusy($),
       at: await $.clock.now(),
       briefAt: brief.at,
+      decided: openDecisions(await read($, decisionsAtom)).map(d => ({ n: d.n, text: d.text })),
     }
     await $.fs.write(path, JSON.stringify(record))
   } catch {
@@ -295,7 +327,7 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
   if (verb === 'ok') {
     const which = rest[0] === undefined ? undefined : Number(rest[0])
     let count = 0
-    await update($, decisionsAtom, prev => (prev ?? []).map(d => (d.status === 'open' && (which === undefined || d.n === which) ? (count++, { ...d, status: 'accepted' as const }) : d)))
+    await changeDecisions($, prev => prev.map(d => (d.status === 'open' && (which === undefined || d.n === which) ? (count++, { ...d, status: 'accepted' as const }) : d)))
     await redraw($)
     return { text: count === 0 ? (which === undefined ? 'No open decisions.' : `No open decision ${which}.`) : `Accepted ${count} decision(s).` }
   }
@@ -304,7 +336,7 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
     const answer = rest.slice(1).join(' ')
     const d = openDecisions(await read($, decisionsAtom)).find(x => x.n === which)
     if (d === undefined || answer === '') return { text: 'Usage: /brief change <N> <what to do instead> (N from the decided list)' }
-    await update($, decisionsAtom, prev => (prev ?? []).map(x => (x.n === which ? { ...x, status: 'changed' as const, change: answer } : x)))
+    await changeDecisions($, prev => prev.map(x => (x.n === which ? { ...x, status: 'changed' as const, change: answer } : x)))
     await redraw($)
     // A user turn of its own once the session is idle. Submitting from inside this command would wait on the
     // turn the command holds (the engine refuses it), so it goes out from a timer just after.
@@ -323,7 +355,7 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
     await update($, entriesAtom, () => [])
     await update($, failsAtom, () => 0)
     await update($, briefAtom, () => null)
-    await update($, decisionsAtom, () => [])
+    await changeDecisions($, () => [])
     // A turn-end summary still running must not bring the old brief back.
     briefTurnId = currentTurnId
     await redraw($)
@@ -411,8 +443,18 @@ export const register: Register = on => {
                 text: { type: 'string', description: 'What you chose, at most 120 characters' },
                 alternatives: { type: 'string', description: 'What you did not choose' },
                 reversible: { type: 'boolean', description: 'false when it would be costly to undo' },
+                n: { type: 'number', description: 'To revise a queued decision instead of adding one: its number' },
               },
               required: ['text'],
+            },
+          },
+          settled: {
+            type: 'array',
+            description: 'Queued decisions to take off the queue: accepted when the person agreed in chat, withdrawn when no longer relevant',
+            items: {
+              type: 'object',
+              properties: { n: { type: 'number' }, as: { type: 'string', enum: ['accepted', 'withdrawn'] } },
+              required: ['n', 'as'],
             },
           },
         },
@@ -425,6 +467,7 @@ export const register: Register = on => {
         "This session's facts (PRs, commits, tags, publishes, paid calls, outward writes, files edited, failures, background jobs, context use) and its open asks. Read it before writing the end-of-run Changed / Blocked on me / Found report.",
       inputSchema: { type: 'object', properties: {} },
     })
+    await loadDecisions($)
     const saved = await $.store.get('bandMode')
     if (typeof saved === 'string' && (BAND_MODES as readonly string[]).includes(saved)) bandMode = saved as BandMode
     $.clock.every(POLL_MS, () => {
@@ -443,7 +486,9 @@ export const register: Register = on => {
     currentTurnId = undefined
     briefTurnId = undefined
     await update($, briefAtom, () => null)
+    // The queue stays in $.store for a resume; /clear ends the conversation, so it goes.
     await update($, decisionsAtom, () => [])
+    if (e.reason === 'clear') await Promise.resolve($.store.delete(DECISIONS_KEY + e.sessionId)).catch(() => undefined)
     const path = await sessionFile($, e.sessionId)
     if (path !== undefined) await $.process.run(['rm', '-f', path], { timeoutMs: 3_000 }).catch(() => undefined)
     return next(e)
@@ -487,10 +532,11 @@ export const register: Register = on => {
       if (!checked.ok) return { isError: true, result: checked.error, text: checked.error }
       briefTurnId = currentTurnId
       const now = await $.clock.now()
-      if (checked.value.decided.length > 0) await update($, decisionsAtom, prev => appendDecisions(prev, checked.value.decided, now))
+      if (checked.value.settled.length > 0 || checked.value.decided.length > 0) {
+        await changeDecisions($, prev => appendDecisions(settleDecisions(prev, checked.value.settled), checked.value.decided, now))
+      }
       await setBrief($, nextBrief(await read($, briefAtom), checked.value, 'tool', now))
-      const queued = openDecisions(await read($, decisionsAtom)).length
-      return { result: queued === 0 ? 'ok' : `ok; ${queued} decision(s) queued for the person to review` }
+      return { result: queueText(await read($, decisionsAtom)) }
     }
     if (e.tool === REPORT_TOOL) return { result: await reportText($) }
     // Work after a brief call makes that brief possibly stale: the fallback summarizes the turn's end unless

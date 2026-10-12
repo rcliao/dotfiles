@@ -65,14 +65,14 @@ const band = async ($: Engine) => {
 }
 
 test('validateInput: limits name themselves; empty asks is fine; string asks accepted', async () => {
-  expect(validateInput({ status: 'tests green, opening PR', asks: [] })).toEqual({ ok: true, value: { status: 'tests green, opening PR', asks: [], decided: [] } })
+  expect(validateInput({ status: 'tests green, opening PR', asks: [] })).toEqual({ ok: true, value: { status: 'tests green, opening PR', asks: [], decided: [], settled: [] } })
   const long = validateInput({ status: 'x'.repeat(81), asks: [] })
   expect(long.ok ? '' : long.error).toContain('80')
   const many = validateInput({ status: 's', asks: Array.from({ length: 6 }, (_, i) => ({ text: `a${i}`, kind: 'decision' })) })
   expect(many.ok ? '' : many.error).toContain('at most 5')
   expect(validateInput({ asks: [] }).ok).toBe(false)
   const loose = validateInput({ status: '  two   spaces ', asks: ['Pick a name', { text: 'Approve deploy', kind: 'bogus' }] })
-  expect(loose.ok && loose.value).toEqual({ status: 'two spaces', asks: [{ text: 'Pick a name', kind: 'decision' }, { text: 'Approve deploy', kind: 'decision' }], decided: [] })
+  expect(loose.ok && loose.value).toEqual({ status: 'two spaces', asks: [{ text: 'Pick a name', kind: 'decision' }, { text: 'Approve deploy', kind: 'decision' }], decided: [], settled: [] })
 })
 
 test('mergeAsks: replacement drops what is gone, unchanged text keeps its age', async () => {
@@ -104,6 +104,7 @@ test('parseSummary: takes the JSON out of a fenced reply, clamps, refuses garbag
     status: 'waiting on review',
     asks: [{ text: 'Review PR #12', kind: 'review' }],
     decided: [],
+    settled: [],
   })
   expect(parseSummary('no json here')).toBeUndefined()
   expect(parseSummary('{"asks":[]}')).toBeUndefined()
@@ -118,7 +119,7 @@ test('the brief tool sets the band: status, then asks in yellow until the person
 
   expect((await band($)).status).toBeUndefined()
   const ok = await $.tool.call({ tool: 'mcp__brief__brief', status: 'renamed 3 of 4 call sites', asks: [{ text: 'Pick key name: timeoutMs or requestTimeoutMs', kind: 'decision' }] })
-  expect(ok.result).toBe('ok')
+  expect(ok.result).toBe('ok; no queued decisions')
   const drawn = await band($)
   expect(drawn.status).toBe('⚠ renamed 3 of 4 call sites')
   expect(drawn.asks).toBe('needs you (1): Pick key name: timeoutMs or requestTimeoutMs')
@@ -412,7 +413,7 @@ test('appendDecisions: numbers grow, an open duplicate is not repeated, overflow
   const many = appendDecisions([], Array.from({ length: 14 }, (_, i) => ({ text: `d${i}`, reversible: true })), 3)
   expect(many.filter(d => d.status === 'open').length).toBe(12)
   expect(many[0]?.status).toBe('accepted')
-  expect(validateInput({ status: 's', asks: [], decided: ['Picked A'] })).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', reversible: true }] } })
+  expect(validateInput({ status: 's', asks: [], decided: ['Picked A'] })).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', reversible: true }], settled: [] } })
 })
 
 test('decided row: dim, after the asks, numbered for /brief ok and /brief change', async () => {
@@ -435,7 +436,7 @@ test('queue flow: Claude decides and keeps going; /brief ok accepts; /brief chan
     asks: [{ text: 'Approve force-push to feat/x', kind: 'approval' }],
     decided: [{ text: 'Used timeoutMs', alternatives: 'requestTimeoutMs' }, { text: 'Skipped e2e for now', reversible: true }],
   })
-  expect(String(ok.result)).toContain('2 decision(s) queued')
+  expect(ok.result).toBe('ok; queued for the person to review: 1. Used timeoutMs; 2. Skipped e2e for now')
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /^decided for you \(2\): 1\. Used timeoutMs/ })).toBeDefined()
   await ui.unmount()
@@ -456,6 +457,51 @@ test('queue flow: Claude decides and keeps going; /brief ok accepts; /brief chan
 
 test('live finding: a list sent JSON-encoded (client with an older tool schema) is accepted', async () => {
   const v = validateInput({ status: 's', asks: '[]', decided: '[{"text":"Picked A","alternatives":"B"}]' })
-  expect(v).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', alternatives: 'B', reversible: true }] } })
+  expect(v).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', alternatives: 'B', reversible: true }], settled: [] } })
   expect(validateInput({ status: 's', asks: [], decided: 'not json' }).ok).toBe(false)
+})
+
+test('the agent revises a queued decision by number and settles others (accepted in chat, withdrawn)', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  engine(on)
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  await $.tool.call({ tool: 'mcp__brief__brief', status: 's', asks: [], decided: [{ text: 'Used timeoutMs', alternatives: 'requestTimeoutMs' }, { text: 'Skipped e2e' }, { text: 'Kept ISO dates' }] })
+  const out = await $.tool.call({
+    tool: 'mcp__brief__brief',
+    status: 's',
+    asks: [],
+    decided: [{ n: 1, text: 'Used requestTimeoutMs (a second timeout is coming)' }],
+    settled: [{ n: 2, as: 'accepted' }, { n: 3, as: 'withdrawn' }],
+  })
+  expect(out.result).toBe('ok; queued for the person to review: 1. Used requestTimeoutMs (a second timeout is coming)')
+  const report = String((await $.tool.call({ tool: 'mcp__brief__report' })).result)
+  // a revision replaces the whole entry: the old alternatives do not carry over
+  expect(report).toContain('1. Used requestTimeoutMs (a second timeout is coming)\n')
+  expect(report).not.toContain('Skipped e2e')
+  expect(validateInput({ status: 's', asks: [], settled: [{ n: 1, as: 'maybe' }] }).ok).toBe(false)
+})
+
+test('stress finding: queued decisions survive a resume (same session id) and go with /clear', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  engine(on)
+  on('session.end', ($, e) => e)
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  const report = async () => String((await $.tool.call({ tool: 'mcp__brief__report' })).result)
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  await $.tool.call({ tool: 'mcp__brief__brief', status: 's', asks: [], decided: [{ text: 'Renamed to getOrders' }, { text: 'IDs typed string|number' }] })
+
+  // the process ends (exit), then the same session is resumed in a new process
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-1' } as never)
+  expect(await report()).not.toContain('Decided for you')
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  expect(await report()).toContain('2. IDs typed string|number')
+
+  // settling one after the resume keeps the other
+  await $.tool.call({ tool: 'mcp__brief__brief', status: 's', asks: [], settled: [{ n: 1, as: 'withdrawn' }] })
+  expect(await report()).toContain('2. IDs typed string|number')
+
+  // /clear ends the conversation: the queue goes with it
+  await $.session.end({ reason: 'clear', sessionId: 'sess-1' } as never)
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  expect(await report()).not.toContain('Decided for you')
 })

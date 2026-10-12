@@ -72,7 +72,7 @@ export type Decision = {
   /** false: costly to undo, review soon */
   reversible: boolean
   at: number
-  status: 'open' | 'accepted' | 'changed'
+  status: 'open' | 'accepted' | 'changed' | 'withdrawn'
   change?: string
 }
 

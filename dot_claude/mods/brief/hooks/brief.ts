@@ -16,8 +16,11 @@ export type BandMode = 'full' | 'min' | 'off'
 export const BAND_MODES: readonly BandMode[] = ['full', 'min', 'off']
 
 export type AskInput = { text: string; kind: AskKind }
-export type DecisionInput = { text: string; alternatives?: string; reversible: boolean }
-export type BriefInput = { status: string; asks: AskInput[]; decided: DecisionInput[] }
+/** `n` revises that open decision in place instead of queueing a new one. */
+export type DecisionInput = { text: string; alternatives?: string; reversible: boolean; n?: number }
+/** The model settling a queued decision: the person agreed in chat, or it no longer applies. */
+export type SettleInput = { n: number; as: 'accepted' | 'withdrawn' }
+export type BriefInput = { status: string; asks: AskInput[]; decided: DecisionInput[]; settled: SettleInput[] }
 /** Open decisions kept; past that the oldest open ones fold into accepted. */
 export const MAX_OPEN_DECISIONS = 12
 
@@ -36,7 +39,7 @@ const listOf = (v: unknown): unknown => {
 
 /** The brief tool's input, checked. Errors name the limit so the model can retry. */
 export const validateInput = (input: unknown): { ok: true; value: BriefInput } | { ok: false; error: string } => {
-  const o = (input ?? {}) as { status?: unknown; asks?: unknown; decided?: unknown }
+  const o = (input ?? {}) as { status?: unknown; asks?: unknown; decided?: unknown; settled?: unknown }
   if (typeof o.status !== 'string' || clean(o.status) === '') return { ok: false, error: 'status is required: one line on where the work stands' }
   const status = clean(o.status)
   if (status.length > MAX_STATUS) return { ok: false, error: `status is ${status.length} chars; keep it to ${MAX_STATUS}` }
@@ -57,14 +60,24 @@ export const validateInput = (input: unknown): { ok: true; value: BriefInput } |
   if (rawDecided.length > MAX_ASKS) return { ok: false, error: `${rawDecided.length} decisions in one call; send at most ${MAX_ASKS}` }
   const decided: DecisionInput[] = []
   for (const d of rawDecided) {
-    const item = (typeof d === 'string' ? { text: d } : (d ?? {})) as { text?: unknown; alternatives?: unknown; reversible?: unknown }
+    const item = (typeof d === 'string' ? { text: d } : (d ?? {})) as { text?: unknown; alternatives?: unknown; reversible?: unknown; n?: unknown }
     if (typeof item.text !== 'string' || clean(item.text) === '') return { ok: false, error: 'each decision needs text: what you chose' }
     const text = clean(item.text)
     if (text.length > MAX_ASK) return { ok: false, error: `decision "${text.slice(0, 30)}…" is ${text.length} chars; keep each to ${MAX_ASK}` }
     const alt = typeof item.alternatives === 'string' && clean(item.alternatives) !== '' ? fit(clean(item.alternatives), MAX_ASK) : undefined
-    decided.push(alt === undefined ? { text, reversible: item.reversible !== false } : { text, alternatives: alt, reversible: item.reversible !== false })
+    const entry: DecisionInput = alt === undefined ? { text, reversible: item.reversible !== false } : { text, alternatives: alt, reversible: item.reversible !== false }
+    if (typeof item.n === 'number' && Number.isInteger(item.n) && item.n > 0) entry.n = item.n
+    decided.push(entry)
   }
-  return { ok: true, value: { status, asks, decided } }
+  const rawSettled = listOf(o.settled)
+  if (!Array.isArray(rawSettled)) return { ok: false, error: 'settled must be a list of {n, as: accepted|withdrawn}' }
+  const settled: SettleInput[] = []
+  for (const x of rawSettled) {
+    const item = (x ?? {}) as { n?: unknown; as?: unknown }
+    if (typeof item.n !== 'number' || (item.as !== 'accepted' && item.as !== 'withdrawn')) return { ok: false, error: 'each settled entry is {n: <decision number>, as: "accepted" or "withdrawn"}' }
+    settled.push({ n: item.n, as: item.as })
+  }
+  return { ok: true, value: { status, asks, decided, settled } }
 }
 
 /** The whole list replaces the old one; an ask whose text is unchanged keeps its age. */
@@ -76,12 +89,31 @@ export const appendDecisions = (prev: readonly Decision[] | undefined, add: read
   const list = [...(prev ?? [])]
   let n = list.reduce((m, d) => Math.max(m, d.n), 0)
   for (const d of add) {
-    if (list.some(x => x.status === 'open' && norm(x.text) === norm(d.text))) continue
-    list.push({ ...d, n: ++n, at: now, status: 'open' })
+    const { n: target, ...fields } = d
+    const at = target === undefined ? -1 : list.findIndex(x => x.n === target && x.status === 'open')
+    if (at >= 0) {
+      // A revision: same number, new content, back to the top of the person's attention.
+      list[at] = { ...fields, n: target as number, at: now, status: 'open' }
+      continue
+    }
+    if (list.some(x => x.status === 'open' && norm(x.text) === norm(fields.text))) continue
+    list.push({ ...fields, n: ++n, at: now, status: 'open' })
   }
   const open = list.filter(d => d.status === 'open')
   const overflow = new Set(open.slice(0, Math.max(0, open.length - MAX_OPEN_DECISIONS)).map(d => d.n))
   return list.map(d => (overflow.has(d.n) ? { ...d, status: 'accepted' as const } : d)).slice(-40)
+}
+
+export const settleDecisions = (prev: readonly Decision[] | undefined, settled: readonly SettleInput[]): Decision[] =>
+  (prev ?? []).map(d => {
+    const s = settled.find(x => x.n === d.n)
+    return s === undefined || d.status !== 'open' ? d : { ...d, status: s.as }
+  })
+
+/** What the tool answers, so the model knows the numbers to revise or settle. */
+export const queueText = (list: readonly Decision[] | undefined): string => {
+  const open = openDecisions(list)
+  return open.length === 0 ? 'ok; no queued decisions' : `ok; queued for the person to review: ${open.map(d => `${d.n}. ${d.text}`).join('; ')}`
 }
 
 export const openDecisions = (list: readonly Decision[] | undefined): Decision[] => (list ?? []).filter(d => d.status === 'open')
@@ -198,7 +230,7 @@ export const parseSummary = (reply: string): BriefInput | undefined => {
       text: fit(clean(a.text as string), MAX_ASK),
       kind: ASK_KINDS.includes(a.kind as AskKind) ? (a.kind as AskKind) : ('decision' as AskKind),
     }))
-  return { status: fit(clean(o.status), MAX_STATUS), asks, decided: [] }
+  return { status: fit(clean(o.status), MAX_STATUS), asks, decided: [], settled: [] }
 }
 
 // --- SessionFile / AllView ---
@@ -214,6 +246,8 @@ export type SessionRecord = {
   at: number
   /** when the brief itself was written */
   briefAt?: number
+  /** open queued decisions */
+  decided?: { n: number; text: string }[]
 }
 
 export const allViewRows = (records: readonly SessionRecord[], self: string, now: number): SessionRecord[] =>
@@ -227,7 +261,7 @@ export const allViewText = (records: readonly SessionRecord[], self: string, now
   return rows
     .map(r => {
       const head = `${r.isWorking ? '◐' : r.asks.length > 0 ? '⚠' : '✓'} ${r.label}${r.sessionId === self ? ' (this)' : ''}  ${r.status}  · ${ago(now - (r.briefAt ?? r.at))} ago`
-      return [head, ...r.asks.map(a => `    needs you: ${a.text}`)].join('\n')
+      return [head, ...r.asks.map(a => `    needs you: ${a.text}`), ...(r.decided ?? []).map(d => `    decided: ${d.n}. ${d.text}`)].join('\n')
     })
     .join('\n')
 }
