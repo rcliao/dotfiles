@@ -2,6 +2,7 @@
 # fresh `chezmoi init --apply` drops stray copies in the home directory.
 README.md
 CLAUDE.md
+docs
 # Package list, read by the install script via its source path. Without this it
 # would be deployed as ~/Brewfile.
 Brewfile
@@ -80,8 +81,9 @@ archive
 # declarations into each one when it loads it, and collision-guard keeps
 # per-session state outside them. dev-mods is a session's hot-reload scratch area.
 .claude/mods/failure-streak/.claude-plugin/types
-.claude/mods/run-ledger/.claude-plugin/types
-.claude/mods/jobs/.claude-plugin/types
+.claude/mods/brief/.claude-plugin/types
+.claude/mods/brief/evals/results
+.claude/mods/brief/tsconfig.json
 .claude/mods/collision-guard/.claude-plugin/types
 .claude/mods/ghost-lens/.claude-plugin/types
 .claude/mods/ghost-lens/tsconfig.json
