@@ -2,9 +2,10 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Brief, CtxSample, Job, LedgerEntry, TurnSample } from '../types'
-import type { SessionRecord } from './brief.ts'
+import type { BandMode, SessionRecord } from './brief.ts'
 import {
   allViewText,
+  BAND_MODES,
   briefMarkdown,
   glanceRows,
   nextBrief,
@@ -72,6 +73,10 @@ const JOBS_RULE =
 let lastSampleAt = 0
 let currentTurnId: string | undefined
 let briefTurnId: string | undefined
+// Whether /brief's pane is open (so /brief toggles it), and how much the band shows: full, min (status,
+// asks, and only red context or failed jobs), or off. The mode is kept across sessions in $.store.
+let paneOpen = false
+let bandMode: BandMode = 'full'
 
 // --- facts layer ---
 
@@ -272,6 +277,12 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
   const [verb, ...rest] = args.trim().split(/\s+/).filter(Boolean)
   const now = await $.clock.now()
 
+  if (verb !== undefined && (BAND_MODES as readonly string[]).includes(verb)) {
+    bandMode = verb as BandMode
+    await $.store.set('bandMode', bandMode)
+    await redraw($)
+    return { text: bandMode === 'off' ? 'Brief band off (it stays off in new sessions). /brief full or /brief min turns it back on; /brief still opens the pane.' : `Brief band: ${bandMode}.` }
+  }
   if (verb === 'all') {
     await $.ui.open({ id: ALL_PANE, title: 'All sessions' })
     return { text: allViewText(await readSessionFiles($), await $.session.id(), now) }
@@ -314,15 +325,22 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
     return { text: 'Cleared finished jobs.' }
   }
 
+  // /brief with no argument toggles the pane.
+  if (paneOpen) {
+    await $.ui.close({ id: PANE })
+    paneOpen = false
+    return { text: 'Closed the brief pane.' }
+  }
   await $.ui.open({ id: PANE, title: 'Brief' })
+  paneOpen = true
   return { text: await reportText($) }
 }
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'brief',
-      description: 'Status, what Claude needs from you, jobs and ledger (all: every live session; reset: new baseline)',
-      argumentHint: '[all | reset | watch <file> [label] | unwatch <label> | clear]',
+      description: 'Toggle the brief pane (full|min|off: how much the band shows; all: every live session; reset: new baseline)',
+      argumentHint: '[full | min | off | all | reset | watch <file> [label] | unwatch <label> | clear]',
       immediate: true,
     })
     // Aliases for the commands of the two mods brief replaced. While those mods are still loaded the engine may let
@@ -362,6 +380,8 @@ export const register: Register = on => {
         "This session's facts (PRs, commits, tags, publishes, paid calls, outward writes, files edited, failures, background jobs, context use) and its open asks. Read it before writing the end-of-run Changed / Blocked on me / Found report.",
       inputSchema: { type: 'object', properties: {} },
     })
+    const saved = await $.store.get('bandMode')
+    if (typeof saved === 'string' && (BAND_MODES as readonly string[]).includes(saved)) bandMode = saved as BandMode
     $.clock.every(POLL_MS, () => {
       void poll($)
     })
@@ -382,6 +402,12 @@ export const register: Register = on => {
     if (path !== undefined) await $.process.run(['rm', '-f', path], { timeoutMs: 3_000 }).catch(() => undefined)
     return next(e)
   })
+
+  // The pane closed by its × or Esc, or by an unload: the next /brief opens it again.
+  on('ui.close', async ($, e, next) => {
+    if (e.id === PANE) paneOpen = false
+    return next(e)
+  }).catch(($, e, next) => next(e))
 
   on('turn.start', async ($, e, next) => {
     currentTurnId = e.turnId
@@ -498,14 +524,15 @@ export const register: Register = on => {
   // The band: glance rows (status, asks), then the ledger line, then job rows, then whatever is beneath.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
-    if (e.props.hasSurvey) return below
+    if (e.props.hasSurvey || bandMode === 'off') return below
     const now = await $.clock.now()
     const columns = Math.max(20, e.props.bodyColumns - 1)
     const glance = glanceRows(await read($, briefAtom), await read($, workingAtom), now, columns, await read($, lastPromptAtom))
-    const summary = summaryLine(await read($, entriesAtom))
+    const minimal = bandMode === 'min'
+    const summary = minimal ? '' : summaryLine(await read($, entriesAtom))
     const view = ctxView(await read($, ctxAtom), await read($, turnsAtom), await read($, limitsAtom))
-    const jobRows = bandRows(await read($, jobsAtom), now, columns, await read($, lastPromptAtom))
-    const ctx = view?.text
+    const jobRows = bandRows(await read($, jobsAtom), now, columns, await read($, lastPromptAtom)).filter(r => !minimal || r.tone === 'failed')
+    const ctx = minimal && view?.level !== 'hot' ? undefined : view?.text
     if (glance.length === 0 && ctx === undefined && summary === '' && jobRows.length === 0) return below
     const ctxColor = view?.level === 'hot' ? 'red' : view?.level === 'warn' ? 'yellow' : undefined
     const status = glance.filter(r => r.tone === 'status' || r.tone === 'age')

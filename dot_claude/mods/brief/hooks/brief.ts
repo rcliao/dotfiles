@@ -11,6 +11,10 @@ export const STALE_MS = 120_000
 /** Other sessions' files older than this are not live (each live session rewrites its file every minute). */
 export const LIVE_MS = 5 * 60_000
 
+/** How much the band shows. */
+export type BandMode = 'full' | 'min' | 'off'
+export const BAND_MODES: readonly BandMode[] = ['full', 'min', 'off']
+
 export type AskInput = { text: string; kind: AskKind }
 export type BriefInput = { status: string; asks: AskInput[] }
 

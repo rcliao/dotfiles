@@ -43,6 +43,7 @@ const engine = (on: On, own: { registers?: boolean } = {}) => {
     return { value: undefined }
   })
   on('session.start', ($, e) => e)
+  mock.store(on)
   on('prompt.submit', ($, e) => e)
   return { writes, models, logs }
 }
@@ -237,14 +238,16 @@ test('/ledger and /jobs answer as /brief; a refused alias name does not stop the
     return { value: { tool: `mcp__brief__${e.name}` } }
   })
   on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.close', () => ({ value: undefined }))
   await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
   expect(tools).toEqual(['brief', 'report'])
 
   await $.tool.call({ tool: 'mcp__brief__brief', status: 'waiting', asks: [{ text: 'Pick a name', kind: 'decision' }] })
-  for (const command of ['ledger', 'jobs']) {
-    const out = await $.command.run({ command, args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
-    expect(out.text).toContain('- [decision] Pick a name')
-  }
+  // /ledger opens the pane with the report; /jobs, the same command, toggles it closed
+  const run = (command: string) => $.command.run({ command, args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+  expect((await run('ledger')).text).toContain('- [decision] Pick a name')
+  expect((await run('jobs')).text).toBe('Closed the brief pane.')
+  expect((await run('brief')).text).toContain('- [decision] Pick a name')
 })
 
 // Review findings (fresh-context review, 2026-10-12), one test each.
@@ -324,4 +327,55 @@ test('review #3: a rejected turn-end summary is logged, not left unhandled', asy
   await $.turn.complete({ answer: 'Which name?', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as never)
   await new Promise(r => setTimeout(r, 20))
   expect(logs.some(l => l.includes('turn-end summary failed'))).toBe(true)
+})
+
+test('band modes: min keeps status and asks only; off hides the band; the choice is stored', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  engine(on)
+  on('tool.call', () => ({ result: 'ok', text: 'https://github.com/a/b/pull/7' }))
+  const cmd = (args: string) => $.command.run({ command: 'brief', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  await $.tool.call({ tool: 'Bash', command: 'gh pr create -t x -b y' })
+  await $.tool.call({ tool: 'mcp__brief__brief', status: 'PR open', asks: [{ text: 'Review PR #7', kind: 'review' }] })
+
+  const rows = async () => {
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const out = {
+      status: await ui.find({ type: 'Text', text: /^[◐⚠✓] / }),
+      asks: await ui.find({ type: 'Text', text: /^needs you/ }),
+      ledger: await ui.find({ type: 'Text', text: /^\s*PR #7$/ }),
+      beneath: await ui.find({ type: 'Text', text: 'beneath' }),
+    }
+    await ui.unmount()
+    return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v !== undefined]))
+  }
+  expect(await rows()).toEqual({ status: true, asks: true, ledger: true, beneath: true })
+  expect((await cmd('min')).text).toBe('Brief band: min.')
+  expect(await rows()).toEqual({ status: true, asks: true, ledger: false, beneath: true })
+  expect((await cmd('off')).text).toContain('Brief band off')
+  expect(await rows()).toEqual({ status: false, asks: false, ledger: false, beneath: true })
+  await cmd('full')
+  expect(await rows()).toEqual({ status: true, asks: true, ledger: true, beneath: true })
+})
+
+test('/brief toggles its pane', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  engine(on)
+  const opened: string[] = []
+  const closed: string[] = []
+  on('ui.open', ($, e) => {
+    opened.push(e.id)
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', ($, e) => {
+    closed.push(e.id)
+    return { value: undefined }
+  })
+  const cmd = () => $.command.run({ command: 'brief', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  await cmd()
+  expect((await cmd()).text).toBe('Closed the brief pane.')
+  await cmd()
+  expect(opened).toEqual(['brief', 'brief'])
+  expect(closed).toEqual(['brief'])
 })

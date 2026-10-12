@@ -98,6 +98,7 @@ test('a background shell is tracked, tailed, and finished by its notification', 
   on('fs.stat', () => ({ value: { kind: 'file', size: log.length, mtimeMs: 0, isLink: false } }))
   on('process.run', () => ({ value: { exitCode: 0, stdout: log, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   on('session.start', () => ({ cwd: '/work' }))
+  mock.store(on)
   on('session.receive', ($, e) => ({ text: e.text }))
   on('tool.call', () => ({ result: { stdout: '', stderr: '', interrupted: false }, text: STARTED }))
 
@@ -132,6 +133,7 @@ test('pane lists the job and its stop button calls TaskStop', async ($, on) => {
   on('ui.toast', () => ({ value: undefined }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('session.start', () => ({ cwd: '/work' }))
+  mock.store(on)
   on('tool.call', ($, e) => {
     if (e.tool === 'TaskStop') {
       stopped.push(String(e.task_id))
@@ -188,6 +190,7 @@ test('live finding: a foreground command whose output quotes the background noti
   on('ui.invalidate', () => ({ value: undefined }))
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['beneath'] }))
   on('session.start', () => ({ cwd: '/work' }))
+  mock.store(on)
   on('tool.call', () => ({ result: { stdout: STARTED, stderr: '', interrupted: false }, text: `const STARTED =\n  '${STARTED}'` }))
   await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' } as never)
   await $.tool.call({ tool: 'Bash', command: 'cat tests/jobs.test.ts', description: 'Read jobs tests' })

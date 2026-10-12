@@ -144,12 +144,8 @@ test('tool calls feed the ledger; /ledger and the model tool report it', async (
     presentation: { isFullscreen: false, columns: 120 },
   })
   expect(reset.text).toMatch(/reset/)
-  const after = await $.command.run({
-    command: 'brief',
-    args: '',
-    origin: { kind: 'composer' },
-    presentation: { isFullscreen: false, columns: 120 },
-  })
+  // /brief again would toggle the pane closed; the model tool reads the same report
+  const after = { text: String((await $.tool.call({ tool: 'mcp__brief__report' })).result) }
   expect(after.text).toContain('Nothing changed or sent out yet.')
   expect(after.text).toContain('Failed Bash calls: 0')
 })
