@@ -1,6 +1,6 @@
 // The narrative layer: the model's own status and what it waits on the person for.
 // Pure functions only, so the replay eval (evals/replay) runs the same prompt and parser.
-import type { Ask, AskKind, Brief } from '../types'
+import type { Ask, AskKind, Brief, Decision } from '../types'
 
 export const MAX_STATUS = 80
 export const MAX_ASKS = 5
@@ -16,14 +16,17 @@ export type BandMode = 'full' | 'min' | 'off'
 export const BAND_MODES: readonly BandMode[] = ['full', 'min', 'off']
 
 export type AskInput = { text: string; kind: AskKind }
-export type BriefInput = { status: string; asks: AskInput[] }
+export type DecisionInput = { text: string; alternatives?: string; reversible: boolean }
+export type BriefInput = { status: string; asks: AskInput[]; decided: DecisionInput[] }
+/** Open decisions kept; past that the oldest open ones fold into accepted. */
+export const MAX_OPEN_DECISIONS = 12
 
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
 const norm = (s: string): string => clean(s).toLowerCase().replace(/[^a-z0-9 ]/g, '')
 
 /** The brief tool's input, checked. Errors name the limit so the model can retry. */
 export const validateInput = (input: unknown): { ok: true; value: BriefInput } | { ok: false; error: string } => {
-  const o = (input ?? {}) as { status?: unknown; asks?: unknown }
+  const o = (input ?? {}) as { status?: unknown; asks?: unknown; decided?: unknown }
   if (typeof o.status !== 'string' || clean(o.status) === '') return { ok: false, error: 'status is required: one line on where the work stands' }
   const status = clean(o.status)
   if (status.length > MAX_STATUS) return { ok: false, error: `status is ${status.length} chars; keep it to ${MAX_STATUS}` }
@@ -39,12 +42,39 @@ export const validateInput = (input: unknown): { ok: true; value: BriefInput } |
     const kind = ASK_KINDS.includes(item.kind as AskKind) ? (item.kind as AskKind) : 'decision'
     asks.push({ text, kind })
   }
-  return { ok: true, value: { status, asks } }
+  const rawDecided = o.decided ?? []
+  if (!Array.isArray(rawDecided)) return { ok: false, error: 'decided must be a list (empty when you decided nothing new)' }
+  if (rawDecided.length > MAX_ASKS) return { ok: false, error: `${rawDecided.length} decisions in one call; send at most ${MAX_ASKS}` }
+  const decided: DecisionInput[] = []
+  for (const d of rawDecided) {
+    const item = (typeof d === 'string' ? { text: d } : (d ?? {})) as { text?: unknown; alternatives?: unknown; reversible?: unknown }
+    if (typeof item.text !== 'string' || clean(item.text) === '') return { ok: false, error: 'each decision needs text: what you chose' }
+    const text = clean(item.text)
+    if (text.length > MAX_ASK) return { ok: false, error: `decision "${text.slice(0, 30)}…" is ${text.length} chars; keep each to ${MAX_ASK}` }
+    const alt = typeof item.alternatives === 'string' && clean(item.alternatives) !== '' ? fit(clean(item.alternatives), MAX_ASK) : undefined
+    decided.push(alt === undefined ? { text, reversible: item.reversible !== false } : { text, alternatives: alt, reversible: item.reversible !== false })
+  }
+  return { ok: true, value: { status, asks, decided } }
 }
 
 /** The whole list replaces the old one; an ask whose text is unchanged keeps its age. */
 export const mergeAsks = (prev: readonly Ask[] | undefined, next: readonly AskInput[], now: number): Ask[] =>
   next.map(a => ({ ...a, since: (prev ?? []).find(p => norm(p.text) === norm(a.text))?.since ?? now }))
+
+/** New decisions join the queue (an open one with the same text is not repeated); numbers only grow. */
+export const appendDecisions = (prev: readonly Decision[] | undefined, add: readonly DecisionInput[], now: number): Decision[] => {
+  const list = [...(prev ?? [])]
+  let n = list.reduce((m, d) => Math.max(m, d.n), 0)
+  for (const d of add) {
+    if (list.some(x => x.status === 'open' && norm(x.text) === norm(d.text))) continue
+    list.push({ ...d, n: ++n, at: now, status: 'open' })
+  }
+  const open = list.filter(d => d.status === 'open')
+  const overflow = new Set(open.slice(0, Math.max(0, open.length - MAX_OPEN_DECISIONS)).map(d => d.n))
+  return list.map(d => (overflow.has(d.n) ? { ...d, status: 'accepted' as const } : d)).slice(-40)
+}
+
+export const openDecisions = (list: readonly Decision[] | undefined): Decision[] => (list ?? []).filter(d => d.status === 'open')
 
 export const nextBrief = (prev: Brief | null | undefined, input: BriefInput, source: Brief['source'], now: number): Brief => ({
   status: input.status,
@@ -60,7 +90,7 @@ const ago = (ms: number): string => (ms < 3_600_000 ? `${Math.max(1, Math.round(
 
 const fit = (s: string, width: number): string => (s.length <= width ? s : `${s.slice(0, Math.max(1, width - 1))}…`)
 
-export type GlanceRow = { key: string; text: string; tone: 'status' | 'age' | 'ask' | 'ask-seen' }
+export type GlanceRow = { key: string; text: string; tone: 'status' | 'age' | 'ask' | 'ask-seen' | 'decided' }
 
 /**
  * The two glance rows: status, then what the session needs from the person.
@@ -72,6 +102,7 @@ export const glanceRows = (
   now: number,
   columns: number,
   lastPromptAt = 0,
+  decisions: readonly Decision[] = [],
 ): GlanceRow[] => {
   if (brief === null || brief === undefined) return []
   const age = !isWorking && now - brief.at > STALE_MS ? `  ${ago(now - brief.at)} ago` : ''
@@ -85,15 +116,28 @@ export const glanceRows = (
       tone: brief.at < lastPromptAt ? 'ask-seen' : 'ask',
     })
   }
+  const open = openDecisions(decisions)
+  if (open.length > 0) {
+    const head = `decided for you (${open.length}): `
+    const tail = '  /brief ok · /brief change N …'
+    rows.push({ key: 'decided', text: fit(head + open.map(d => `${d.n}. ${d.text}`).join(' · ') + tail, columns), tone: 'decided' })
+  }
   return rows
 }
 
-export const briefMarkdown = (brief: Brief | null | undefined, now: number): string => {
-  if (brief === null || brief === undefined) return '### Status\nNo brief yet.'
+export const decisionsMarkdown = (decisions: readonly Decision[] | undefined): string[] => {
+  const open = openDecisions(decisions)
+  if (open.length === 0) return []
+  return ['Decided for you (change if wrong; /brief ok [N] accepts, /brief change N <answer> sends Claude the change):', ...open.map(d => `${d.n}. ${d.text}${d.alternatives === undefined ? '' : `  (instead of: ${d.alternatives})`}${d.reversible ? '' : '  [costly to undo]'}`)]
+}
+
+export const briefMarkdown = (brief: Brief | null | undefined, now: number, decisions: readonly Decision[] = []): string => {
+  if (brief === null || brief === undefined) return ['### Status\nNo brief yet.', ...decisionsMarkdown(decisions)].join('\n')
   const lines = [`### Status\n${brief.status}  (${brief.source === 'tool' ? 'from Claude' : 'summarized at turn end'}, ${ago(now - brief.at)} ago)`]
   lines.push('### Blocked on me')
   if (brief.asks.length === 0) lines.push('nothing')
   for (const a of brief.asks) lines.push(`- [${a.kind}] ${a.text}  (open ${ago(now - a.since)})`)
+  lines.push(...decisionsMarkdown(decisions))
   return lines.join('\n')
 }
 
@@ -144,7 +188,7 @@ export const parseSummary = (reply: string): BriefInput | undefined => {
       text: fit(clean(a.text as string), MAX_ASK),
       kind: ASK_KINDS.includes(a.kind as AskKind) ? (a.kind as AskKind) : ('decision' as AskKind),
     }))
-  return { status: fit(clean(o.status), MAX_STATUS), asks }
+  return { status: fit(clean(o.status), MAX_STATUS), asks, decided: [] }
 }
 
 // --- SessionFile / AllView ---

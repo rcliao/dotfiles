@@ -1,11 +1,13 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Brief, CtxSample, Job, LedgerEntry, TurnSample } from '../types'
+import type { Brief, CtxSample, Decision, Job, LedgerEntry, TurnSample } from '../types'
 import type { BandMode, SessionRecord } from './brief.ts'
 import {
   allViewText,
+  appendDecisions,
   BAND_MODES,
+  openDecisions,
   briefMarkdown,
   glanceRows,
   nextBrief,
@@ -50,6 +52,7 @@ const limitsAtom = atom({ plugin: 'brief', key: 'limits' } as const, null as nul
 const jobsAtom = atom({ plugin: 'brief', key: 'jobs' } as const, [] as Job[])
 const lastPromptAtom = atom({ plugin: 'brief', key: 'lastPromptAt' } as const, 0)
 const briefAtom = atom({ plugin: 'brief', key: 'brief' } as const, null as Brief | null)
+const decisionsAtom = atom({ plugin: 'brief', key: 'decisions' } as const, [] as Decision[])
 const workingAtom = atom({ plugin: 'brief', key: 'isWorking' } as const, false)
 
 const BRIEF_TOOL = 'mcp__brief__brief'
@@ -65,7 +68,7 @@ const HEARTBEAT_MS = 60_000
 const TAIL_BYTES = '16384'
 
 // Without a prompt rule a model-facing tool goes unused (run-ledger's eval: 0/5 → 3/3).
-const BRIEF_RULE = `Keep the person's glance view current with ${BRIEF_TOOL}. They run many sessions and check each for a few seconds. Call it when your phase of work changes, and as your last tool call before you end any turn in which you used tools, with: status, one line of at most 80 characters on where the work stands; asks, the complete list of what you are waiting on the person for (decisions, approvals, steps only they can do, access, reviews), each naming the exact choice or action, with your recommended option first and marked (recommended) when you have one, or an empty list when you need nothing. Before an end-of-run report (Changed / Blocked on me / Found), call ${REPORT_TOOL} and build Changed from its facts and Blocked on me from its open asks.`
+const BRIEF_RULE = `Keep the person's glance view current with ${BRIEF_TOOL}. They run many sessions, check each for a few seconds, and want you to keep going. Call it when your phase of work changes, and as your last tool call before you end any turn in which you used tools, with: status, one line of at most 80 characters on where the work stands; asks, only what truly blocks you (an outward or destructive action such as push, deploy, delete or spend; access or a credential; a choice where a wrong guess would waste most of the remaining work), each naming the exact choice with your recommended option first marked (recommended), or an empty list; decided, each new judgment call you made on their behalf so you could keep going (what you chose, the alternatives, whether it is cheap to undo). Do not stop for a decision you can make reasonably and undo cheaply: decide, record it in decided, and continue. Before an end-of-run report (Changed / Blocked on me / Found), call ${REPORT_TOOL}: build Changed from its facts, Blocked on me from its open asks, and list its open decisions under Blocked on me as 'Decided for you (change if wrong)'.`
 const JOBS_RULE =
   'When you start a long-running command with run_in_background and you control its output (a script or loop you write), have it print progress lines `::progress <done>/<total> <what>` (or `::progress <n>%`), and `::status <text>` on a phase change; the user sees them live in the brief band and pane.'
 
@@ -276,7 +279,7 @@ async function reportText($: EngineInterface): Promise<string> {
     await read($, limitsAtom),
   )
   const note = running.length > 0 ? `\n\n${running.length} background job(s) still running.` : ''
-  return [briefMarkdown(await read($, briefAtom), now), ledger, ...jobLines].join('\n\n') + note
+  return [briefMarkdown(await read($, briefAtom), now, await read($, decisionsAtom)), ledger, ...jobLines].join('\n\n') + note
 }
 
 async function briefCommand($: EngineInterface, args: string): Promise<{ text: string }> {
@@ -289,6 +292,28 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
     await redraw($)
     return { text: bandMode === 'off' ? 'Brief band off (it stays off in new sessions). /brief full or /brief min turns it back on; /brief still opens the pane.' : `Brief band: ${bandMode}.` }
   }
+  if (verb === 'ok') {
+    const which = rest[0] === undefined ? undefined : Number(rest[0])
+    let count = 0
+    await update($, decisionsAtom, prev => (prev ?? []).map(d => (d.status === 'open' && (which === undefined || d.n === which) ? (count++, { ...d, status: 'accepted' as const }) : d)))
+    await redraw($)
+    return { text: count === 0 ? (which === undefined ? 'No open decisions.' : `No open decision ${which}.`) : `Accepted ${count} decision(s).` }
+  }
+  if (verb === 'change') {
+    const which = Number(rest[0])
+    const answer = rest.slice(1).join(' ')
+    const d = openDecisions(await read($, decisionsAtom)).find(x => x.n === which)
+    if (d === undefined || answer === '') return { text: 'Usage: /brief change <N> <what to do instead> (N from the decided list)' }
+    await update($, decisionsAtom, prev => (prev ?? []).map(x => (x.n === which ? { ...x, status: 'changed' as const, change: answer } : x)))
+    await redraw($)
+    // A user turn of its own once the session is idle. Submitting from inside this command would wait on the
+    // turn the command holds (the engine refuses it), so it goes out from a timer just after.
+    const text = `Change to decision ${which} (you chose: ${d.text}): ${answer}`
+    $.clock.after(50, () => {
+      void $.prompt.submit({ text }).catch(err => $.ui.log(`brief: could not send the change (${String(err)})`))
+    })
+    return { text: `Sent to Claude: decision ${which} → ${answer}` }
+  }
   if (verb === 'all') {
     await $.ui.open({ id: ALL_PANE, title: 'All sessions' })
     return { text: allViewText(await readSessionFiles($), await $.session.id(), now) }
@@ -298,6 +323,7 @@ async function briefCommand($: EngineInterface, args: string): Promise<{ text: s
     await update($, entriesAtom, () => [])
     await update($, failsAtom, () => 0)
     await update($, briefAtom, () => null)
+    await update($, decisionsAtom, () => [])
     // A turn-end summary still running must not bring the old brief back.
     briefTurnId = currentTurnId
     await redraw($)
@@ -346,7 +372,7 @@ export const register: Register = on => {
     await $.command.register({
       name: 'brief',
       description: 'Toggle the brief pane (full|min|off: how much the band shows; all: every live session; reset: new baseline)',
-      argumentHint: '[full | min | off | all | reset | watch <file> [label] | unwatch <label> | clear]',
+      argumentHint: '[ok [N] | change N <answer> | full | min | off | all | reset | watch <file> [label] | unwatch <label> | clear]',
       immediate: true,
     })
     // Aliases for the commands of the two mods brief replaced. While those mods are still loaded the engine may let
@@ -359,14 +385,14 @@ export const register: Register = on => {
     await $.tool.register({
       name: 'brief',
       description:
-        "Set the person's glance view of this session: a one-line status and the complete list of what you are waiting on them for. Replaces the previous view; an empty asks list means you need nothing.",
+        "Set the person's glance view of this session: a one-line status, the complete list of what blocks you (replaces the previous asks; [] means nothing blocks), and any new decisions you made for them so you could keep going (queued for their review).",
       inputSchema: {
         type: 'object',
         properties: {
           status: { type: 'string', description: 'Where the work stands, at most 80 characters' },
           asks: {
             type: 'array',
-            description: 'Everything you are waiting on the person for, most blocking first; [] when nothing',
+            description: 'Only what blocks you (outward or destructive action, access, or a choice a wrong guess would waste most work on), most blocking first; [] when nothing',
             items: {
               type: 'object',
               properties: {
@@ -374,6 +400,19 @@ export const register: Register = on => {
                 kind: { type: 'string', enum: ['decision', 'approval', 'action', 'access', 'review', 'info'] },
               },
               required: ['text', 'kind'],
+            },
+          },
+          decided: {
+            type: 'array',
+            description: 'New judgment calls you made for the person so you could keep going; each joins a review queue. [] when none',
+            items: {
+              type: 'object',
+              properties: {
+                text: { type: 'string', description: 'What you chose, at most 120 characters' },
+                alternatives: { type: 'string', description: 'What you did not choose' },
+                reversible: { type: 'boolean', description: 'false when it would be costly to undo' },
+              },
+              required: ['text'],
             },
           },
         },
@@ -404,6 +443,7 @@ export const register: Register = on => {
     currentTurnId = undefined
     briefTurnId = undefined
     await update($, briefAtom, () => null)
+    await update($, decisionsAtom, () => [])
     const path = await sessionFile($, e.sessionId)
     if (path !== undefined) await $.process.run(['rm', '-f', path], { timeoutMs: 3_000 }).catch(() => undefined)
     return next(e)
@@ -446,8 +486,11 @@ export const register: Register = on => {
       const checked = validateInput(e)
       if (!checked.ok) return { isError: true, result: checked.error, text: checked.error }
       briefTurnId = currentTurnId
-      await setBrief($, nextBrief(await read($, briefAtom), checked.value, 'tool', await $.clock.now()))
-      return { result: 'ok' }
+      const now = await $.clock.now()
+      if (checked.value.decided.length > 0) await update($, decisionsAtom, prev => appendDecisions(prev, checked.value.decided, now))
+      await setBrief($, nextBrief(await read($, briefAtom), checked.value, 'tool', now))
+      const queued = openDecisions(await read($, decisionsAtom)).length
+      return { result: queued === 0 ? 'ok' : `ok; ${queued} decision(s) queued for the person to review` }
     }
     if (e.tool === REPORT_TOOL) return { result: await reportText($) }
     // Work after a brief call makes that brief possibly stale: the fallback summarizes the turn's end unless
@@ -533,7 +576,7 @@ export const register: Register = on => {
     if (e.props.hasSurvey || bandMode === 'off') return below
     const now = await $.clock.now()
     const columns = Math.max(20, e.props.bodyColumns - 1)
-    const glance = glanceRows(await read($, briefAtom), await isBusy($), now, columns, await read($, lastPromptAtom))
+    const glance = glanceRows(await read($, briefAtom), await isBusy($), now, columns, await read($, lastPromptAtom), await read($, decisionsAtom))
     const minimal = bandMode === 'min'
     const summary = minimal ? '' : summaryLine(await read($, entriesAtom))
     const view = ctxView(await read($, ctxAtom), await read($, turnsAtom), await read($, limitsAtom))
@@ -543,6 +586,7 @@ export const register: Register = on => {
     const ctxColor = view?.level === 'hot' ? 'red' : view?.level === 'warn' ? 'yellow' : undefined
     const status = glance.filter(r => r.tone === 'status' || r.tone === 'age')
     const asks = glance.find(r => r.tone === 'ask' || r.tone === 'ask-seen')
+    const decided = glance.find(r => r.tone === 'decided')
     const { Box, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="column">
@@ -556,6 +600,7 @@ export const register: Register = on => {
         ) : (
           <Text key="asks" dimColor wrap="truncate-end">{asks.text}</Text>
         )}
+        {decided === undefined ? null : <Text key="decided" dimColor wrap="truncate-end">{decided.text}</Text>}
         {ctx === undefined && summary === '' ? null : (
           <Box flexDirection="row">
             {ctx === undefined ? null : ctxColor === undefined ? <Text dimColor>{ctx}</Text> : <Text color={ctxColor}>{ctx}</Text>}

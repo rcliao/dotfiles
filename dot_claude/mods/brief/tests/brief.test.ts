@@ -6,7 +6,7 @@ declare const setTimeout: (fn: (value?: unknown) => void, ms: number) => unknown
 type On = Parameters<TestBody>[1]
 type Engine = Parameters<TestBody>[0]
 
-import { glanceRows, mergeAsks, parseSummary, summarizePrompt, validateInput, allViewText } from '../hooks/brief.ts'
+import { allViewText, appendDecisions, glanceRows, mergeAsks, parseSummary, summarizePrompt, validateInput } from '../hooks/brief.ts'
 
 const BAND = {
   plugin: 'brief',
@@ -23,6 +23,7 @@ const engine = (on: On, own: { registers?: boolean } = {}) => {
   const writes: { path: string; text: string }[] = []
   const models: string[] = []
   const logs: string[] = []
+  const prompts: string[] = []
   if (own.registers !== true) {
     on('command.register', ($, e) => ({ value: { command: e.name } }))
     on('tool.register', ($, e) => ({ value: { tool: `mcp__brief__${e.name}` } }))
@@ -44,8 +45,11 @@ const engine = (on: On, own: { registers?: boolean } = {}) => {
   })
   on('session.start', ($, e) => e)
   mock.store(on)
-  on('prompt.submit', ($, e) => e)
-  return { writes, models, logs }
+  on('prompt.submit', ($, e) => {
+    prompts.push(e.text)
+    return e
+  })
+  return { writes, models, logs, prompts }
 }
 
 const band = async ($: Engine) => {
@@ -61,14 +65,14 @@ const band = async ($: Engine) => {
 }
 
 test('validateInput: limits name themselves; empty asks is fine; string asks accepted', async () => {
-  expect(validateInput({ status: 'tests green, opening PR', asks: [] })).toEqual({ ok: true, value: { status: 'tests green, opening PR', asks: [] } })
+  expect(validateInput({ status: 'tests green, opening PR', asks: [] })).toEqual({ ok: true, value: { status: 'tests green, opening PR', asks: [], decided: [] } })
   const long = validateInput({ status: 'x'.repeat(81), asks: [] })
   expect(long.ok ? '' : long.error).toContain('80')
   const many = validateInput({ status: 's', asks: Array.from({ length: 6 }, (_, i) => ({ text: `a${i}`, kind: 'decision' })) })
   expect(many.ok ? '' : many.error).toContain('at most 5')
   expect(validateInput({ asks: [] }).ok).toBe(false)
   const loose = validateInput({ status: '  two   spaces ', asks: ['Pick a name', { text: 'Approve deploy', kind: 'bogus' }] })
-  expect(loose.ok && loose.value).toEqual({ status: 'two spaces', asks: [{ text: 'Pick a name', kind: 'decision' }, { text: 'Approve deploy', kind: 'decision' }] })
+  expect(loose.ok && loose.value).toEqual({ status: 'two spaces', asks: [{ text: 'Pick a name', kind: 'decision' }, { text: 'Approve deploy', kind: 'decision' }], decided: [] })
 })
 
 test('mergeAsks: replacement drops what is gone, unchanged text keeps its age', async () => {
@@ -99,6 +103,7 @@ test('parseSummary: takes the JSON out of a fenced reply, clamps, refuses garbag
   expect(parseSummary('```json\n{"status":"waiting on review","asks":[{"text":"Review PR #12","kind":"review"}]}\n```')).toEqual({
     status: 'waiting on review',
     asks: [{ text: 'Review PR #12', kind: 'review' }],
+    decided: [],
   })
   expect(parseSummary('no json here')).toBeUndefined()
   expect(parseSummary('{"asks":[]}')).toBeUndefined()
@@ -395,4 +400,56 @@ test('stress finding: a turn that ended while its background agents run still re
   await $.tool.call({ tool: 'mcp__brief__brief', status: 'waiting on 1 subagent', asks: [] })
   await $.turn.complete({ answer: 'Started a subagent.', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as never)
   expect((await band($)).status).toBe('◐ waiting on 1 subagent')
+})
+
+// Decision queue: judgment calls Claude made so it could keep going, reviewed by the person later.
+
+test('appendDecisions: numbers grow, an open duplicate is not repeated, overflow folds into accepted', async () => {
+  const one = appendDecisions([], [{ text: 'Used timeoutMs', alternatives: 'requestTimeoutMs', reversible: true }], 1)
+  expect(one).toEqual([{ n: 1, text: 'Used timeoutMs', alternatives: 'requestTimeoutMs', reversible: true, at: 1, status: 'open' }])
+  const two = appendDecisions(one, [{ text: 'used timeoutMs.', reversible: true }, { text: 'Kept ISO dates', reversible: false }], 2)
+  expect(two.map(d => [d.n, d.text])).toEqual([[1, 'Used timeoutMs'], [2, 'Kept ISO dates']])
+  const many = appendDecisions([], Array.from({ length: 14 }, (_, i) => ({ text: `d${i}`, reversible: true })), 3)
+  expect(many.filter(d => d.status === 'open').length).toBe(12)
+  expect(many[0]?.status).toBe('accepted')
+  expect(validateInput({ status: 's', asks: [], decided: ['Picked A'] })).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', reversible: true }] } })
+})
+
+test('decided row: dim, after the asks, numbered for /brief ok and /brief change', async () => {
+  const brief = { status: 'migrating 5/7', asks: [], source: 'tool' as const, at: 0 }
+  const decisions = appendDecisions([], [{ text: 'Used timeoutMs', reversible: true }, { text: 'Skipped e2e', reversible: true }], 0)
+  const rows = glanceRows(brief, true, 0, 200, 0, decisions)
+  expect(rows.map(r => r.tone)).toEqual(['status', 'decided'])
+  expect(rows[1]?.text).toBe('decided for you (2): 1. Used timeoutMs · 2. Skipped e2e  /brief ok · /brief change N …')
+})
+
+test('queue flow: Claude decides and keeps going; /brief ok accepts; /brief change sends Claude the change', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  const { prompts: submitted } = engine(on)
+  const cmd = (args: string) => $.command.run({ command: 'brief', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+
+  const ok = await $.tool.call({
+    tool: 'mcp__brief__brief',
+    status: 'migrating 5/7',
+    asks: [{ text: 'Approve force-push to feat/x', kind: 'approval' }],
+    decided: [{ text: 'Used timeoutMs', alternatives: 'requestTimeoutMs' }, { text: 'Skipped e2e for now', reversible: true }],
+  })
+  expect(String(ok.result)).toContain('2 decision(s) queued')
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /^decided for you \(2\): 1\. Used timeoutMs/ })).toBeDefined()
+  await ui.unmount()
+
+  const report = String((await $.tool.call({ tool: 'mcp__brief__report' })).result)
+  expect(report).toContain('- [approval] Approve force-push to feat/x')
+  expect(report).toContain('Decided for you (change if wrong')
+  expect(report).toContain('1. Used timeoutMs  (instead of: requestTimeoutMs)')
+
+  expect((await cmd('change 1 use requestTimeoutMs')).text).toBe('Sent to Claude: decision 1 → use requestTimeoutMs')
+  await clock.advance(100)
+  await new Promise(r => setTimeout(r, 10))
+  expect(submitted).toEqual(['Change to decision 1 (you chose: Used timeoutMs): use requestTimeoutMs'])
+  expect((await cmd('ok')).text).toBe('Accepted 1 decision(s).')
+  expect((await cmd('ok')).text).toBe('No open decisions.')
+  expect(String((await $.tool.call({ tool: 'mcp__brief__report' })).result)).not.toContain('Decided for you')
 })

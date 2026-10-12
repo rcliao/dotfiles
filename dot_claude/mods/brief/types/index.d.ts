@@ -64,6 +64,18 @@ export type Ask = {
   since: number
 }
 
+/** A judgment call the model made for the person so it could keep going, queued for review. */
+export type Decision = {
+  n: number
+  text: string
+  alternatives?: string
+  /** false: costly to undo, review soon */
+  reversible: boolean
+  at: number
+  status: 'open' | 'accepted' | 'changed'
+  change?: string
+}
+
 export type Brief = {
   status: string
   asks: Ask[]
@@ -83,6 +95,7 @@ declare module 'claude-code' {
       jobs: Job[]
       lastPromptAt: number
       brief: Brief | null
+      decisions: Decision[]
       /** whether a main-loop turn is running, for the band's glyph */
       isWorking: boolean
     }

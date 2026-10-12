@@ -101,3 +101,13 @@ Five worker sessions (`claude -p`, only `brief` loaded). The human read only the
 | partial answers (s3, s1) | the answered ask dropped, the open one kept and narrowed ("due 2026-10-13", ".ts files only") | right |
 
 The model called the brief tool in every scenario, 2–6 times each, so the fallback was never needed. Cost: $1.62.
+
+## Decision queue (2026-10-12)
+
+Goal: Claude keeps going (`/loop`, `/goal`) and stops only when something truly blocks it. You review its judgment calls asynchronously.
+- `asks` now holds blocking needs only: outward or destructive actions, access or credentials, or a choice where a wrong guess would waste most of the remaining work.
+- New `decided`: each judgment call Claude made to keep going, with its alternatives and whether it is cheap to undo. The mod keeps these as a numbered queue until you act; unlike asks, the model does not need to resend them.
+- Band: a dim `decided for you (N): 1. … · 2. …` row. `/brief ok [N]` accepts; `/brief change N <answer>` marks the decision changed and sends Claude "Change to decision N (you chose: …): …" as a user turn.
+- Gotcha: `$.prompt.submit` is refused from inside a `command.run` hook, because it would wait on the turn the hook holds. The change is sent from `$.clock.after(50)` instead.
+- `CLAUDE.md`: Long Runs now says to record default picks as `decided` and to finish the unblocked work before stopping. Reporting adds a "Decided for you (change if wrong)" sub-list under Blocked on me.
+- Live eval `keeps-going` (slugify + rename + changelog + push to main, no shell): 3/3 finished the work, queued the rename as a decision, and raised only the push as an ask. The first grader asked for ≥2 decisions and was too strict: Claude reasonably didn't queue slugify details or changelog wording. Cost: $1.69.
