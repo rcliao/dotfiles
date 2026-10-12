@@ -64,7 +64,7 @@ const HEARTBEAT_MS = 60_000
 const TAIL_BYTES = '16384'
 
 // Without a prompt rule a model-facing tool goes unused (run-ledger's eval: 0/5 → 3/3).
-const BRIEF_RULE = `Keep the person's glance view current with ${BRIEF_TOOL}. They run many sessions and check each for a few seconds. Call it when your phase of work changes, and as your last tool call before you end any turn in which you used tools, with: status, one line of at most 80 characters on where the work stands; asks, the complete list of what you are waiting on the person for (decisions, approvals, steps only they can do, access, reviews), each naming the exact choice or action, or an empty list when you need nothing. Before an end-of-run report (Changed / Blocked on me / Found), call ${REPORT_TOOL} and build Changed from its facts and Blocked on me from its open asks.`
+const BRIEF_RULE = `Keep the person's glance view current with ${BRIEF_TOOL}. They run many sessions and check each for a few seconds. Call it when your phase of work changes, and as your last tool call before you end any turn in which you used tools, with: status, one line of at most 80 characters on where the work stands; asks, the complete list of what you are waiting on the person for (decisions, approvals, steps only they can do, access, reviews), each naming the exact choice or action, with your recommended option first and marked (recommended) when you have one, or an empty list when you need nothing. Before an end-of-run report (Changed / Blocked on me / Found), call ${REPORT_TOOL} and build Changed from its facts and Blocked on me from its open asks.`
 const JOBS_RULE =
   'When you start a long-running command with run_in_background and you control its output (a script or loop you write), have it print progress lines `::progress <done>/<total> <what>` (or `::progress <n>%`), and `::status <text>` on a phase change; the user sees them live in the brief band and pane.'
 
@@ -346,7 +346,7 @@ export const register: Register = on => {
             items: {
               type: 'object',
               properties: {
-                text: { type: 'string', description: 'Starts with a verb and names the exact choice or action, at most 120 characters' },
+                text: { type: 'string', description: 'Starts with a verb and names the exact choice or action, your recommended option first marked (recommended); at most 120 characters' },
                 kind: { type: 'string', enum: ['decision', 'approval', 'action', 'access', 'review', 'info'] },
               },
               required: ['text', 'kind'],

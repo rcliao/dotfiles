@@ -78,3 +78,11 @@ Non-blocking findings fixed as well:
 - The session file is written at every turn end, so `isWorking` can't stick when the fallback is dropped.
 
 Noted, not changed: while run-ledger and jobs are loaded beside brief, hook order decides which one answers `/ledger` and `/jobs`.
+
+## Dogfood test (2026-10-12)
+
+Setup: two worker sessions (`claude -p`, only `brief` loaded). The human read only `/brief all`.
+- Round 1: each asks row matched the worker's "Blocked on me" item for item. The human answered from the brief alone, never the transcript, and round 2 cleared every ask.
+- Gap: the brief dropped the worker's recommendation ("I'd go with timeoutMs"). The fix: the brief rule and the tool schema now ask for the recommended option first, marked (recommended). Re-run 2/2: `Pick timeout key name: timeoutMs (recommended) or requestTimeoutMs`.
+- Not surfaced, left as is: an assumption the worker flagged (cacheTtl taken as seconds). Adding it would trade toward the false asks the replay eval penalised.
+- Cost: $0.76.
