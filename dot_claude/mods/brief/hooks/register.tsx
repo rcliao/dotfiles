@@ -430,7 +430,9 @@ export const register: Register = on => {
       if (ran.isError === true) await update($, failsAtom, n => (n ?? 0) + 1)
       const found = classifyBash(e.command, ran.text ?? '', now, ran.isError === true)
       if (found.length > 0) await update($, entriesAtom, prev => appendEntries(prev, found))
-      const started = ran.isError === true ? undefined : parseBackgroundStart(ran.text ?? '')
+      // Only a call that asked for the background: a foreground command whose output merely quotes the
+      // engine's notice (cat of a test fixture, a log) is not a job.
+      const started = ran.isError === true || e.run_in_background !== true ? undefined : parseBackgroundStart(ran.text ?? '')
       if (started !== undefined) {
         const job: Job = { id: started.id, kind: 'shell', label: shortLabel(e.description ?? e.command), startedAt: now, status: 'running', history: [] }
         if (started.file !== undefined) job.file = started.file
