@@ -103,6 +103,12 @@ async function sampleTurn($: EngineInterface): Promise<void> {
   await update($, turnsAtom, prev => appendTurn(prev, turn))
 }
 
+// Working: a main-loop turn is running, or a background shell or agent it started still is. A turn that
+// ended while its subagents run must not read as done.
+async function isBusy($: EngineInterface): Promise<boolean> {
+  return (await read($, workingAtom)) || (await read($, jobsAtom)).some(j => j.status === 'running' && j.kind !== 'watch')
+}
+
 async function redraw($: EngineInterface): Promise<void> {
   $.ui.invalidate('ui.render')
 }
@@ -199,7 +205,7 @@ async function writeSessionFile($: EngineInterface): Promise<void> {
       cwd,
       status: brief.status,
       asks: brief.asks,
-      isWorking: await read($, workingAtom),
+      isWorking: await isBusy($),
       at: await $.clock.now(),
       briefAt: brief.at,
     }
@@ -527,7 +533,7 @@ export const register: Register = on => {
     if (e.props.hasSurvey || bandMode === 'off') return below
     const now = await $.clock.now()
     const columns = Math.max(20, e.props.bodyColumns - 1)
-    const glance = glanceRows(await read($, briefAtom), await read($, workingAtom), now, columns, await read($, lastPromptAtom))
+    const glance = glanceRows(await read($, briefAtom), await isBusy($), now, columns, await read($, lastPromptAtom))
     const minimal = bandMode === 'min'
     const summary = minimal ? '' : summaryLine(await read($, entriesAtom))
     const view = ctxView(await read($, ctxAtom), await read($, turnsAtom), await read($, limitsAtom))

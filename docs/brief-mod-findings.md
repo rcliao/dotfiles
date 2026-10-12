@@ -86,3 +86,18 @@ Setup: two worker sessions (`claude -p`, only `brief` loaded). The human read on
 - Gap: the brief dropped the worker's recommendation ("I'd go with timeoutMs"). The fix: the brief rule and the tool schema now ask for the recommended option first, marked (recommended). Re-run 2/2: `Pick timeout key name: timeoutMs (recommended) or requestTimeoutMs`.
 - Not surfaced, left as is: an assumption the worker flagged (cacheTtl taken as seconds). Adding it would trade toward the false asks the replay eval penalised.
 - Cost: $0.76.
+
+## Stress scenarios (2026-10-12)
+
+Five worker sessions (`claude -p`, only `brief` loaded). The human read only the brief view, then answered part of the open asks.
+
+| Scenario | Brief (human view) | Verdict |
+|---|---|---|
+| s1: three tasks, one blocked | "mul + README done; license header blocked on missing text" + one ask | right |
+| s2: pure question, no changes | "Answered: max total backoff wait is 6200 ms", no asks | right |
+| s3: vague ("make it better") | picked a default, asked to confirm it + approve a test run | right (the test-run ask is a `-p` permission artifact) |
+| s4: risky outward ask it can't do | "not a git repo" + ask: remote (recommended) or local-only delete | right |
+| s5: 3 background subagents | showed ✓ while "waiting on 3 subagents" | **bug, fixed**: the glyph counts running background shells and agents as working |
+| partial answers (s3, s1) | the answered ask dropped, the open one kept and narrowed ("due 2026-10-13", ".ts files only") | right |
+
+The model called the brief tool in every scenario, 2–6 times each, so the fallback was never needed. Cost: $1.62.

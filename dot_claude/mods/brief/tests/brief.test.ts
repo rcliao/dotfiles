@@ -379,3 +379,20 @@ test('/brief toggles its pane', async ($, on) => {
   expect(opened).toEqual(['brief', 'brief'])
   expect(closed).toEqual(['brief'])
 })
+
+test('stress finding: a turn that ended while its background agents run still reads as working', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  engine(on)
+  on('turn.start', ($, e) => ({ turnId: e.turnId }))
+  on('turn.complete', ($, e) => ({ text: e.answer }))
+  on('agent.list', () => ({ value: [] }))
+  on('tool.call', ($, e) =>
+    e.tool === 'Agent' ? { result: { status: 'async_launched', agentId: 'ag1', description: 'doc a.ts' } } : { result: 'ok' },
+  )
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
+  await $.turn.start({ text: 'go', turnId: 't1' })
+  await $.tool.call({ tool: 'Agent', prompt: 'doc a.ts', description: 'doc a.ts', run_in_background: true } as never)
+  await $.tool.call({ tool: 'mcp__brief__brief', status: 'waiting on 1 subagent', asks: [] })
+  await $.turn.complete({ answer: 'Started a subagent.', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as never)
+  expect((await band($)).status).toBe('◐ waiting on 1 subagent')
+})
