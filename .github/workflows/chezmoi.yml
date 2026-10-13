@@ -199,8 +199,10 @@ jobs:
           refs=$(grep -c ghost "$DEST/.claude/settings.json" || true)
           scripts=$(find "$DEST/.claude/hooks" -maxdepth 1 -name 'ghost-*' 2>/dev/null | wc -l | tr -d ' ')
           echo "ghost refs=$refs scripts=$scripts (flag=${{ matrix.ghost }})"
+          # Every ghost-* file in the source is a Ghost hook or a helper they source.
+          expected=$(find "$GITHUB_WORKSPACE/dot_claude/hooks" -maxdepth 1 -name '*ghost-*' | wc -l | tr -d ' ')
           if [ "${{ matrix.ghost }}" = "true" ]; then
-              [ "$refs" -gt 0 ] && [ "$scripts" -eq 5 ]
+              [ "$refs" -gt 0 ] && [ "$scripts" -eq "$expected" ]
           else
               # With the flag off neither the hooks nor their scripts may appear,
               # and PreCompact — which only ever held a Ghost hook — must be gone

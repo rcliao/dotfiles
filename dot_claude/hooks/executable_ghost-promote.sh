@@ -51,7 +51,10 @@ if [ "${SESSIONS:-0}" -lt 2 ]; then
 fi
 CURRENT=$($GHOST get -n "$AGENT_NS" -k "$KEY" -f json 2>/dev/null | jq -r '.content // empty' 2>/dev/null)
 # No model call when the inputs haven't changed since the last pass.
-inputs_hash() { { printf '%s\n' "$GOTCHAS" "$1"; cat "$DECLINED" "$HOME/.claude/CLAUDE.md" 2>/dev/null || true; } | shasum | cut -c1-16; }
+inputs_hash() { {
+  printf '%s\n' "$GOTCHAS" "$1"
+  cat "$DECLINED" "$HOME/.claude/CLAUDE.md" 2>/dev/null || true
+} | shasum | cut -c1-16; }
 if [ "$(cat "$STATE" 2>/dev/null)" = "$(inputs_hash "$CURRENT")" ]; then
   echo "$KEY: inputs unchanged, skipped" >>"$DEBUG_LOG"
   exit 0

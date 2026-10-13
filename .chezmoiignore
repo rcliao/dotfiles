@@ -44,6 +44,9 @@ archive
 .claude/hooks/ghost-stop-heuristic.sh
 .claude/hooks/ghost-stop.sh
 .claude/hooks/ghost-user-prompt.sh
+.claude/hooks/ghost-trace.sh
+.claude/hooks/ghost-transcript.sh
+.claude/mods/ghost-lens
 {{ end }}
 
 # ~32M of session transcripts, which quote file contents

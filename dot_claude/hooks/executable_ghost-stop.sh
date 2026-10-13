@@ -92,8 +92,8 @@ fi
 # dedup hits were a session re-capturing its own lesson (2026-10-08).
 EVENT=$(echo "$HOOK_INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null)
 case "${GHOST_CAPTURE_FLUSH:-}$EVENT" in
-  1* | *PreCompact | *SessionEnd) MIN_CHARS="${GHOST_CAPTURE_FLUSH_MIN:-2000}" ;;
-  *) MIN_CHARS="${GHOST_CAPTURE_MIN_CHARS:-30000}" ;;
+1* | *PreCompact | *SessionEnd) MIN_CHARS="${GHOST_CAPTURE_FLUSH_MIN:-2000}" ;;
+*) MIN_CHARS="${GHOST_CAPTURE_MIN_CHARS:-30000}" ;;
 esac
 MAX_CHARS="${GHOST_CAPTURE_MAX_CHARS:-60000}"
 STATE_DIR="${GHOST_STOP_STATE_DIR:-/tmp/ghost-stop-state}"
@@ -119,7 +119,11 @@ fi
 echo "$WINDOW_END" >"$STATE_FILE" 2>/dev/null || true
 echo "Window: lines $((LAST_LINES + 1))-$WINDOW_END, ${WINDOW_CHARS} chars${EVENT:+ ($EVENT)}" >>"$DEBUG_LOG"
 TRANSCRIPT_SAMPLE=$(cat "$WINDOW_FILE")
-OPENING=$(ghost_transcript_window "$TRANSCRIPT_PATH" 1 2000 "$WINDOW_FILE.open" >/dev/null; head -c 2000 "$WINDOW_FILE.open"; rm -f "$WINDOW_FILE.open")
+OPENING=$(
+  ghost_transcript_window "$TRANSCRIPT_PATH" 1 2000 "$WINDOW_FILE.open" >/dev/null
+  head -c 2000 "$WINDOW_FILE.open"
+  rm -f "$WINDOW_FILE.open"
+)
 # What this session already stored, so the model adds rather than repeats.
 CAPTURED=$($GHOST list -n "$AGENT_NS" -t "$SESSION_TAG" -l 40 -f json 2>/dev/null |
   jq -r '(.memories? // .)[]? | select((.key | startswith("session-")) | not) | "- [\(.key)] \(.content | gsub("\n"; " ") | .[0:200])"' 2>/dev/null)
