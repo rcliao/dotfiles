@@ -73,9 +73,19 @@ MEMORIES=""
 # $TAG_ARGS is two words (-t project:x) and must split; empty when no project.
 # shellcheck disable=SC2086
 AGENT_RAW=$($GHOST context "$QUERY" -n "$AGENT_NS" $TAG_ARGS --budget "$BUDGET" --min-score "$MIN_SCORE" 2>/dev/null || echo "{}")
+# Pinned memories only. The searched ones were almost never used: 2 of ~480
+# (2026-10-09..14) and ~6 of ~500 the week after, by ghost-lens verdicts checked
+# by hand (ghost docs/research/ghost-review-2026-10-14.md). Explicit
+# ghost_context calls stay the way to recall the rest. GHOST_SESSION_SEARCH=1
+# brings the searched ones back.
+VIA_FILTER='select(.via == "pinned")'
+[ "${GHOST_SESSION_SEARCH:-}" = "1" ] && VIA_FILTER='.'
+AGENT_RAW=$(echo "$AGENT_RAW" | jq -c "if .memories then .memories |= map($VIA_FILTER) else . end" 2>/dev/null || echo "{}")
 AGENT_MEM=$(echo "$AGENT_RAW" | jq -r '.memories[]? | "[\(.key)] \(.content)"' 2>/dev/null || echo "")
 if [ -n "$AGENT_MEM" ]; then
-  if [ -n "$TAG_ARGS" ]; then
+  if [ "${GHOST_SESSION_SEARCH:-}" != "1" ]; then
+    MEMORIES="## Pinned"$'\n'"${AGENT_MEM}"
+  elif [ -n "$TAG_ARGS" ]; then
     MEMORIES="## Project: ${PROJECT_NAME}"$'\n'"${AGENT_MEM}"
   else
     MEMORIES="## Agent Knowledge"$'\n'"${AGENT_MEM}"

@@ -84,6 +84,17 @@ if [ "$TOOL_USE_COUNT" -lt 2 ]; then
   exit 0
 fi
 
+# Skip SDK runs (claude -p, Agent SDK apps, eval probes): scripted, not someone
+# working. 46 memories in a week came from agent-eval probes in temp folders,
+# captured by the SessionEnd flush (review 2026-10-14).
+ENTRYPOINT=$(grep -m1 -o '"entrypoint":"[^"]*"' "$TRANSCRIPT_PATH" 2>/dev/null | cut -d'"' -f4)
+case "$ENTRYPOINT" in
+sdk-*)
+  echo "SDK session ($ENTRYPOINT), skipping" >>"$DEBUG_LOG"
+  exit 0
+  ;;
+esac
+
 # When to capture. The Stop hook fires after every assistant turn; capture reads
 # each part of the session once, in order (ghost_transcript_window), and runs
 # when enough new conversation has built up. PreCompact and SessionEnd flush
@@ -96,13 +107,26 @@ case "${GHOST_CAPTURE_FLUSH:-}$EVENT" in
 *) MIN_CHARS="${GHOST_CAPTURE_MIN_CHARS:-30000}" ;;
 esac
 MAX_CHARS="${GHOST_CAPTURE_MAX_CHARS:-60000}"
-STATE_DIR="${GHOST_STOP_STATE_DIR:-/tmp/ghost-stop-state}"
+# Under ~/.ghost, not /tmp: a reboot cleared /tmp and the next Stop re-read a
+# live session from line 1, storing 17 memories it already had (2026-10-14).
+STATE_DIR="${GHOST_STOP_STATE_DIR:-$HOME/.ghost/stop-state}"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 STATE_FILE="$STATE_DIR/${SESSION_ID:-nosession}.lines"
-LAST_LINES=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
-LAST_LINES=${LAST_LINES:-0}
 CUR_LINES=$(wc -l <"$TRANSCRIPT_PATH" 2>/dev/null | tr -d ' ')
 CUR_LINES=${CUR_LINES:-0}
+if [ ! -s "$STATE_FILE" ] && [ -s "/tmp/ghost-stop-state/${SESSION_ID:-nosession}.lines" ]; then
+  cp "/tmp/ghost-stop-state/${SESSION_ID:-nosession}.lines" "$STATE_FILE" 2>/dev/null || true
+fi
+# No state but the session already has captures (state lost, or captured
+# before state existed): start from the end rather than re-reading it all.
+if [ ! -s "$STATE_FILE" ] && [ -n "$SESSION_ID" ] &&
+  [ -n "$($GHOST list -n "$AGENT_NS" -t "$SESSION_TAG" -l 1 -f json 2>/dev/null | jq -r '(.memories? // .)[0]?.key // empty' 2>/dev/null)" ]; then
+  echo "$CUR_LINES" >"$STATE_FILE" 2>/dev/null || true
+  echo "No state but session already captured, watermark set to line $CUR_LINES" >>"$DEBUG_LOG"
+  exit 0
+fi
+LAST_LINES=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+LAST_LINES=${LAST_LINES:-0}
 if [ "$CUR_LINES" -le "$LAST_LINES" ]; then
   echo "Nothing new since line $LAST_LINES, skipping" >>"$DEBUG_LOG"
   exit 0
@@ -127,11 +151,15 @@ OPENING=$(
 # What this session already stored, so the model adds rather than repeats.
 CAPTURED=$($GHOST list -n "$AGENT_NS" -t "$SESSION_TAG" -l 40 -f json 2>/dev/null |
   jq -r '(.memories? // .)[]? | select((.key | startswith("session-")) | not) | "- [\(.key)] \(.content | gsub("\n"; " ") | .[0:200])"' 2>/dev/null)
+# The pinned gotcha list every session loads (ghost-promote.sh). Gotchas skip
+# dedup, so ones already pinned were stored again on every recurrence: 408
+# gotcha memories in a week (review 2026-10-16).
+PINNED=$($GHOST get -n "$AGENT_NS" -k environment-gotchas -f json 2>/dev/null | jq -r '.content // empty' 2>/dev/null) || PINNED=""
 # Failures inside this window, with what came next (the window has no tool output).
 sed -n "$((LAST_LINES + 1)),${WINDOW_END}p" "$TRANSCRIPT_PATH" >"$WINDOW_FILE"
 FAILURES=$(ghost_failure_digest "$WINDOW_FILE" 12000)
 
-EXTRACT_PROMPT='You are a memory curator for an AI coding agent. The input is one part of a Claude Code session: the OPENING REQUEST of the session (for orientation), the CONVERSATION since the last capture (USER:/ASSISTANT: text; tool payloads omitted), ALREADY CAPTURED (what earlier parts of this session stored), then FAILED TOOL CALLS in this part (each failed call, its error, and the next call to the same tool). Extract ONLY confirmed, valuable learnings from this part. Never repeat or reword anything in ALREADY CAPTURED; a learning that only restates one of those is not new.
+EXTRACT_PROMPT='You are a memory curator for an AI coding agent. The input is one part of a Claude Code session: the OPENING REQUEST of the session (for orientation), the CONVERSATION since the last capture (USER:/ASSISTANT: text; tool payloads omitted), ALREADY CAPTURED (what earlier parts of this session stored), ALREADY PINNED (gotchas every session already loads), then FAILED TOOL CALLS in this part (each failed call, its error, and the next call to the same tool). Extract ONLY confirmed, valuable learnings from this part. Never repeat or reword anything in ALREADY CAPTURED; a learning that only restates one of those is not new. Never capture a gotcha that a line in ALREADY PINNED covers, even in other words.
 
 ## What to capture (tier: stm)
 ONLY store memories that pass this bar — would a future session benefit from knowing this?
@@ -178,7 +206,7 @@ unset CLAUDECODE
 # capture ran the session-start lookup (~12s, ~1.4k tokens of memories into the
 # summarizer prompt) and showed up as 78 of 98 "sessions" in the lens report
 # (eval 2026-10-07, ghost docs/research/session-start-eval-2026-10-07.md).
-RESULT=$(printf '## OPENING REQUEST\n%s\n\n## CONVERSATION\n%s\n\n## ALREADY CAPTURED\n%s\n\n## FAILED TOOL CALLS\n%s\n' "$OPENING" "$TRANSCRIPT_SAMPLE" "${CAPTURED:-(none)}" "${FAILURES:-(none)}" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$EXTRACT_PROMPT" 2>>"$DEBUG_LOG")
+RESULT=$(printf '## OPENING REQUEST\n%s\n\n## CONVERSATION\n%s\n\n## ALREADY CAPTURED\n%s\n\n## ALREADY PINNED\n%s\n\n## FAILED TOOL CALLS\n%s\n' "$OPENING" "$TRANSCRIPT_SAMPLE" "${CAPTURED:-(none)}" "${PINNED:-(none)}" "${FAILURES:-(none)}" | GHOST_SESSION_HOOK=1 claude -p --no-session-persistence --model "$LLM_MODEL" "$EXTRACT_PROMPT" 2>>"$DEBUG_LOG")
 
 echo "Claude output:" >>"$DEBUG_LOG"
 echo "$RESULT" >>"$DEBUG_LOG"
@@ -228,7 +256,7 @@ LEARNING_COUNT=$(echo "$LEARNINGS" | jq 'length')
 echo "Processing $LEARNING_COUNT learnings + summary..." >>"$DEBUG_LOG"
 
 # Store individual learnings, collect keys for consolidation
-KEYS_FILE=$(mktemp) # removed by ghost_stop_cleanup
+KEYS_FILE=$(mktemp "${TMPDIR:-/tmp}/ghost-keys.XXXXXX") # removed by ghost_stop_cleanup
 
 echo "$LEARNINGS" | jq -c '.[]' | while IFS= read -r item; do
   KEY=$(echo "$item" | jq -r '.key')
