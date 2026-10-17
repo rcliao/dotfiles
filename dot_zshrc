@@ -14,6 +14,13 @@ setopt HIST_IGNORE_DUPS HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS
 setopt HIST_IGNORE_SPACE      # a leading space keeps a command out of history
 setopt HIST_VERIFY            # expand !! and friends for review instead of running
 
+# Claude Code agents write bash-style commands: an unquoted glob that matches
+# nothing (grep --include=*.ts) aborts with "no matches found", and a word
+# starting with = errors. Claude Code's shell snapshot keeps these options, so
+# its Bash calls behave like bash; interactive shells keep zsh's defaults.
+# The pinned zsh-glob gotcha still recurred in 4 sessions a week (ghost review 2026-10-16).
+[ -n "$CLAUDECODE" ] && setopt NO_NOMATCH NO_EQUALS
+
 # Zsh theme
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 autoload -U promptinit; promptinit
