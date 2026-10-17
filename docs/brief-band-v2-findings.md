@@ -12,7 +12,7 @@ Branch `feat/brief-band-v2` (worktree `.worktrees/brief-band-v2`), from origin/m
 - [x] validate + tsc + plugin test clean
 - [x] tmux captures at 80x30, 60x24, main screen (NO_FLICKER=0)
 - [x] Remove debug command, kill tmux + server
-- [ ] Docs (brief-mod-design.md), fresh-context review
+- [x] Docs (brief-mod-design.md), fresh-context review
 - [ ] Ask: retire legacy `brief` / `report` tools (agent already calls them)
 
 ## Baseline (before any change)
@@ -141,3 +141,13 @@ Delivery: mid-turn answer landed in the transcript JSONL as `[brief] D3 -> priva
 - `claude plugin validate`: `classic.Stop` and `prompt.compose` hooks do not run in a plugin a person installs where an organization manages Claude Code.
 - Not in the types, found by the loader: one hooks module per mod (`hooks.json` with two modules loads none), one hook per event per module, `$` passed across files only into a function declaration.
 - An idle `$.prompt.submit` is framed by Claude Code ("The brief plugin sent a message: ... This is how Claude Code surfaces a prompt a plugin submits"), so the agent reads more than the 120-character row.
+
+## Fresh-context review (subagent) and fixes
+
+1. An answer appended after the turn's last model request was never read -> `turn.step` clears an `unread` row; `turn.complete` re-sends a still-unread one via `$.prompt.submit`. Test: "mid-turn answers go as one user row".
+2. Direction check forked with no done-when, and re-asked a kept drift -> gated on done-when; kept items in `kept`. Test: "review: ...".
+3. A fork in flight across /clear wrote into the new conversation -> dropped when `startedAt` changed.
+4. `newId` read-then-write could hand two asks one id -> single `update`. Test: parallel asks.
+5. A reload inside the flush window stranded the outbox -> flushed at session.start.
+Minor: a press on an ask that just closed, or while an answer is pending, is ignored.
+Smoke: a real streamed turn in tmux after adding the `turn.step` hook drew normally, no hook error line.

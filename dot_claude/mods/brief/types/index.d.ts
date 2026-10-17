@@ -131,6 +131,10 @@ declare module 'claude-code' {
       changes: Changes
       /** rows waiting to reach the agent, merged into one */
       outbox: string[]
+      /** a row appended mid-turn that no model request has read yet */
+      unread: string | null
+      /** drift the person kept: never asked about again */
+      kept: string[]
       /** the /brief snapshot as it was when the command ran */
       snapshot: SnapLine[]
       // legacy tools

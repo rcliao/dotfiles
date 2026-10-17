@@ -45,6 +45,8 @@ const checkAtom = atom({ plugin: 'brief', key: 'check' } as const, null as Check
 const changesAtom = atom({ plugin: 'brief', key: 'changes' } as const, { since: 0, done: [], asks: 0, answers: 0, edits: 0 } as Changes)
 const outboxAtom = atom({ plugin: 'brief', key: 'outbox' } as const, [] as string[])
 const snapshotAtom = atom({ plugin: 'brief', key: 'snapshot' } as const, [] as SnapLine[])
+const unreadAtom = atom({ plugin: 'brief', key: 'unread' } as const, null as string | null)
+const keptAtom = atom({ plugin: 'brief', key: 'kept' } as const, [] as string[])
 
 const ASK_TOOL = 'mcp__brief__brief_ask'
 const NOTE_TOOL = 'mcp__brief__brief_note'
@@ -64,9 +66,9 @@ const redraw = ($: EngineInterface): void => $.ui.invalidate('ui.render')
 const freshChanges = (since: number): Changes => ({ since, done: [], asks: 0, answers: 0, edits: 0 })
 
 async function newId($: EngineInterface): Promise<string> {
-  const n = await read($, nextIdAtom)
-  await update($, nextIdAtom, () => n + 1)
-  return `D${n}`
+  // One update, so two callers at once never share an id.
+  const n = await update($, nextIdAtom, v => v + 1)
+  return `D${n - 1}`
 }
 
 async function rearm($: EngineInterface): Promise<void> {
@@ -90,6 +92,8 @@ async function flush($: EngineInterface): Promise<void> {
     if (await read($, workingAtom)) {
       const sent = await $.session.append({ message: { type: 'user', content: [{ type: 'text', text }] } })
       if ('deny' in sent && sent.deny !== undefined) $.ui.log(`brief: answer not delivered (${sent.deny})`)
+      // Read at the agent's next request; if the turn ends first, turn.complete sends it again as a prompt.
+      else await update($, unreadAtom, prev => (prev === null || prev === undefined ? text : `${prev}\n${text}`))
     } else {
       await $.prompt.submit({ text })
     }
@@ -120,6 +124,7 @@ async function commit($: EngineInterface, id: string): Promise<void> {
     if (q.kind === 'drift' && pending.option === 'keep') {
       const what = q.question.replace(/ isn't in done-when$/, '')
       await update($, doneWhenAtom, prev => [...(prev ?? []), { text: what.slice(0, 40), met: false }])
+      await update($, keptAtom, prev => [...(prev ?? []), what.toLowerCase()])
     }
     const row = answerRow(q, pending.option)
     if (row !== undefined) await send($, row)
@@ -131,6 +136,8 @@ async function commit($: EngineInterface, id: string): Promise<void> {
 
 async function answer($: EngineInterface, id: string, option: string): Promise<void> {
   const now = await $.clock.now()
+  // A press that lands after the ask closed (a default applied a moment ago) answers nothing.
+  if (!openQuestions(await read($, questionsAtom)).some(q => q.id === id) || (await read($, pendingAtom)) !== null) return
   await update($, questionsAtom, prev => (prev ?? []).map(q => (q.id === id && q.status === 'open' ? { ...q, status: 'answered' as const, answer: option } : q)))
   await update($, pendingAtom, () => ({ id, option, at: now }))
   undoTimer?.cancel()
@@ -173,17 +180,21 @@ async function tick($: EngineInterface): Promise<void> {
 
 async function directionCheck($: EngineInterface, turn: number): Promise<void> {
   const goal = await read($, goalAtom)
-  if (goal === null || checking) return
+  const doneWhen = await read($, doneWhenAtom)
+  // Nothing to judge against without done-when checks: no fork.
+  if (goal === null || doneWhen.length === 0 || checking) return
   if (openQuestions(await read($, questionsAtom)).some(q => q.kind === 'drift')) return
   checking = true
   try {
-    const doneWhen = await read($, doneWhenAtom)
+    const session = await read($, startedAtom)
     const reply = await $.model.fork({ prompt: checkPrompt(goal, doneWhen) })
-    if (!reply.isAnswered) return
+    // A /clear while the fork ran: the verdict is the old conversation's.
+    if (!reply.isAnswered || (await read($, startedAtom)) !== session) return
     const check = parseCheck(reply.text, turn)
     if (check === undefined) return
     await update($, checkAtom, () => check)
-    const what = check.unplanned.find(u => !doneWhen.some(d => d.text.toLowerCase() === u.toLowerCase()))
+    const kept = await read($, keptAtom)
+    const what = check.unplanned.find(u => !doneWhen.some(d => d.text.toLowerCase() === u.toLowerCase()) && !kept.includes(u.toLowerCase()))
     if (what !== undefined) {
       const q = driftQuestion(await newId($), what, turn, await $.clock.now())
       await update($, questionsAtom, prev => [...(prev ?? []), q])
@@ -227,6 +238,8 @@ async function resetSession($: EngineInterface): Promise<void> {
   await update($, cronsAtom, () => [])
   await update($, checkAtom, () => null)
   await update($, outboxAtom, () => [])
+  await update($, unreadAtom, () => null)
+  await update($, keptAtom, () => [])
   await update($, snapshotAtom, () => [])
   await update($, turnAtom, () => 0)
   await update($, endedAtom, () => 0)
@@ -286,6 +299,12 @@ export const register: Register = on => {
         void commit($, pending.id)
       })
     }
+    // ...and rows queued for the agent go out.
+    if ((await read($, outboxAtom)).length > 0) {
+      flushTimer = $.clock.after(FLUSH_MS, () => {
+        void flush($)
+      })
+    }
     $.clock.every(TICK_MS, () => {
       void tick($)
     })
@@ -307,6 +326,12 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // A model request of the main loop reads every row appended before it.
+  on('turn.step', async function* ($, e, next) {
+    if (e.agentId === undefined) await update($, unreadAtom, () => null)
+    return yield* next(e)
+  })
+
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
     if (e.agentId !== undefined) return done
@@ -314,6 +339,14 @@ export const register: Register = on => {
     await legacyTurnComplete($).catch(() => undefined)
     const ended = await $.clock.now()
     await update($, endedAtom, () => ended)
+    // An answer appended after the turn's last request would wait for the person's next prompt: send it now.
+    const unread = await read($, unreadAtom)
+    if (unread !== null) {
+      await update($, unreadAtom, () => null)
+      $.clock.after(FLUSH_MS, () => {
+        void $.prompt.submit({ text: unread }).catch(err => $.ui.log(`brief: answer not delivered (${String(err)})`))
+      })
+    }
     const turn = (await read($, turnAtom)) + 1
     await update($, turnAtom, () => turn)
     if (toolsThisTurn && !e.isAborted) void directionCheck($, turn).catch(err => $.ui.log(`brief: direction check failed (${String(err)})`))

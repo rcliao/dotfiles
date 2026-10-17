@@ -163,7 +163,11 @@ const engine = (on: On) => {
     return { value: { isSent: true, channel: 'terminal' } } as never
   })
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['beneath'] }))
-  on('model.fork', () => ({ value: { isAnswered: true, text: '{"onTrack": false, "unplanned": ["Status-line entry"]}', usage: { inputTokens: 1, outputTokens: 1 } } }) as never)
+  const forks = { n: 0 }
+  on('model.fork', () => {
+    forks.n++
+    return { value: { isAnswered: true, text: '{"onTrack": false, "unplanned": ["Status-line entry"]}', usage: { inputTokens: 1, outputTokens: 1 } } } as never
+  })
   on('session.start', ($, e) => e)
   on('turn.start', ($, e) => e)
   on('turn.complete', ($, e) => ({ text: e.answer }))
@@ -176,7 +180,7 @@ const engine = (on: On) => {
     prompts.push(e.text)
     return e
   })
-  return { prompts, notified }
+  return { prompts, notified, forks }
 }
 
 const start = async ($: Engine) => $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
@@ -256,6 +260,49 @@ test('mid-turn answers go as one user row; idle ones as a prompt', async ($, on)
   expect(prompts).toEqual([])
   const users = rowsSeen.appended().map(r => JSON.stringify(r.message))
   expect(users.some(u => u.includes('[brief] D1 -> alpha (you). Keep going with alpha.'))).toBe(true)
+  // No model request read it before the turn ended: it goes again as a prompt, once.
+  await $.turn.complete({ answer: 'done', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as never)
+  await clock.advance(500)
+  expect(prompts).toEqual(['[brief] D1 -> alpha (you). Keep going with alpha.'])
+})
+
+test('review: parallel asks get distinct ids; no fork without done-when; a kept drift is not asked again', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  const { forks } = engine(on)
+  await start($)
+  const [a, b] = await Promise.all([
+    ask($, { question: 'One?', short: 'One?', options: ['a', 'b'] }),
+    ask($, { question: 'Two?', short: 'Two?', options: ['a', 'b'] }),
+  ])
+  expect(new Set([String(a.result), String(b.result)]).size).toBe(2)
+
+  const turn = async (id: string) => {
+    await $.turn.start({ text: 'go', turnId: id })
+    await $.tool.call({ tool: 'Read', file_path: '/x' } as never)
+    await $.turn.complete({ answer: 'ok', durationMs: 5, isAborted: false, turnId: id, reason: 'answer' } as never)
+    await clock.advance(10)
+  }
+  await $.tool.call({ tool: 'mcp__brief__brief_note', goal: 'Ship v0' } as never)
+  await turn('t1')
+  expect(forks.n).toBe(0)
+
+  await $.tool.call({ tool: 'mcp__brief__brief_note', doneWhen: ['tests pass'] } as never)
+  await turn('t2')
+  expect(forks.n).toBe(1)
+  const drift = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result).match(/open (D\d+): Status-line entry/)?.[1]
+  expect(drift).toBeDefined()
+  // Answer the earlier asks first so the drift ask arms, then keep it.
+  for (const id of ['D1', 'D2', drift as string]) {
+    const ui = await $.ui.mount({ ...BAND(75), requestId: `p${id}`, surface: 'terminal' })
+    await ui.press({ key: `${id}:1` })
+    await ui.unmount()
+    await clock.advance(3_500)
+  }
+  // The agent rewrites done-when without the kept item; the same drift is not raised again.
+  await $.tool.call({ tool: 'mcp__brief__brief_note', doneWhen: ['tests pass'] } as never)
+  await turn('t3')
+  const read = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)
+  expect(read).not.toContain('open D')
 })
 
 test('defaults apply after 10 minutes and raise keep/drop; a drift check raises its own ask', async ($, on) => {
