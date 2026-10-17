@@ -1,6 +1,6 @@
 {
   "name": "brief",
-  "version": "0.1.0",
-  "description": "One glance at a session: Claude's status and what it needs from you, over a deterministic ledger of outward actions, background jobs and context use. Band, /brief pane, /brief all across sessions, and a report tool for end-of-run summaries.",
+  "version": "0.2.0",
+  "description": "One glance at a session: a two-line band (where the work stands between turns, the one question you can answer with a digit), a step count on the spinner, a /brief snapshot, and brief_ask / brief_note / brief_read for Claude.",
   "types": "./types/index.d.ts"
 }
