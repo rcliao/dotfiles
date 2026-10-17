@@ -1,18 +1,13 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { classifyBash, classifyMcp, ctxView, growthPerTurn, ledgerMarkdown, summaryLine } from '../hooks/ledger.ts'
+import { allViewText, appendDecisions, mergeAsks, parseSummary, summarizePrompt, validateInput } from '../hooks/brief'
+import { classifyBash, classifyMcp, ctxView, growthPerTurn, ledgerMarkdown, summaryLine } from '../hooks/ledger'
+
+// The v1 `brief` and `report` tools (hooks/legacy.ts) and the pure helpers they and evals/replay use.
 
 const USAGE = (percent: number, tokens: number, usd: number) => ({
   value: { startedAt: 0, context: { tokens, window: 200_000, percent }, rateLimits: [], cost: { usd } },
 })
-
-const BAND = {
-  plugin: 'brief',
-  component: 'AbovePrompt',
-  requestId: 'above-prompt',
-  viewport: { columns: 120, rows: 40 },
-  props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 120, scroll: { offset: 0, bodyRows: 10 }, view: {} },
-} as const
 
 test('classifyBash: commit + push in one command, PR url, tag, paid, prod secret', async () => {
   const commit = classifyBash(
@@ -104,69 +99,82 @@ test('summary and markdown read cleanly', async () => {
   expect(md).toContain('- Slack writes (1): slack_send_message')
 })
 
-test('tool calls feed the ledger; /ledger and the model tool report it', async ($, on) => {
-  const clock = mock.clock(on, { now: 100_000 })
-  on('session.usage', () => USAGE(37, 74_000, 1.25))
-  // /brief opens its pane and answers with the report
-  on('ui.open', () => ({ value: { isPlaced: true } }))
-  on('tool.call', ($, e) =>
-    e.tool === 'Bash' && e.command.startsWith('false')
-      ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' }
-      : e.tool === 'Bash'
-        ? { result: 'ok', text: '[main 9f8e7d6] msg\n 1 file changed' }
-        : { result: 'ok' },
-  )
-
-  await $.tool.call({ tool: 'Bash', command: 'git commit -am msg' })
-  await clock.advance(20_000)
-  await $.tool.call({ tool: 'Edit', file_path: '/repo/a.ts', old_string: 'a', new_string: 'b' })
-  await $.tool.call({ tool: 'Edit', file_path: '/repo/a.ts', old_string: 'b', new_string: 'c' })
-  await $.tool.call({ tool: 'Bash', command: 'false' })
-
-  const answer = await $.command.run({
-    command: 'brief',
-    args: '',
-    origin: { kind: 'composer' },
-    presentation: { isFullscreen: false, columns: 120 },
-  })
-  expect(answer.text).toContain('Commits (1): 9f8e7d6')
-  expect(answer.text).toContain('Files edited (1): /repo/a.ts')
-  expect(answer.text).toContain('Failed Bash calls: 1')
-  expect(answer.text).toContain('Context: 37%')
-
-
-  const viaTool = await $.tool.call({ tool: 'mcp__brief__report' })
-  expect(String(viaTool.result)).toContain('Commits (1): 9f8e7d6')
-  const reset = await $.command.run({
-    command: 'brief',
-    args: 'reset',
-    origin: { kind: 'composer' },
-    presentation: { isFullscreen: false, columns: 120 },
-  })
-  expect(reset.text).toMatch(/reset/)
-  // /brief again would toggle the pane closed; the model tool reads the same report
-  const after = { text: String((await $.tool.call({ tool: 'mcp__brief__report' })).result) }
-  expect(after.text).toContain('Nothing changed or sent out yet.')
-  expect(after.text).toContain('Failed Bash calls: 0')
+test('validateInput: limits name themselves; empty asks is fine; string asks accepted', async () => {
+  expect(validateInput({ status: 'tests green, opening PR', asks: [] })).toEqual({ ok: true, value: { status: 'tests green, opening PR', asks: [], decided: [], settled: [] } })
+  const long = validateInput({ status: 'x'.repeat(81), asks: [] })
+  expect(long.ok ? '' : long.error).toContain('80')
+  const many = validateInput({ status: 's', asks: Array.from({ length: 6 }, (_, i) => ({ text: `a${i}`, kind: 'decision' })) })
+  expect(many.ok ? '' : many.error).toContain('at most 5')
+  expect(validateInput({ asks: [] }).ok).toBe(false)
+  const loose = validateInput({ status: '  two   spaces ', asks: ['Pick a name', { text: 'Approve deploy', kind: 'bogus' }] })
+  expect(loose.ok && loose.value).toEqual({ status: 'two spaces', asks: [{ text: 'Pick a name', kind: 'decision' }, { text: 'Approve deploy', kind: 'decision' }], decided: [], settled: [] })
 })
 
-test('band: empty session leaves the engine band; activity draws one line', async ($, on) => {
+test('mergeAsks: replacement drops what is gone, unchanged text keeps its age', async () => {
+  const prev = [
+    { text: 'Pick key name: a or b', kind: 'decision' as const, since: 10 },
+    { text: 'Approve push', kind: 'approval' as const, since: 20 },
+  ]
+  expect(mergeAsks(prev, [{ text: 'pick key name: a or b.', kind: 'decision' }, { text: 'Share the token', kind: 'access' }], 99)).toEqual([
+    { text: 'pick key name: a or b.', kind: 'decision', since: 10 },
+    { text: 'Share the token', kind: 'access', since: 99 },
+  ])
+})
+
+test('parseSummary: takes the JSON out of a fenced reply, clamps, refuses garbage', async () => {
+  expect(parseSummary('```json\n{"status":"waiting on review","asks":[{"text":"Review PR #12","kind":"review"}]}\n```')).toEqual({
+    status: 'waiting on review',
+    asks: [{ text: 'Review PR #12', kind: 'review' }],
+    decided: [],
+    settled: [],
+  })
+  expect(parseSummary('no json here')).toBeUndefined()
+  expect(parseSummary('{"asks":[]}')).toBeUndefined()
+  expect(parseSummary(`{"status":"${'s'.repeat(120)}","asks":["a","b","c","d","e","f"]}`)?.asks.length).toBe(5)
+  expect(summarizePrompt(null, 'x'.repeat(7_000))).toContain('…')
+})
+
+test('allViewText: dead sessions drop out, sessions that need you sort first', async () => {
+  const rec = (sessionId: string, at: number, asks = 0) => ({
+    sessionId,
+    label: sessionId,
+    cwd: '/',
+    status: 's',
+    asks: Array.from({ length: asks }, () => ({ text: 'x', kind: 'decision' as const, since: 0 })),
+    isWorking: false,
+    at,
+  })
+  const text = allViewText([rec('old', 0), rec('quiet', 50_000_000), rec('needy', 49_900_000, 1)], 'quiet', 50_000_001)
+  expect(text.split('\n').filter(l => !l.startsWith(' ')).map(l => l.split(' ')[1])).toEqual(['needy', 'quiet'])
+})
+
+test('appendDecisions: numbers grow, an open duplicate is not repeated, overflow folds into accepted', async () => {
+  const one = appendDecisions([], [{ text: 'Used timeoutMs', alternatives: 'requestTimeoutMs', reversible: true }], 1)
+  expect(one).toEqual([{ n: 1, text: 'Used timeoutMs', alternatives: 'requestTimeoutMs', reversible: true, at: 1, status: 'open' }])
+  const two = appendDecisions(one, [{ text: 'used timeoutMs.', reversible: true }, { text: 'Kept ISO dates', reversible: false }], 2)
+  expect(two.map(d => [d.n, d.text])).toEqual([[1, 'Used timeoutMs'], [2, 'Kept ISO dates']])
+  const many = appendDecisions([], Array.from({ length: 14 }, (_, i) => ({ text: `d${i}`, reversible: true })), 3)
+  expect(many.filter(d => d.status === 'open').length).toBe(12)
+  expect(many[0]?.status).toBe('accepted')
+  expect(validateInput({ status: 's', asks: [], decided: ['Picked A'] })).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', reversible: true }], settled: [] } })
+})
+
+test('live finding: a list sent JSON-encoded (client with an older tool schema) is accepted', async () => {
+  const v = validateInput({ status: 's', asks: '[]', decided: '[{"text":"Picked A","alternatives":"B"}]' })
+  expect(v).toEqual({ ok: true, value: { status: 's', asks: [], decided: [{ text: 'Picked A', alternatives: 'B', reversible: true }], settled: [] } })
+  expect(validateInput({ status: 's', asks: [], decided: 'not json' }).ok).toBe(false)
+})
+
+test('legacy tools: brief records the queue; report reads the ledger', async ($, on) => {
   mock.clock(on, { now: 100_000 })
-  on('session.usage', () => USAGE(88, 176_000, 9.5))
-  on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
-  on('tool.call', () => ({ result: 'ok', text: 'https://github.com/a/b/pull/7' }))
-
-  for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: 'drawn by Claude Code' })).toBeDefined()
-    await ui.unmount()
-  }
-
-  await $.tool.call({ tool: 'Bash', command: 'gh pr create -t x -b y' })
-  for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: /^ctx 88%/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /PR #7/ })).toBeDefined()
-    await ui.unmount()
-  }
+  on('session.usage', () => USAGE(37, 74_000, 1.25))
+  on('tool.call', ($, e) => (e.tool === 'Bash' ? { result: 'ok', text: '[main 9f8e7d6] msg\n 1 file changed' } : { result: 'ok' }))
+  await $.tool.call({ tool: 'Bash', command: 'git commit -am msg' })
+  await $.tool.call({ tool: 'Edit', file_path: '/repo/a.ts', old_string: 'a', new_string: 'b' })
+  const queued = await $.tool.call({ tool: 'mcp__brief__brief', status: 'migrating', asks: [], decided: [{ text: 'Used timeoutMs' }] })
+  expect(String(queued.result)).toBe('ok; queued for the person to review: 1. Used timeoutMs')
+  const report = String((await $.tool.call({ tool: 'mcp__brief__report' })).result)
+  expect(report).toContain('Commits (1): 9f8e7d6')
+  expect(report).toContain('Files edited (1): /repo/a.ts')
+  expect(report).toContain('1. Used timeoutMs')
 })
