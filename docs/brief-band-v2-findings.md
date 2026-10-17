@@ -5,13 +5,13 @@ Branch `feat/brief-band-v2` (worktree `.worktrees/brief-band-v2`), from origin/m
 ## Checklist
 
 - [x] Inventory + gap list
-- [ ] Pure layout module (fit function, line forms, ASCII) + tests
-- [ ] Ask model (queue, armed ask, undo window, defaults, drift) + tests
-- [ ] Hooks: band, spinner suffix, /brief snapshot, notify, tools, compose, delivery, classic.Stop, fork check
-- [ ] Remove dropped surfaces (panes, /brief subcommands, /ledger /jobs aliases, job poller)
-- [ ] validate + tsc + plugin test clean
-- [ ] tmux captures at 80x30, 60x24, main screen (NO_FLICKER=0)
-- [ ] Remove debug command, kill tmux + server
+- [x] Pure layout module (fit function, line forms, ASCII) + tests
+- [x] Ask model (queue, armed ask, undo window, defaults, drift) + tests
+- [x] Hooks: band, spinner suffix, /brief snapshot, notify, tools, compose, delivery, classic.Stop, fork check
+- [x] Remove dropped surfaces (panes, /brief subcommands, /ledger /jobs aliases, job poller)
+- [x] validate + tsc + plugin test clean
+- [x] tmux captures at 80x30, 60x24, main screen (NO_FLICKER=0)
+- [x] Remove debug command, kill tmux + server
 - [ ] Docs (brief-mod-design.md), fresh-context review
 - [ ] Ask: retire legacy `brief` / `report` tools (agent already calls them)
 
@@ -49,3 +49,95 @@ Branch `feat/brief-band-v2` (worktree `.worktrees/brief-band-v2`), from origin/m
 
 ## Decisions taken (see brief queue)
 
+
+## Captures (tmux capture-pane -p; band rows only, trailing spaces trimmed)
+
+Fullscreen (default), 80x30:
+
+```
+# turn running, nothing open
+· Swirling… 3/6 (4s · ↓ 4 tokens)
+# turn running, ask open
+✢ Swirling… 3/6 (11s · ↓ 4 tokens)
+! Publish the mod to GitHub?  1: private  2: public  3: later        +1  6m [-]
+# blocked (2 lines)
+3/6 Register brief_ask  waiting on plugin test 1m12s                        [-]
+! Publish the mod to GitHub?  1: private  2: public  3: later        +1  6m
+# default (2 lines)
+3/6 Register brief_ask  ended 2m ago                                        [-]
+? Deliver your answers mid-turn?  1: mid-turn  2: next turn   default in 4m
+# drift
+? Status-line entry isn't in done-when  1: keep  2: drop       after turn 7 [-]
+# answered
+sent: private  0: undo                                                      [-]
+# done
+6/6 done  3/3 done-when met  22m                                            [-]
+# after pressing 1 mid-turn
+sent: private  0: undo                                                      [-]
+# after 2 then 0 (undo)
+? Deliver your answers mid-turn?  1: mid-turn  2: next turn   default in 4m [-]
+```
+
+60x24:
+
+```
+# blocked
+3/6 Register brief_ask  waiting on plugin test 1m12s    [-]
+! Push to GitHub?  1: private  2: public  3: later   +1
+# default
+3/6 Register brief_ask  ended 2m ago                    [-]
+? Answers mid-turn?  1: mid-turn  2: next turn       4m
+# drift
+? Status-line entry?  1: keep  2: drop               t7 [-]
+# answered
+sent: private  0: undo                                  [-]
+# done
+6/6 done  3/3 done-when met  22m                        [-]
+# between
+3/6 Register brief_ask  waiting on plugin test 1m12s    [-]
+```
+
+Main screen (CLAUDE_CODE_NO_FLICKER=0), 80x30:
+
+```
+# blocked
+3/6 Register brief_ask  waiting on plugin test 1m12s                        [-]
+! Publish the mod to GitHub?  1: private  2: public  3: later        +1  6m
+# default
+3/6 Register brief_ask  ended 2m ago                                        [-]
+? Deliver your answers mid-turn?  1: mid-turn  2: next turn   default in 4m
+# drift
+? Status-line entry isn't in done-when  1: keep  2: drop       after turn 7 [-]
+# answered
+sent: private  0: undo                                                      [-]
+# turn running
+· Burrowing… 3/6 (3s · ↓ 4 tokens)
+```
+
+/brief at 80 columns:
+
+```
+Ship v0 of the brief mod: pane + agent ask tool
+done when  [x] pane draws  [ ] answers reach agent  [ ] tests pass
+! Publish the mod to GitHub?  private / public / later  6m
+? Deliver your answers mid-turn?  mid-turn / next turn  default in 4m
+since 9m  pane skeleton, contract, 2 asks, 3 file edits
+on track after turn 6  unplanned: status-line entry  ctx 0%
+```
+
+Colors (capture-pane -e): blocking sigil+question 38;5;220 (warning); hotkey digits 38;5;153 (accent, drawn by Claude Code); meta, activity state, `sent:` 38;5;246 (dim); `done` 38;5;114 (success).
+
+Delivery: mid-turn answer landed in the transcript JSONL as `[brief] D3 -> private (you). Resume with private.`; an idle answer started a turn shown as "Prompt from the brief plugin". Undo (0) sent nothing (`grep -c "D4 ->"` = 0).
+
+## Differences from the reference
+
+- Snapshot "since" line says `3 file edits` where the reference says `3 type errors fixed`: hooks count what they observe and do not write prose. `ctx 0%` is the fake server's usage.
+- Drift short form is the unplanned work cut at a word plus `?` (`Status-line entry?`); the spec gives no 60-column drift line.
+- Agent rows use ASCII `->` where the spec's example has an arrow.
+
+## Where the types and the prompt rub
+
+- Spinner `suffix` replaces the engine's ellipsis entirely; the mod sets `suffix: e.props.suffix + ' 3/6'` so its own string stays ASCII.
+- `claude plugin validate`: `classic.Stop` and `prompt.compose` hooks do not run in a plugin a person installs where an organization manages Claude Code.
+- Not in the types, found by the loader: one hooks module per mod (`hooks.json` with two modules loads none), one hook per event per module, `$` passed across files only into a function declaration.
+- An idle `$.prompt.submit` is framed by Claude Code ("The brief plugin sent a message: ... This is how Claude Code surfaces a prompt a plugin submits"), so the agent reads more than the 120-character row.

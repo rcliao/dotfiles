@@ -32,6 +32,13 @@ test('fit at 75 cells (80 columns): every reference ask line', async () => {
   for (const s of [line(publish, 1, 75), line(deliver, 0, 75), line(drift, 0, 75)]) expect(s.length).toBe(75)
 })
 
+test('drift short form: the unplanned work, cut at a word', async () => {
+  expect(drift.short).toBe('Status-line entry?')
+  expect(line(drift, 0, 55)).toBe('? Status-line entry?  1: keep  2: drop               t7')
+  expect(line(drift, 0, 55).length).toBe(55)
+  expect(driftQuestion('D9', 'Rewrote the whole settings loader', 3, NOW).short).toBe('Rewrote the whole?')
+})
+
 test('fit at 55 cells (60 columns): short question, short meta, +n kept', async () => {
   const p = askSpec(publish, 1, NOW)
   expect(fitAsk(p, 55).form).toBe(4)

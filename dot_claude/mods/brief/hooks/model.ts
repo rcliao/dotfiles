@@ -132,9 +132,16 @@ export const answerRow = (q: Question, option: string): string | undefined => {
 /** Several events in one step become one row, one line each. */
 export const mergeRows = (rows: readonly string[]): string => rows.join('\n')
 
+/** At most `n` characters, cut at a word boundary where one is near. */
+export const cutWords = (s: string, n: number): string => {
+  if (s.length <= n) return s
+  const at = s.lastIndexOf(' ', n)
+  return at >= n / 2 ? s.slice(0, at) : s.slice(0, n)
+}
+
 export const driftQuestion = (id: string, what: string, turn: number, now: number): Question => {
   const w = what.slice(0, MAX_QUESTION - 20)
-  return { id, kind: 'drift', question: `${w} isn't in done-when`, short: `Unplanned: ${w}`.slice(0, MAX_SHORT), options: ['keep', 'drop'], blocking: false, at: now, status: 'open', turn }
+  return { id, kind: 'drift', question: `${w} isn't in done-when`, short: `${cutWords(w, MAX_SHORT - 1)}?`, options: ['keep', 'drop'], blocking: false, at: now, status: 'open', turn }
 }
 
 export const defaultQuestion = (id: string, from: Question, now: number): Question => {

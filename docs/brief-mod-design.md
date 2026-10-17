@@ -1,5 +1,37 @@
 # brief: one glance at a session
 
+## v2: a two-line band (2026-10-17, Claude Code 2.1.302)
+
+v1 (below) grew to eight band rows, a pane and eleven subcommands. v2 keeps four surfaces and says nothing when all is well.
+
+**Surfaces.** Band (`ui.render` AbovePrompt): at most an activity line and an ask line. Spinner: `suffix` only. `/brief`: a snapshot drawn by a `CommandOutput` hook; the model reads `Brief shown.`. `$.ui.notify`: blocking asks only. Dropped: both panes, `/brief` subcommands, `/ledger` `/jobs`, the haiku turn-end summary, the log-tailing job poller, `mods-data` session files.
+
+**Data flow.**
+1. The agent calls `brief_ask({question, short, options, blocking?})`; the mod queues a Question `D<n>`, arms it if nothing is armed, and notifies when it blocks.
+2. The person types a digit into the empty prompt; the band's plain Button for that hotkey records a Pending answer and the ask line becomes `sent: <option>  0: undo`.
+3. After 3 s the answer becomes one `[brief] D3 -> private (you). ...` row: a user row via `$.session.append` mid-turn, a prompt via `$.prompt.submit` when idle; rows that land together are merged. The next ask arms.
+4. A non-blocking ask unanswered for 10 min is marked defaulted and raises `? <short>: went with <opt>  1: keep  2: drop`.
+5. At each main-loop `turn.complete` with tool calls and a goal set, `$.model.fork` asks whether the turn did work outside done-when; a hit raises `? <work> isn't in done-when  1: keep  2: drop`. Keep adds it to done-when.
+6. Hooks observe the rest: steps from `TaskCreate`/`TaskUpdate`/`TodoWrite`, else the done-when count; jobs and wakeups from `classic.Stop`; context from `$.session.usage()`.
+
+**Data model** (`$.state.brief`, `types/index.d.ts`): `questions: Question[]` (`id, kind: agent|drift|default, question, short, options, blocking, at, status, answer?`), `armed`, `pending`, `steps`, `goal`, `doneWhen: {text, met}[]`, `jobs`, `crons`, `check`, `changes`, `outbox`, `snapshot`. The v1 keys used by the legacy tools stay. Nothing in `$.store`.
+
+**Interfaces.**
+- `mcp__brief__brief_ask` (not deferred) → `{"id":"D3"}`. Limits: question 60, short 24, options 2–4 of 12, ASCII. Description fixed by the spec.
+- `mcp__brief__brief_note({goal?, doneWhen?, assumption?})` → `ok` (deferred). `doneWhen` items are strings, `[x] ` marks one met.
+- `mcp__brief__brief_read()` → at most 8 plain lines (deferred).
+- `/brief` → `Brief shown.` plus the drawn snapshot.
+- One `prompt.compose` section `brief:rule`, last, scope `session`.
+- Legacy until retired: `mcp__brief__brief`, `mcp__brief__report`, section `brief:legacy` (`hooks/legacy.ts`).
+
+**Layout rule.** `hooks/band.ts` computes each ask line's length and draws the first form that fits `bodyColumns`: full question and meta, full question and short meta, short question and short meta, short question and `+n`, short question alone, else the engine truncates. Tests pin every reference capture at 75 and 55 cells.
+
+**Engine constraints found while building it** (2.1.302): one hooks module per mod; one hook per event per module; `$` may only be passed into a function *declaration* across files.
+
+---
+
+## v1 (2026-10-12), superseded
+
 1. **Intent** — Know what Claude needs, at a glance
 
 2. **Decisions**
