@@ -13,7 +13,7 @@ Branch `feat/brief-band-v2` (worktree `.worktrees/brief-band-v2`), from origin/m
 - [x] tmux captures at 80x30, 60x24, main screen (NO_FLICKER=0)
 - [x] Remove debug command, kill tmux + server
 - [x] Docs (brief-mod-design.md), fresh-context review
-- [ ] Ask: retire legacy `brief` / `report` tools (agent already calls them)
+- [x] Retire legacy `brief` / `report` tools (owner OK 2026-10-17): legacy.ts, brief.ts, ledger.ts, evals/ removed; CLAUDE.md points at brief_ask / brief_read
 
 ## Baseline (before any change)
 

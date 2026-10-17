@@ -85,7 +85,6 @@ archive
 # per-session state outside them. dev-mods is a session's hot-reload scratch area.
 .claude/mods/failure-streak/.claude-plugin/types
 .claude/mods/brief/.claude-plugin/types
-.claude/mods/brief/evals/results
 .claude/mods/brief/tsconfig.json
 .claude/mods/collision-guard/.claude-plugin/types
 .claude/mods/ghost-lens/.claude-plugin/types

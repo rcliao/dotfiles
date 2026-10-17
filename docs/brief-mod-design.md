@@ -22,7 +22,7 @@ v1 (below) grew to eight band rows, a pane and eleven subcommands. v2 keeps four
 - `mcp__brief__brief_read()` → at most 8 plain lines (deferred).
 - `/brief` → `Brief shown.` plus the drawn snapshot.
 - One `prompt.compose` section `brief:rule`, last, scope `session`.
-- Legacy until retired: `mcp__brief__brief`, `mcp__brief__report`, section `brief:legacy` (`hooks/legacy.ts`).
+- Retired 2026-10-17: `mcp__brief__brief`, `mcp__brief__report`, the facts ledger and the `evals/` suites that graded them.
 
 **Layout rule.** `hooks/band.ts` computes each ask line's length and draws the first form that fits `bodyColumns`: full question and meta, full question and short meta, short question and short meta, short question and `+n`, short question alone, else the engine truncates. Tests pin every reference capture at 75 and 55 cells.
 

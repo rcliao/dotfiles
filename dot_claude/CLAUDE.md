@@ -14,8 +14,8 @@ Push back if a task, plan, or proposed change does not make sense. Ask clarifyin
 
 Once scope is agreed, run to the finish line. Default is keep going.
 - When a step doesn't need my input, keep going. Put status notes in the same message as your next action, not in a separate turn — I scan many panes at once.
-- Don't stop to ask "should I continue?", to report partial progress, or to offer options you could pick between with a sensible default. Pick one, record it as a `decided` item in the brief (`mcp__brief__brief`), and move on. I review that queue when I get to it and send changes back.
-- When something does block you, first finish every part of the work that doesn't depend on it, then stop. Put the blocker in the brief's `asks` so I see it at a glance. This is what keeps `/loop` and `/goal` runs moving.
+- Don't stop to ask "should I continue?", to report partial progress, or to offer options you could pick between with a sensible default. Pick one, ask it with `brief_ask` (your pick as option 1, not blocking) and move on on that pick. I answer from the band when I get to it; the answer reaches you as a `[brief]` row.
+- When something does block you, first finish every part of the work that doesn't depend on it, then stop. Ask it with `brief_ask` and `blocking: true` (the safe choice first) so I see it at a glance. This is what keeps `/loop` and `/goal` runs moving.
 - Stop and ask only when (a) you can't continue without a decision, credential, or access only I have, or (b) the next action is destructive or outward-facing:
   - deleting data, force-pushing, rewriting shared history, pushing to main
   - writing to prod or shared infra (deploys, migrations, prod DB/BigQuery writes)
@@ -73,7 +73,7 @@ The loop is: gather context → act → verify → repeat. Verification is not o
 ## Reporting
 
 End every run with three headings, in this order:
-- **Blocked on me** — decisions, approvals, or access you need (write "nothing" if none), then a **Decided for you (change if wrong)** sub-list of the open decisions from `mcp__brief__report`
+- **Blocked on me** — decisions, approvals, or access you need (write "nothing" if none), then a **Decided for you (change if wrong)** sub-list of your open non-blocking asks and applied defaults from `brief_read`
 - **Changed** — what you changed, with evidence it works
 - **Found** — anything notable you discovered but didn't act on
 

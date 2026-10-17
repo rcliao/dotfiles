@@ -24,7 +24,6 @@ import {
   validateNote,
 } from './model'
 import type { BriefView } from './model'
-import { LEGACY_TOOLS, legacyCall, legacyEnd, legacyObserve, legacySection, legacyTurnComplete } from './legacy'
 
 const goalAtom = atom({ plugin: 'brief', key: 'goal' } as const, null as string | null)
 const doneWhenAtom = atom({ plugin: 'brief', key: 'doneWhen' } as const, [] as DoneItem[])
@@ -286,7 +285,7 @@ export const register: Register = on => {
         inputSchema: { type: 'object', properties: {} },
       },
     ]
-    for (const spec of [...tools, ...LEGACY_TOOLS]) await $.tool.register(spec).catch(err => $.ui.log(`brief: could not register ${spec.name} (${String(err)})`))
+    for (const spec of tools) await $.tool.register(spec).catch(err => $.ui.log(`brief: could not register ${spec.name} (${String(err)})`))
     await $.command
       .register({ name: 'brief', description: 'Show the brief: goal, done-when, open asks, what changed, health', immediate: true })
       .catch(err => $.ui.log(`brief: could not register /brief (${String(err)})`))
@@ -313,7 +312,6 @@ export const register: Register = on => {
 
   on('session.end', async ($, e, next) => {
     await resetSession($)
-    await legacyEnd($)
     return next(e)
   })
 
@@ -336,7 +334,6 @@ export const register: Register = on => {
     const done = await next(e)
     if (e.agentId !== undefined) return done
     await update($, workingAtom, () => false)
-    await legacyTurnComplete($).catch(() => undefined)
     const ended = await $.clock.now()
     await update($, endedAtom, () => ended)
     // An answer appended after the turn's last request would wait for the person's next prompt: send it now.
@@ -406,14 +403,10 @@ export const register: Register = on => {
       return { result: 'ok' }
     }
     if (e.tool === READ_TOOL) return { result: readText(await view($)) }
-    const legacy = await legacyCall($, e)
-    if (legacy !== undefined) return legacy
 
     if (e.agentId === undefined) toolsThisTurn = true
     const ran = await next(e)
-    if (ran.deny !== undefined) return ran
-    await legacyObserve($, e, ran)
-    if (ran.isError === true || e.agentId !== undefined) return ran
+    if (ran.deny !== undefined || ran.isError === true || e.agentId !== undefined) return ran
 
     // Steps, from the agent's own task list.
     if (e.tool === 'TaskCreate') {
@@ -444,9 +437,8 @@ export const register: Register = on => {
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
     await update($, hasTaskToolAtom, () => e.tools.includes('TaskCreate') || e.tools.includes('TodoWrite'))
-    const sections = [...composed.sections, ...legacySection(e.tools)]
-    if (e.tools.includes(ASK_TOOL)) sections.push({ id: 'brief:rule', text: RULE, scope: 'session' as const })
-    return { sections }
+    if (!e.tools.includes(ASK_TOOL)) return composed
+    return { sections: [...composed.sections, { id: 'brief:rule', text: RULE, scope: 'session' as const }] }
   })
 
   // /brief: the model reads 'Brief shown.'; the row draws the snapshot taken now.
