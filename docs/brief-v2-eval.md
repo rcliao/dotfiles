@@ -14,6 +14,7 @@ How well Claude uses brief v2 to keep a short, current brief and to leave pendin
 - [x] With/without outcome eval over several rounds (`evals/ab/run.mjs`)
 - [x] Summary fidelity: is the brief a short, faithful picture (`evals/summary/run.mjs`)
 - [x] Compared with Claude Code's recap and You should know (same harness)
+- [x] Layout fix: one check per line, a status line, no silent cuts; re-scored on the same rounds
 
 ## What is measured
 
@@ -156,7 +157,7 @@ The brief is a third the length of the message and better than a glance at the g
 3. **Small hand-offs stay in prose.** "Case 22 is yours to try by hand" or "deleting /tmp/x needs your approval" appear only in the message, never as an ask, so the brief says nothing is waiting. (The grader may be strict here: some of these are optional.)
 4. **Snapshots can be stale.** The agent reads the brief before its last ticks and its final message, so the band at the end of the round may be more current than this test credits.
 
-Next: have `evals/ab` save each round's brief state, so any version of `readText` can be scored offline against the same moments. Then lay out done-when one check per line with "k/n met", add a status line, and re-score.
+Next: lay out done-when one check per line with "k/n met", add a status line, and re-score (done: "The layout fix", below).
 
 ### Compared with Claude Code's own recap and "You should know" (2026-10-18)
 
@@ -183,11 +184,37 @@ All five pictures were scored in one run, over the same 31 rounds. An earlier ru
 
 What this suggests for brief: the recap and the brief are good at different questions, and You should know covers what neither does. The brief's own fixes come first (one check per line, a status line, no silent cuts). After that, the goal and asks from the brief plus a recap-style "done" line would probably beat either alone. A combined picture is cheap to score from `summary-compare.json` (grading only, about $0.30).
 
+## The layout fix (2026-10-18)
+
+What changed in the mod:
+- `brief_read` and `/brief` show done-when as `done when k/n met:` then one check per line.
+- A status line: `blocked on you (Dn)` if a blocking ask is open; `finished` if every check is ticked and nothing waits on the person; `waiting on you (Dn)` if every check is ticked but a drift or default ask is open; else `in progress`. Open asks of the agent's own add `Dn open, default applies`. "finished" is the agent's own claim: it ticked every check it set.
+- No silent cuts. `brief_note` refuses a goal over 100 characters, a check over 60 and an assumption over 120, naming the limit, and the rule tells the agent the limits. `brief_read` no longer drops lines past 8 or cuts them at 120. An answer row that is still cut ends in `...`.
+
+**How it was scored.** No new agent runs. The `layout` picture in `evals/summary/run.mjs` replays each round's `brief_note` and `brief_ask` calls from the transcript through this checkout's `hooks/model.ts`, then draws `readText` at the moment of the recorded `brief_read`. Notes are taken at full length, since the recorded agent was never refused. A `met` that names a check by the 40-character cut the agent saw counts, and an unmatched one refuses the call as the mod does. Asks, answers and health come from the recorded text. Both pictures were graded in the same run, repeated 3 times ($2.04 in all, grading only). `--dry` prints recorded and replayed ticks for free.
+
+| Picture (mean of 3 runs, 31 rounds) | Words | Lines | Goal | Done | Waiting on you | Status | Overall | Heads-up | Misleading |
+|---|---|---|---|---|---|---|---|---|---|
+| brief as recorded | 48 | 4.2 | 0.92 | 0.54 | 0.74 | 0.61 | 0.70 | 0.33 | 11.3/31 |
+| brief, new layout | 63 | 8.9 | 0.94 | 0.69 | 0.75 | 0.82 | 0.80 | 0.45 | 10.3/31 |
+
+Round by round over the 3 runs, the new layout scored higher 58 times, lower 18 and tied 17. Gains of 0.15 on done and 0.21 on status are well above the ±0.05 noise. 0.80 overall is above the recap's 0.75 from the earlier run, though at 63 words against 36.
+
+1. **The old brief understated the work in 18 of the 31 rounds.** Recorded and replayed ticks were compared with `--dry`, and each round traced in its transcript.
+   - In 10 rounds the one-line done-when, cut at 120 characters, hid a whole check or its tick mark. s1's "Announcement posted to #general (after approval)" never reached the reader.
+2. **Cutting also broke ticking.** In the other 8 rounds the agent ticked a check by its full text just before `brief_read`. The old mod refused it, since the stored text was cut, and the brief it read showed the work undone. The agent ticked again by the cut text after reading. With no cuts, the first tick lands.
+3. **Misleading barely moved (11.3 to 10.3).** The status line fixed the rounds where the reader guessed wrong. It added others where "finished" is confidently wrong:
+   - **Hand-offs in prose:** in s4 the agent left manual test cases (Ctrl-D, cases 20-24) to the person in its message, but ticked every check and asked nothing. This is finding 3 above; the rule already says a hand-off is a blocking ask.
+   - **Stale assumptions:** assumptions outlive a new goal. In s3-with-2 the round-0 "key not copied, the person must supply it" still showed after the agent had moved the key.
+4. **Not covered by the replay.** The new limits change what the agent writes: it is refused and retries with shorter text, instead of being cut. Only a live `evals/ab` run measures that (about $21).
+
 ## Next steps (not done here)
 
 1. A "glance" person for `evals/ab`: it sees only the band and the last two lines of each message, which is how the band is meant to be read. The full-reading person above ties on every outcome.
 2. A way for the agent to withdraw an ask it has outgrown (finding 4 above).
 3. A cross-session check: two live sessions answering asks at once (the unit test covers the files; a live run does not exist yet).
+4. Clear or re-confirm assumptions when the goal or the done-when list is replaced (layout fix, finding 3).
+5. Hand-offs left in prose: the agent should ask, not tick (layout fix, finding 3). Measure on a live `evals/ab` re-run, which also measures the new limits.
 
 ## How to run
 
@@ -198,6 +225,8 @@ claude plugin eval ~/.claude/mods/brief --runs 3 -j 4 --scaffold --allow-tools W
 node ~/.claude/mods/brief/evals/rounds/run.mjs --runs 2 [--only r1,r3]
 # is the brief a faithful picture? offline over an ab run (about $1)
 node ~/.claude/mods/brief/evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp>
+# this checkout's readText on the same moments, graded beside the recorded brief (about $0.70 per repeat; --dry is free)
+node ~/.claude/mods/brief/evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp> --pictures brief,layout --out summary-layout.json
 # with/without over several rounds against a simulated person; work dirs under ~/.cache/brief-eval/ab/
 node ~/.claude/mods/brief/evals/ab/run.mjs --runs 3 -j 6 [--only s1,s4] [--arms with,without]
 ```
