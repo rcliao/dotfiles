@@ -14,11 +14,11 @@ v1 (below) grew to eight band rows, a pane and eleven subcommands. v2 keeps four
 5. At each main-loop `turn.complete` with tool calls and a goal set, `$.model.fork` asks whether the turn did work outside done-when; a hit raises `? <work> isn't in done-when  1: keep  2: drop`. Keep adds it to done-when.
 6. Hooks observe the rest: steps from `TaskCreate`/`TaskUpdate`/`TodoWrite`, else the done-when count; jobs and wakeups from `classic.Stop`; context from `$.session.usage()`.
 
-**Data model** (`$.state.brief`, `types/index.d.ts`): `questions: Question[]` (`id, kind: agent|drift|default, question, short, options, blocking, at, status, answer?`), `armed`, `pending`, `steps`, `goal`, `doneWhen: {text, met}[]`, `jobs`, `crons`, `check`, `changes`, `outbox`, `snapshot`. The v1 keys used by the legacy tools stay. Nothing in `$.store`.
+**Data model** (`$.state.brief`, `types/index.d.ts`): `questions: Question[]` (`id, kind: agent|drift|default, question, short, options, blocking, at, status, answer?`), `armed`, `pending`, `steps`, `goal`, `doneWhen: {text, met}[]`, `jobs`, `crons`, `check`, `changes`, `outbox`, `snapshot`. `sid` names the session the state belongs to. Saved per session to `~/.claude/mods-data/brief/sessions/<id>.json` (questions, goal, done-when, id counter, outbox), loaded when the session id changes (a resume, a fresh process), removed on `/clear`, swept after 14 days. Not `$.store`: that is one file every session writes.
 
 **Interfaces.**
 - `mcp__brief__brief_ask` (not deferred) → `{"id":"D3"}`. Limits: question 60, short 24, options 2–4 of 12, ASCII. Description fixed by the spec.
-- `mcp__brief__brief_note({goal?, doneWhen?, assumption?})` → `ok` (deferred). `doneWhen` items are strings, `[x] ` marks one met.
+- `mcp__brief__brief_note({goal?, doneWhen?, met?, assumption?})` → `ok; done when [x] … [ ] …` (deferred). `doneWhen` items are strings, `[x] ` marks one met; `met` ticks checks by whole words (ambiguous names tick nothing).
 - `mcp__brief__brief_read()` → at most 8 plain lines (deferred).
 - `/brief` → `Brief shown.` plus the drawn snapshot.
 - One `prompt.compose` section `brief:rule`, last, scope `session`.

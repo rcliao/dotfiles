@@ -9,8 +9,8 @@ How well Claude uses brief v2 to keep a short, current brief and to leave pendin
 - [x] Baseline suite run (both arms, 3 runs each)
 - [x] Baseline rounds run (3 scenarios, 2 runs each)
 - [x] Cost and value per case
-- [ ] Tune the prompt rule and tool text against this baseline (next)
-- [ ] Persist open asks across resume, then re-run r3 as the proof (next)
+- [x] Tune the prompt rule and tool text against this baseline (rule v3, below)
+- [x] Persist open asks across resume, one file per session; re-run r3
 
 ## What is measured
 
@@ -75,12 +75,37 @@ Total spent building and running the baseline: about $24. Suite: run 1 $6.71 (di
 | rounds r1, r2 | only check of the answer path | keep, run after any delivery change |
 | rounds r3 | tracks finding 5 | keep; should flip to 2/2 after persistence |
 
+## After the fixes (2026-10-17)
+
+Changes, in order of what the baseline found:
+
+1. Rule v2 named brief_note; v3 scoped it to multi-step work (v2 made a one-line fix cost 8 turns) and made hand-offs blocking: "for work with more than one step, brief_note a one-line goal and 2-8 done-when checks first, and brief_note met: [...] as each is met ... Anything you hand the person to do (a key, an account, a manual step) is a blocking brief_ask too."
+2. `brief_note({ met })` ticks checks by whole words (an ambiguous or empty name ticks nothing and the error lists the checks), and answers with the current list.
+3. The brief is saved per session to `~/.claude/mods-data/brief/sessions/<id>.json` and loaded on a resume; `/clear` removes it; files older than 14 days are swept. Not `$.store`: it is one JSON file every session writes.
+4. Typographic punctuation is folded to ASCII; the over-length error says to keep the choice and shorten its label.
+5. Graders: the credential judge became a `tool_used` with `input_match` (the judge failed 2 of 3 runs that did raise the ask).
+
+With-arm results, 3 runs each (rule v3; the without arm does not change with the rule):
+
+| Indicator | Baseline | Rule v2 | Rule v3 |
+|---|---|---|---|
+| multi-phase: goal + done-when early | 0/3 | 3/3 | 3/3 |
+| multi-phase: checks ticked by the end | 0/3 | 2/3 | 3/3 |
+| needs-credential: blocking ask for the key | 0/3 | 0/3 (judge) | 3/3 (input_match) |
+| outward-blocker: blocking, safe first | 3/3 | 2/3 | 3/3 |
+| mixed: only the deploy blocks | 3/3 | 2/3 | 3/3 |
+| quick-fix turns (without: 4.7) | 6.0 | 8.0 | 3.3 |
+| scope-temptation turns (without: 3.0) | 5.0 | 7.0 | 3.7 |
+| outcome graders, every case | pass | pass | pass |
+
+Rounds after the fix (rule v2, store persistence): r1 2/2, r2 2/2 with the choice kept after a length refusal (`reqDefaults`, full name in the question), **r3 open ask after a resume 2/2** (was 0/2), the new ask numbered D2 (no id collision).
+
+Cost of the fix loop: suite (both arms) $6.05, rule v3 with arm $3.20, credential re-check $0.42 + $0.30, rounds $5.66.
+
 ## Next steps (not done here)
 
-1. Rule: add brief_note ("at the start, brief_note a goal and 2-8 done-when checks; tick each as it is met"), then re-run multi-phase.
-2. Rule or tool text: a step only the human can do (a key, an account, a manual action) is a blocking ask.
-3. Persist questions, goal, done-when and the id counter per session in `$.store`; re-run r3.
-4. Fold common Unicode punctuation to ASCII instead of refusing; consider 16 characters per option.
+1. Longer, realistic runs: the single-prompt outcomes are equal with and without the mod on every case; the value shows in the indicators and the rounds. A case with several human answers over one long task would score the band's real job.
+2. A cross-session check: two live sessions answering asks at once (the unit test covers the files; a live run does not exist yet).
 
 ## How to run
 
