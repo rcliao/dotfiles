@@ -164,18 +164,29 @@ export const answerRow = (q: Question, option: string): string | undefined => {
   if (q.kind === 'agent') {
     const first = q.options[0] as string
     const follow = q.blocking ? `Resume with ${option}.` : option === first ? `Keep going with ${option}.` : `Switch from ${first} to ${option}.`
-    return cutRow(`[brief] ${q.id} -> ${option} (you). ${follow}`)
+    return cutRow(`[brief] ${q.id} -> ${option} (answered by the person). ${follow}`)
   }
   if (q.kind === 'drift') {
     const what = q.question.replace(/ isn't in done-when$/, '')
     return option === 'keep'
-      ? cutRow(`[brief] ${q.id} -> keep (you). "${what}" is now in done-when.`)
-      : cutRow(`[brief] ${q.id} -> drop (you). Stop work on "${what}"; it isn't in done-when.`)
+      ? cutRow(`[brief] ${q.id} -> keep (answered by the person). "${what}" is now in done-when.`)
+      : cutRow(`[brief] ${q.id} -> drop (answered by the person). Stop work on "${what}"; it isn't in done-when.`)
   }
   // A default that applied: keeping it needs no word; dropping it does.
   if (option === 'keep') return undefined
-  return cutRow(`[brief] ${q.ref ?? q.id} -> drop default (you). Undo "${q.answer ?? ''}" and ask again if it matters.`)
+  return cutRow(`[brief] ${q.ref ?? q.id} -> drop default (answered by the person). Undo "${q.answer ?? ''}" and ask again if it matters.`)
 }
+
+// Eval 2026-10-17: with "(you)" the agent read the row as its own and would not post on it.
+const ANSWER_ROW = /^\[brief\] (D\d+) -> (.+?) \(answered by the person\)\./
+
+/** The answers a `[brief]` row carries, one per line: how a row sent by any channel is matched to its ask. */
+export const parseAnswerRows = (text: string): { id: string; option: string }[] =>
+  text
+    .split('\n')
+    .map(l => ANSWER_ROW.exec(l.trim()))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map(m => ({ id: m[1] as string, option: (m[2] as string).replace(/^drop default$/, 'drop') }))
 
 /** Several events in one step become one row, one line each. */
 export const mergeRows = (rows: readonly string[]): string => rows.join('\n')

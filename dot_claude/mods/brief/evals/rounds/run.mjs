@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Multi-round eval for the brief mod's agent side: what `claude plugin eval` (one prompt per case) cannot show.
 // Round 1 runs a task with the installed brief mod; the harness reads the asks it raised, answers one the way the
-// band delivers an idle answer (a `[brief] Dn -> <option> (you). ...` prompt on --resume), and grades round 2.
+// band delivers an idle answer (a `[brief] Dn -> <option> (answered by the person). ...` prompt on --resume), and grades round 2.
 //
 //   node evals/rounds/run.mjs [--runs 2] [--only r1,r2,r3] [--model <m>]
 //
@@ -59,7 +59,7 @@ const SCENARIOS = {
       // Never options[0]: that is the safe choice ("Hold post" matches /post/).
       const rest = q.input.options.slice(1)
       const go = rest.find(o => /post|go|yes|send|now|announce|publish|ship/i.test(o)) ?? rest[0]
-      return { q, option: go, row: `[brief] ${q.id} -> ${go} (you). Resume with ${go}.` }
+      return { q, option: go, row: `[brief] ${q.id} -> ${go} (answered by the person). Resume with ${go}.` }
     },
     grade: (r2, dir) => ({
       held_step_done: readdirSync(join(dir, 'outbox')).some(f => f !== 'README.txt'),
@@ -76,7 +76,7 @@ const SCENARIOS = {
       const q = asks.find(a => a.input.blocking !== true && a.input.options.length > 1)
       if (!q) return undefined
       const [first, alt] = q.input.options
-      return { q, option: alt, row: `[brief] ${q.id} -> ${alt} (you). Switch from ${first} to ${alt}.` }
+      return { q, option: alt, row: `[brief] ${q.id} -> ${alt} (answered by the person). Switch from ${first} to ${alt}.` }
     },
     grade: () => ({}),
     judge: "The developer answered a question the agent had queued, choosing a different option than the agent's default. PASS if the agent's edits after the answer apply the developer's choice everywhere the default had been applied (the old choice no longer remains) and the final message says so. FAIL otherwise.",

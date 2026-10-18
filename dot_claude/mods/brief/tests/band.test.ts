@@ -117,7 +117,7 @@ test('brief_ask limits and the fixed texts', async () => {
   expect(validateAsk({ question: 'q', short: 's', options: ['a'] }).ok).toBe(false)
   expect(validateAsk({ question: 'q', short: 's', options: '["a","b"]' })).toEqual({ ok: true, value: { question: 'q', short: 's', options: ['a', 'b'], blocking: false } })
   expect(ASK_DESCRIPTION).toBe("Queue a multiple-choice question without stopping. Put your default first; it applies if they don't answer in time.")
-  expect(answerRow(publish, 'private')).toBe('[brief] D3 -> private (you). Resume with private.')
+  expect(answerRow(publish, 'private')).toBe('[brief] D3 -> private (answered by the person). Resume with private.')
 })
 
 // --- live: the hooks against the engine ---
@@ -259,7 +259,7 @@ test('the armed ask keeps its hotkeys; an answer is held 3s, undoable, then reac
   await ui.press({ key: 'D1:2' })
   await clock.advance(3_000)
   await clock.advance(500)
-  expect(prompts).toEqual(['[brief] D1 -> next turn (you). Switch from mid-turn to next turn.'])
+  expect(prompts).toEqual(['[brief] D1 -> next turn (answered by the person). Switch from mid-turn to next turn.'])
   // The next ask arms: the blocking one, now that nothing is on screen in its place.
   expect((await rows($, 75)).rows[0]).toMatch(/^! Publish the mod to GitHub\?/)
   await ui.unmount()
@@ -278,11 +278,11 @@ test('mid-turn answers go as one user row; idle ones as a prompt', async ($, on)
   await ui.unmount()
   expect(prompts).toEqual([])
   const users = rowsSeen.appended().map(r => JSON.stringify(r.message))
-  expect(users.some(u => u.includes('[brief] D1 -> alpha (you). Keep going with alpha.'))).toBe(true)
+  expect(users.some(u => u.includes('[brief] D1 -> alpha (answered by the person). Keep going with alpha.'))).toBe(true)
   // No model request read it before the turn ended: it goes again as a prompt, once.
   await $.turn.complete({ answer: 'done', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as never)
   await clock.advance(500)
-  expect(prompts).toEqual(['[brief] D1 -> alpha (you). Keep going with alpha.'])
+  expect(prompts).toEqual(['[brief] D1 -> alpha (answered by the person). Keep going with alpha.'])
 })
 
 test('review: parallel asks get distinct ids; no fork without done-when; a kept drift is not asked again', async ($, on) => {
@@ -447,4 +447,19 @@ test('isolation: each session saves to its own file and never sees another sessi
   expect([...files.keys()].sort()).toEqual(['/home/me/.claude/mods-data/brief/sessions/sess-1.json', '/home/me/.claude/mods-data/brief/sessions/sess-2.json'])
   expect(files.get('/home/me/.claude/mods-data/brief/sessions/sess-1.json')).not.toContain('Session B')
   expect(files.get('/home/me/.claude/mods-data/brief/sessions/sess-2.json')).not.toContain('Session A')
+})
+
+test('eval fix: an answer row that reaches the agent another way closes its ask', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  await start($)
+  await ask($, { question: 'Post the announcement?', short: 'Post?', options: ['Hold', 'Post it'], blocking: true })
+  await $.prompt.submit({ text: '[brief] D1 -> Post it (answered by the person). Resume with Post it.' } as never)
+  const read = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)
+  expect(read).not.toContain('open D1')
+  expect(read).toContain('D1: answered Post it')
+  // A row for an option the ask does not have, or an unknown id, changes nothing.
+  await ask($, { question: 'Second?', short: 'Second?', options: ['a', 'b'] })
+  await $.prompt.submit({ text: '[brief] D2 -> zzz (answered by the person). Resume with zzz.' } as never)
+  expect(String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)).toContain('open D2')
 })

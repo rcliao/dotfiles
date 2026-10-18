@@ -10,6 +10,7 @@ import {
   ASK_DESCRIPTION,
   answerRow,
   applyMet,
+  parseAnswerRows,
   checkPrompt,
   defaultQuestion,
   driftQuestion,
@@ -600,6 +601,30 @@ export const register: Register = on => {
     }
     if (e.tool === 'TaskCreate' || e.tool === 'TaskUpdate' || e.tool === 'TodoWrite') redraw($)
     return ran
+  }).catch(($, e, next) => next(e))
+
+  // A `[brief]` answer row that reaches the agent by another way than the band (a remote client, the eval
+  // harness): the ask it answers closes here too, so brief_read and the band agree with what the agent was told.
+  on('prompt.submit', async ($, e, next) => {
+    const answers = parseAnswerRows(e.text)
+    if (answers.length > 0) {
+      await ensureSession($)
+      let closed = 0
+      await update($, questionsAtom, prev =>
+        (prev ?? []).map(q => {
+          const a = answers.find(x => x.id === q.id)
+          if (a === undefined || q.status !== 'open' || !q.options.includes(a.option)) return q
+          closed++
+          return { ...q, status: 'answered' as const, answer: a.option }
+        }),
+      )
+      if (closed > 0) {
+        await update($, changesAtom, c => ({ ...(c ?? freshChanges(0)), answers: (c?.answers ?? 0) + closed }))
+        await rearm($)
+        redraw($)
+      }
+    }
+    return next(e)
   }).catch(($, e, next) => next(e))
 
   // One fixed section, added last, never edited mid-session.
