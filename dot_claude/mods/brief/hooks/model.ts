@@ -113,17 +113,29 @@ export const validateNote = (input: unknown): { ok: true; value: NoteInput } | {
   return { ok: true, value: out }
 }
 
-const key = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+const words = (s: string): string[] => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w !== '')
 
-/** Ticks the checks `met` names: the same text, or one containing the other, case and punctuation aside. */
+/**
+ * Ticks the checks `met` names, by whole words: the same words, or every word of the name in the check.
+ * A name with no words, or one that fits more than one unticked check, ticks nothing and comes back unmatched.
+ */
 export const applyMet = (items: readonly DoneItem[], met: readonly string[]): { items: DoneItem[]; unmatched: string[] } => {
   const unmatched: string[] = []
   const out = items.map(d => ({ ...d }))
   for (const m of met) {
-    const k = key(m)
-    const hit = out.find(d => key(d.text) === k) ?? out.find(d => k !== '' && (key(d.text).includes(k) || k.includes(key(d.text))))
-    if (hit === undefined) unmatched.push(m)
-    else hit.met = true
+    const want = words(m)
+    if (want.length === 0) {
+      unmatched.push(m)
+      continue
+    }
+    const same = out.filter(d => words(d.text).join(' ') === want.join(' '))
+    const covering = out.filter(d => {
+      const have = words(d.text)
+      return have.length > 0 && want.every(w => have.includes(w))
+    })
+    const pick = same.length === 1 ? same : covering.filter(d => !d.met).length === 1 ? covering.filter(d => !d.met) : covering.length === 1 ? covering : []
+    if (pick.length !== 1) unmatched.push(m)
+    else (pick[0] as DoneItem).met = true
   }
   return { items: out, unmatched }
 }

@@ -3,7 +3,7 @@ import type { TestBody } from 'claude-code/testing'
 
 import type { Question } from '../types'
 import { activity, activityText, askSpec, askText, DEFAULT_MS, fitAsk, isAscii, nextFire } from '../hooks/band'
-import { answerRow, ASK_DESCRIPTION, defaultQuestion, driftQuestion, readText, RULE, snapshot, validateAsk } from '../hooks/model'
+import { answerRow, applyMet, ASK_DESCRIPTION, defaultQuestion, driftQuestion, readText, RULE, snapshot, validateAsk } from '../hooks/model'
 
 type On = Parameters<TestBody>[1]
 type Engine = Parameters<TestBody>[0]
@@ -402,4 +402,16 @@ test('eval fix: met ticks checks by name; an unknown name lists the checks; the 
   expect(RULE).toContain('brief_note a one-line goal and 2-8 done-when checks')
   expect(RULE).toContain('only they can do')
   expect(validateAsk({ question: 'q', short: 's', options: ['requestConfig', 'b'] })).toEqual({ ok: false, error: 'option "requestConfig" is 13 characters; keep each to 12. Keep your choice and shorten its label (put the full name in the question)' })
+})
+
+test('review fix: met matches whole words, never an empty or ambiguous name', async () => {
+  const items = [{ text: '\u6d4b\u8bd5\u901a\u8fc7', met: false }, { text: 'docs updated', met: false }]
+  expect(applyMet(items, ['docs']).items.map(d => d.met)).toEqual([false, true])
+  expect(applyMet(items, ['\u6d4b\u8bd5\u901a\u8fc7']).items.map(d => d.met)).toEqual([true, false])
+  const tests = [{ text: 'unit tests pass', met: false }, { text: 'e2e tests pass', met: false }]
+  expect(applyMet(tests, ['tests pass'])).toEqual({ items: tests, unmatched: ['tests pass'] })
+  expect(applyMet(tests, ['unit tests pass']).items.map(d => d.met)).toEqual([true, false])
+  // A longer name that only contains a short check as a substring does not tick it.
+  expect(applyMet([{ text: 'test', met: false }], ['contest results']).unmatched).toEqual(['contest results'])
+  expect(applyMet([{ text: 'spec.md written', met: false }], ['---']).unmatched).toEqual(['---'])
 })

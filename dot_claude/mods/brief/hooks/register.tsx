@@ -65,6 +65,11 @@ let checking = false
 let flushTimer: { cancel: () => void } | undefined
 let undoTimer: { cancel: () => void } | undefined
 let saveTimer: { cancel: () => void } | undefined
+// The last save written, so the 15 s tick's redraw does not rewrite an unchanged brief.
+let lastSaved = ''
+// sid after session.end: the next entry point loads the new id's save. null means never set (a fresh process,
+// or a hot reload from before sid existed).
+const ENDED = '(ended)'
 
 // Every change redraws; the same moment schedules the session's save, so a resume finds the brief as it was.
 const redraw = ($: EngineInterface): void => {
@@ -90,11 +95,12 @@ type Saved = {
   startedAt: number
   check: Check | null
   turn: number
+  outbox: string[]
 }
 
 async function save($: EngineInterface): Promise<void> {
   const sid = await read($, sidAtom)
-  if (sid === null) return
+  if (sid === null || sid === ENDED) return
   const pending = await read($, pendingAtom)
   // An answer still undoable did not go out: on a resume its ask is open again.
   const questions = (await read($, questionsAtom)).map(q => (pending !== null && q.id === pending.id ? { ...q, status: 'open' as const, answer: undefined } : q))
@@ -110,8 +116,16 @@ async function save($: EngineInterface): Promise<void> {
     startedAt: await read($, startedAtom),
     check: await read($, checkAtom),
     turn: await read($, turnAtom),
+    outbox: await read($, outboxAtom),
   }
+  // Nothing to keep: no key, so idle sessions do not fill the store.
+  if (saved.goal === null && saved.doneWhen.length === 0 && saved.questions.length === 0 && saved.outbox.length === 0) return
+  const body = JSON.stringify({ ...saved, at: 0 })
+  if (body === lastSaved) return
+  // The session may have ended while this was reading: never write one session's state under another.
+  if ((await read($, sidAtom)) !== sid) return
   await $.store.set(SAVE_KEY + sid, saved)
+  lastSaved = body
 }
 
 async function load($: EngineInterface, sid: string): Promise<void> {
@@ -126,6 +140,12 @@ async function load($: EngineInterface, sid: string): Promise<void> {
   await update($, checkAtom, () => v.check ?? null)
   await update($, turnAtom, () => (typeof v.turn === 'number' ? v.turn : 0))
   if (typeof v.startedAt === 'number' && v.startedAt > 0) await update($, startedAtom, () => v.startedAt as number)
+  if (Array.isArray(v.outbox) && v.outbox.length > 0) {
+    await update($, outboxAtom, () => v.outbox as string[])
+    flushTimer = $.clock.after(FLUSH_MS, () => {
+      void flush($)
+    })
+  }
   const qs = v.questions as Question[]
   await update($, armedAtom, () => pickArmed(qs, typeof v.armed === 'string' ? v.armed : null))
 }
@@ -136,7 +156,14 @@ async function load($: EngineInterface, sid: string): Promise<void> {
  */
 async function ensureSession($: EngineInterface): Promise<void> {
   const sid = await $.session.id()
-  if ((await read($, sidAtom)) === sid) return
+  const held = await read($, sidAtom)
+  if (held === sid) return
+  // A mod loaded over a running session (a deploy) finds state but no sid: it is this session's, keep it.
+  if (held === null && (await read($, startedAtom)) !== 0) {
+    await update($, sidAtom, () => sid)
+    return
+  }
+  lastSaved = ''
   await resetSession($)
   await update($, sidAtom, () => sid)
   await load($, sid)
@@ -404,11 +431,11 @@ export const register: Register = on => {
 
   on('session.end', async ($, e, next) => {
     // Save what is open before the state goes: a resume of this session gets it back. /clear starts over.
+    saveTimer?.cancel()
     if (e.reason === 'clear') await Promise.resolve($.store.delete(SAVE_KEY + e.sessionId)).catch(() => undefined)
     else await save($).catch(() => undefined)
-    saveTimer?.cancel()
+    await update($, sidAtom, () => ENDED)
     await resetSession($)
-    await update($, sidAtom, () => null)
     return next(e)
   })
 
