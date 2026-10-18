@@ -180,11 +180,26 @@ const engine = (on: On) => {
   let task = 0
   on('tool.call', ($, e) => (e.tool === 'TaskCreate' ? { result: { task: { id: String(++task), subject: e.subject } } } : { result: 'ok' }))
   mock.store(on)
+  // A file system beneath, for the per-session saves.
+  const files = new Map<string, string>()
+  on('env.get', () => ({ value: '/home/me' }))
+  on('fs.write', ($, e) => {
+    files.set(e.path, e.text)
+    return { value: undefined }
+  })
+  on('fs.exists', ($, e) => ({ value: files.has(e.path) || [...files.keys()].some(k => k.startsWith(`${e.path}/`)) }))
+  on('fs.read', ($, e) => ({ value: files.get(String(e.path)) ?? '' }) as never)
+  on('fs.list', () => ({ value: [] }))
+  on('process.run', ($, e) => {
+    const argv = (e as { argv?: string[] }).argv ?? []
+    if (argv[0] === 'rm') for (const f of argv.slice(2)) files.delete(f)
+    return { value: { exitCode: 0, stdout: '', stderr: '' } } as never
+  })
   on('prompt.submit', ($, e) => {
     prompts.push(e.text)
     return e
   })
-  return { prompts, notified, forks, setSession: (id: string) => (sid = id) }
+  return { prompts, notified, forks, files, setSession: (id: string) => (sid = id) }
 }
 
 const start = async ($: Engine) => $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
@@ -414,4 +429,22 @@ test('review fix: met matches whole words, never an empty or ambiguous name', as
   // A longer name that only contains a short check as a substring does not tick it.
   expect(applyMet([{ text: 'test', met: false }], ['contest results']).unmatched).toEqual(['contest results'])
   expect(applyMet([{ text: 'spec.md written', met: false }], ['---']).unmatched).toEqual(['---'])
+})
+
+test('isolation: each session saves to its own file and never sees another session\'s asks', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  const { files, setSession } = engine(on)
+  on('session.end', ($, e) => e)
+  await start($)
+  await ask($, { question: 'Session A question?', short: 'A?', options: ['a1', 'a2'] })
+  await clock.advance(600)
+  await $.session.end({ reason: 'resume', sessionId: 'sess-1', resume: {} } as never)
+  // The process moves to another session (a /resume of a different conversation).
+  setSession('sess-2')
+  expect(String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)).not.toContain('Session A')
+  await ask($, { question: 'Session B question?', short: 'B?', options: ['b1', 'b2'] })
+  await clock.advance(600)
+  expect([...files.keys()].sort()).toEqual(['/home/me/.claude/mods-data/brief/sessions/sess-1.json', '/home/me/.claude/mods-data/brief/sessions/sess-2.json'])
+  expect(files.get('/home/me/.claude/mods-data/brief/sessions/sess-1.json')).not.toContain('Session B')
+  expect(files.get('/home/me/.claude/mods-data/brief/sessions/sess-2.json')).not.toContain('Session A')
 })

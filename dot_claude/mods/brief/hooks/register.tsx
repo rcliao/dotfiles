@@ -56,7 +56,9 @@ const TICK_MS = 15_000
 const FLUSH_MS = 300
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit'])
 const SAVE_MS = 500
-const SAVE_KEY = 'session-v2:'
+// One file per session, not the plugin store: the store is one JSON file every session writes, so panes saving
+// at once could drop each other's keys. A session only ever writes its own file.
+const SAVE_DIR = '/.claude/mods-data/brief/sessions'
 const SAVE_TTL_MS = 14 * 86_400_000
 
 // Module variables reset on a hot reload; each only skips one check or merges one row less.
@@ -80,7 +82,15 @@ const redraw = ($: EngineInterface): void => {
   })
 }
 
-// --- the brief across a resume: what the person has yet to answer, per session in $.store ---
+// --- the brief across a resume: what the person has yet to answer, one file per session ---
+
+async function saveDir($: EngineInterface): Promise<string | undefined> {
+  const home = await $.env.get('HOME')
+  return home === undefined ? undefined : `${home}${SAVE_DIR}`
+}
+
+// Session ids are UUIDs; anything else is not used in a path.
+const savePath = (dir: string, sid: string): string | undefined => (/^[A-Za-z0-9-]{1,80}$/.test(sid) ? `${dir}/${sid}.json` : undefined)
 
 /** What a resumed session gets back. Jobs, steps and the turn's flags are re-observed; an answer in its undo window is not kept. */
 type Saved = {
@@ -118,18 +128,29 @@ async function save($: EngineInterface): Promise<void> {
     turn: await read($, turnAtom),
     outbox: await read($, outboxAtom),
   }
-  // Nothing to keep: no key, so idle sessions do not fill the store.
+  // Nothing to keep: no file, so idle sessions leave nothing behind.
   if (saved.goal === null && saved.doneWhen.length === 0 && saved.questions.length === 0 && saved.outbox.length === 0) return
   const body = JSON.stringify({ ...saved, at: 0 })
   if (body === lastSaved) return
   // The session may have ended while this was reading: never write one session's state under another.
   if ((await read($, sidAtom)) !== sid) return
-  await $.store.set(SAVE_KEY + sid, saved)
+  const dir = await saveDir($)
+  const path = dir === undefined ? undefined : savePath(dir, sid)
+  if (path === undefined) return
+  await $.fs.write(path, JSON.stringify(saved))
   lastSaved = body
 }
 
 async function load($: EngineInterface, sid: string): Promise<void> {
-  const v = (await $.store.get(SAVE_KEY + sid).catch(() => undefined)) as Partial<Saved> | undefined
+  const dir = await saveDir($)
+  const path = dir === undefined ? undefined : savePath(dir, sid)
+  if (path === undefined || !(await $.fs.exists(path))) return
+  let v: Partial<Saved> | undefined
+  try {
+    v = JSON.parse(await $.fs.read(path)) as Partial<Saved>
+  } catch {
+    return
+  }
   if (v === undefined || v === null || typeof v !== 'object' || !Array.isArray(v.questions)) return
   await update($, goalAtom, () => (typeof v.goal === 'string' ? v.goal : null))
   await update($, doneWhenAtom, () => (Array.isArray(v.doneWhen) ? v.doneWhen : []))
@@ -170,12 +191,16 @@ async function ensureSession($: EngineInterface): Promise<void> {
 }
 
 async function sweepSaves($: EngineInterface): Promise<void> {
+  const dir = await saveDir($)
+  if (dir === undefined || !(await $.fs.exists(dir))) return
   const now = await $.clock.now()
-  for (const k of await $.store.keys()) {
-    if (!k.startsWith(SAVE_KEY)) continue
-    const v = (await $.store.get(k)) as { at?: number } | undefined
-    if (typeof v?.at !== 'number' || now - v.at > SAVE_TTL_MS) await $.store.delete(k)
+  for (const f of await $.fs.list(dir)) {
+    if (f.kind === 'file' && f.name.endsWith('.json') && now - f.mtimeMs > SAVE_TTL_MS) await removeSave($, `${dir}/${f.name}`)
   }
+}
+
+async function removeSave($: EngineInterface, path: string): Promise<void> {
+  await $.process.run(['rm', '-f', path], { timeoutMs: 3_000 }).catch(() => undefined)
 }
 
 const freshChanges = (since: number): Changes => ({ since, done: [], asks: 0, answers: 0, edits: 0 })
@@ -432,7 +457,11 @@ export const register: Register = on => {
   on('session.end', async ($, e, next) => {
     // Save what is open before the state goes: a resume of this session gets it back. /clear starts over.
     saveTimer?.cancel()
-    if (e.reason === 'clear') await Promise.resolve($.store.delete(SAVE_KEY + e.sessionId)).catch(() => undefined)
+    if (e.reason === 'clear') {
+      const dir = await saveDir($)
+      const path = dir === undefined ? undefined : savePath(dir, e.sessionId)
+      if (path !== undefined) await removeSave($, path)
+    }
     else await save($).catch(() => undefined)
     await update($, sidAtom, () => ENDED)
     await resetSession($)
