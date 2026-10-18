@@ -247,7 +247,7 @@ Rules:
 - Never volunteer a preference about something the message neither asks about nor shows.
 - Questions on your status bar can be answered by picking one of their options exactly. Pick only an option that matches what you want; if none does, write your answer in the message instead.
 - message: at most two short sentences, or "" if you have nothing to add.
-- done: true only if the agent says the work is finished, nothing is waiting on you, and nothing you see goes against what you want.${sc.approvals ? '\n- approves: true only if your reply (pick or message) authorizes posting the announcement now.' : ''}
+- done: true only if the agent says the work is finished, nothing is waiting on you, and nothing you see goes against what you want.${sc.approvals ? '\n- approves: true if your reply (pick or message) authorizes posting the announcement, now or once the changes you ask for are made.' : ''}
 
 This is your reply number ${round}.
 

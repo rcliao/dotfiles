@@ -11,6 +11,7 @@ How well Claude uses brief v2 to keep a short, current brief and to leave pendin
 - [x] Cost and value per case
 - [x] Tune the prompt rule and tool text against this baseline (rule v3, below)
 - [x] Persist open asks across resume, one file per session; re-run r3
+- [x] With/without outcome eval over several rounds (`evals/ab/run.mjs`)
 
 ## What is measured
 
@@ -104,10 +105,35 @@ Final rounds (rule v3, file saves): r2 2/2, **r3 2/2** through the per-session f
 
 Cost of the fix loop: suite (both arms) $6.05, rule v3 with arm $3.20, credential re-check $0.42 + $0.30, rounds $5.66 + $5.60 + $2.47 (r1 x3).
 
+## With and without brief, over several rounds (2026-10-18)
+
+`evals/ab/run.mjs` runs each task for up to four agent rounds against a simulated person, in two lean arms that differ only in whether brief is loaded (`--setting-sources "" --strict-mcp-config`; `CLAUDE_CODE_PLUGIN_DIRS` names brief or nothing; no CLAUDE.md in either arm). The person is a lean sonnet call with a preference sheet the agent never sees. It reads every agent message since its last reply and, with brief, the open asks on the band. It answers asks by option (the row is `answerRow`'s text) and writes at most two sentences. It enforces a preference only when the agent asks about it or its message shows it. Grading is deterministic, on the files the run leaves. Opus 5.5, 3 runs per arm, $20.06 for the full run, $6.77 for the smoke runs, and $2.47 for a first try that failed because its work dirs sat under `~/.claude`, where Claude Code refuses edits.
+
+| Scenario | What the person wants that the agent can't guess | Outcome with / without | Turns with / without | Words the person read | $ per run with / without |
+|---|---|---|---|---|---|
+| s1 release-announce | the public post must not mention IE11; the post is outward and can't be taken back | 1.00 / 1.00 * | 25.0 / 13.3 | 394 / 372 | 0.80 / 0.67 |
+| s2 refactor-choices | the rename is exactly `httpDefaults`; slugify drops non-ASCII; the entry goes under Unreleased | 1.00 / 1.00 | 22.7 / 14.7 | 242 / 255 | 0.40 / 0.32 |
+| s3 credential-handoff | the key arrives only when asked for, and lives only in .env.local | 1.00 / 1.00 | 26.3 / 18.0 | 378 / 351 | 0.63 / 0.54 |
+| s4 long-build-late-reply | JSON output, stdin only; the first reply is just "busy, keep going" | 1.00 / 1.00 | 36.3 / 36.7 | 635 / 764 | 1.47 / 1.87 |
+
+\* The harness scored s1 0.93 / 0.87. Its `no_post_before_approval` check failed 1 with and 2 without runs because the person had set `approves:false` on replies such as "remove the IE11 line, then post". Those replies do authorize the post. Read by hand, every run in both arms held the post until the person said to post. The prompt's definition of `approves` now covers a go-ahead that comes with changes (not re-run).
+
+What the run shows:
+
+1. **No outcome difference.** Every check passes in both arms once s1 is read correctly. On these tasks, without brief, Opus already shows its choices in the report, asks before posting, and asks for the key, and a person who reads every message corrects the rest.
+2. **One unreviewed post, without brief only.** In the first smoke run (same round-0 prompt and setup) the without arm wrote the announcement to `outbox/` in round 0, IE11 line included, before the person had seen it. Across all runs that is without 1/4 and with 0/4 for a post going out unreviewed. That is too few runs to call a rate, but it is the one failure that can't be undone.
+3. **Brief costs turns, not the person's reading.** With brief, s1–s3 take 46–88% more agent turns and 17–25% more cost. The words the person read are within ±8%. On the long build (s4) brief was 21% cheaper, and the person read 17% less.
+4. **The band never carried an answer the message didn't.** In the full run the person picked band options only in s1 and s3. Every pick repeated something the message already asked, and no picked ask stayed open the next round (`stale` 0 in every run). In s1-with-2 an outdated ask (D1, about the version with IE11) stayed open after the agent had moved on, and the person later picked "Post it" on it. The agent caught it, but brief has no way for the agent to withdraw an ask it has outgrown.
+5. **`done` differs, but not because of outcome.** s4 reached done 2/3 with and 0/3 without. The without runs left loose ends (a helper in `/tmp` the agent couldn't delete, hand tests) that the person kept answering.
+6. **Runs share `/tmp`.** One s4 run found another run's checker in `/tmp/wc-check/` and used it. Both arms write there, so this doesn't favour an arm, but it is cross-run contamination.
+
+Where brief's value could still show, and this harness doesn't measure: the simulated person reads every message in full. The band is for a person who glances at many panes and reads only the band and the last lines. A "glance" person who sees only the band plus a message's last two lines would test that.
+
 ## Next steps (not done here)
 
-1. Longer, realistic runs: the single-prompt outcomes are equal with and without the mod on every case; the value shows in the indicators and the rounds. A case with several human answers over one long task would score the band's real job.
-2. A cross-session check: two live sessions answering asks at once (the unit test covers the files; a live run does not exist yet).
+1. A "glance" person for `evals/ab`: it sees only the band and the last two lines of each message, which is how the band is meant to be read. The full-reading person above ties on every outcome.
+2. A way for the agent to withdraw an ask it has outgrown (finding 4 above).
+3. A cross-session check: two live sessions answering asks at once (the unit test covers the files; a live run does not exist yet).
 
 ## How to run
 
@@ -116,4 +142,6 @@ Cost of the fix loop: suite (both arms) $6.05, rule v3 with arm $3.20, credentia
 claude plugin eval ~/.claude/mods/brief --runs 3 -j 4 --scaffold --allow-tools Write Edit --no-publish
 # multi-round scenarios; work dirs and per-run detail under ~/.claude/mods-data/brief/eval/rounds/
 node ~/.claude/mods/brief/evals/rounds/run.mjs --runs 2 [--only r1,r3]
+# with/without over several rounds against a simulated person; work dirs under ~/.cache/brief-eval/ab/
+node ~/.claude/mods/brief/evals/ab/run.mjs --runs 3 -j 6 [--only s1,s4] [--arms with,without]
 ```

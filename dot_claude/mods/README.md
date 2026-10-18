@@ -40,3 +40,4 @@ is full.
 
 - `claude plugin eval ~/.claude/mods/brief --runs 3 -j 4 --scaffold --allow-tools Write Edit --no-publish`: 8 single-prompt cases, with and without the mod. About $6 for the full run.
 - `node ~/.claude/mods/brief/evals/rounds/run.mjs --runs 2`: answers the agent's asks the way the band does and grades the next round, plus one resume. About $6.
+- `node ~/.claude/mods/brief/evals/ab/run.mjs --runs 3 -j 6`: with and without brief over several rounds against a simulated person with hidden preferences; grades the files the run leaves. About $20.
