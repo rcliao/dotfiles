@@ -61,6 +61,8 @@ const SAVE_MS = 500
 // at once could drop each other's keys. A session only ever writes its own file.
 const SAVE_DIR = '/.claude/mods-data/brief/sessions'
 const SAVE_TTL_MS = 14 * 86_400_000
+// Typed at the terminal, Remote Control, and an SDK host's turn (claude -p, the eval harness).
+const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
 
 // Module variables reset on a hot reload; each only skips one check or merges one row less.
 let toolsThisTurn = false
@@ -261,18 +263,24 @@ async function commit($: EngineInterface, id: string): Promise<void> {
   await update($, pendingAtom, () => null)
   const q = (await read($, questionsAtom)).find(x => x.id === id)
   if (q !== undefined) {
-    // A kept drift becomes a done-when check of its own.
-    if (q.kind === 'drift' && pending.option === 'keep') {
-      const what = q.question.replace(/ isn't in done-when$/, '')
-      await update($, doneWhenAtom, prev => [...(prev ?? []), { text: what.slice(0, 40), met: false }])
-      await update($, keptAtom, prev => [...(prev ?? []), what.toLowerCase()])
-    }
+    await settle($, q, pending.option)
     const row = answerRow(q, pending.option)
     if (row !== undefined) await send($, row)
   }
-  await update($, changesAtom, c => ({ ...(c ?? freshChanges(0)), answers: (c?.answers ?? 0) + 1 }))
   await rearm($)
   redraw($)
+}
+
+/** What an answer does to the brief, however it arrived (a band press or a row from another channel). */
+async function settle($: EngineInterface, q: Question, option: string): Promise<void> {
+  // A kept drift becomes a done-when check of its own.
+  if (q.kind === 'drift' && option === 'keep') {
+    const what = q.question.replace(/ isn't in done-when$/, '')
+    await update($, doneWhenAtom, prev => [...(prev ?? []), { text: what.slice(0, 40), met: false }])
+    await update($, keptAtom, prev => [...(prev ?? []), what.toLowerCase()])
+  }
+  await update($, questionsAtom, prev => (prev ?? []).map(x => (x.id === q.id ? { ...x, status: 'answered' as const, answer: option } : x)))
+  await update($, changesAtom, c => ({ ...(c ?? freshChanges(0)), answers: (c?.answers ?? 0) + 1 }))
 }
 
 async function answer($: EngineInterface, id: string, option: string): Promise<void> {
@@ -463,7 +471,11 @@ export const register: Register = on => {
       const path = dir === undefined ? undefined : savePath(dir, e.sessionId)
       if (path !== undefined) await removeSave($, path)
     }
-    else await save($).catch(() => undefined)
+    else {
+      // Always write: another session's sweep may have removed a long-idle file whose body never changed.
+      lastSaved = ''
+      await save($).catch(() => undefined)
+    }
     await update($, sidAtom, () => ENDED)
     await resetSession($)
     return next(e)
@@ -605,21 +617,20 @@ export const register: Register = on => {
 
   // A `[brief]` answer row that reaches the agent by another way than the band (a remote client, the eval
   // harness): the ask it answers closes here too, so brief_read and the band agree with what the agent was told.
+  // Only the person's own channels: a task notification, a peer or a channel message is model- or other-written
+  // and must never answer for them (ids also repeat across sessions).
   on('prompt.submit', async ($, e, next) => {
-    const answers = parseAnswerRows(e.text)
+    const answers = PERSON_ORIGINS.has(e.origin.kind) ? parseAnswerRows(e.text) : []
     if (answers.length > 0) {
       await ensureSession($)
       let closed = 0
-      await update($, questionsAtom, prev =>
-        (prev ?? []).map(q => {
-          const a = answers.find(x => x.id === q.id)
-          if (a === undefined || q.status !== 'open' || !q.options.includes(a.option)) return q
-          closed++
-          return { ...q, status: 'answered' as const, answer: a.option }
-        }),
-      )
+      for (const a of answers) {
+        const q = openQuestions(await read($, questionsAtom)).find(x => x.id === a.id)
+        if (q === undefined || !q.options.includes(a.option)) continue
+        await settle($, q, a.option)
+        closed++
+      }
       if (closed > 0) {
-        await update($, changesAtom, c => ({ ...(c ?? freshChanges(0)), answers: (c?.answers ?? 0) + closed }))
         await rearm($)
         redraw($)
       }

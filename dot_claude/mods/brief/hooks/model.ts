@@ -174,7 +174,8 @@ export const answerRow = (q: Question, option: string): string | undefined => {
   }
   // A default that applied: keeping it needs no word; dropping it does.
   if (option === 'keep') return undefined
-  return cutRow(`[brief] ${q.ref ?? q.id} -> drop default (answered by the person). Undo "${q.answer ?? ''}" and ask again if it matters.`)
+  // The default ask's own id, so a row sent by another channel closes this ask; the original is named in the text.
+  return cutRow(`[brief] ${q.id} -> drop (answered by the person). Undo the default "${q.answer ?? ''}" of ${q.ref ?? 'the ask'}; ask again if it matters.`)
 }
 
 // Eval 2026-10-17: with "(you)" the agent read the row as its own and would not post on it.
@@ -186,7 +187,7 @@ export const parseAnswerRows = (text: string): { id: string; option: string }[] 
     .split('\n')
     .map(l => ANSWER_ROW.exec(l.trim()))
     .filter((m): m is RegExpExecArray => m !== null)
-    .map(m => ({ id: m[1] as string, option: (m[2] as string).replace(/^drop default$/, 'drop') }))
+    .map(m => ({ id: m[1] as string, option: m[2] as string }))
 
 /** Several events in one step become one row, one line each. */
 export const mergeRows = (rows: readonly string[]): string => rows.join('\n')
