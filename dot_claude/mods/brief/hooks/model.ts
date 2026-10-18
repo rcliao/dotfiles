@@ -13,10 +13,22 @@ export const MAX_READ_LINES = 8
 export const ASK_DESCRIPTION =
   "Queue a multiple-choice question without stopping. Put your default first; it applies if they don't answer in time."
 
+// Eval 2026-10-17: without the brief_note sentence the agent never set a goal (0/3), and without "only they can do"
+// a missing credential never blocked (0/3). docs/brief-v2-eval.md.
 export const RULE =
-  "Brief: ask with brief_ask and keep working on option 1, your default. Block only for steps that can't be undone or that others will see. Questions under 60 characters, options under 12. Call brief_read before you say you're done."
+  "Brief: when you start a task, brief_note a one-line goal and 2-8 done-when checks, and brief_note met: [...] as each is met. Ask with brief_ask and keep working on option 1, your default. Block only for steps that can't be undone, that others will see, or that only they can do (a key, an account, a manual step). Questions under 60 characters, options under 12. Call brief_read before you say you're done."
 
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
+
+/** Typographic punctuation folded to ASCII, so a dash or a curly quote is not a refused call and a retry. */
+export const foldAscii = (s: string): string =>
+  s
+    .replace(/[\u2012-\u2015\u2212]/g, '-')
+    .replace(/[\u2018\u2019\u201a\u2032]/g, "'")
+    .replace(/[\u201c\u201d\u201e\u2033]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/\u2192/g, '->')
+    .replace(/[\u00a0\u2000-\u200b\u202f]/g, ' ')
 
 /** A list field, also when a client sent it JSON-encoded. */
 const listOf = (v: unknown): unknown => {
@@ -34,10 +46,10 @@ export type AskInput = { question: string; short: string; options: string[]; blo
 export const validateAsk = (input: unknown): { ok: true; value: AskInput } | { ok: false; error: string } => {
   const o = (input ?? {}) as { question?: unknown; short?: unknown; options?: unknown; blocking?: unknown }
   if (typeof o.question !== 'string' || clean(o.question) === '') return { ok: false, error: 'question is required' }
-  const question = clean(o.question)
+  const question = clean(foldAscii(o.question))
   if (question.length > MAX_QUESTION) return { ok: false, error: `question is ${question.length} characters; keep it to ${MAX_QUESTION}` }
   if (typeof o.short !== 'string' || clean(o.short) === '') return { ok: false, error: `short is required: the question in at most ${MAX_SHORT} characters` }
-  const short = clean(o.short)
+  const short = clean(foldAscii(o.short))
   if (short.length > MAX_SHORT) return { ok: false, error: `short is ${short.length} characters; keep it to ${MAX_SHORT}` }
   const raw = listOf(o.options)
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > MAX_OPTIONS) {
@@ -46,8 +58,11 @@ export const validateAsk = (input: unknown): { ok: true; value: AskInput } | { o
   const options: string[] = []
   for (const x of raw) {
     if (typeof x !== 'string' || clean(x) === '') return { ok: false, error: 'each option is a non-empty string' }
-    const opt = clean(x)
-    if (opt.length > MAX_OPTION) return { ok: false, error: `option "${opt}" is ${opt.length} characters; keep each to ${MAX_OPTION}` }
+    const opt = clean(foldAscii(x))
+    // Eval: on a bare limit error the agent swapped its preferred choice for a shorter one. Say to shorten the label.
+    if (opt.length > MAX_OPTION) {
+      return { ok: false, error: `option "${opt}" is ${opt.length} characters; keep each to ${MAX_OPTION}. Keep your choice and shorten its label (put the full name in the question)` }
+    }
     if (options.includes(opt)) return { ok: false, error: `option "${opt}" is listed twice` }
     options.push(opt)
   }
@@ -56,11 +71,11 @@ export const validateAsk = (input: unknown): { ok: true; value: AskInput } | { o
   return { ok: true, value: { question, short, options, blocking: o.blocking === true } }
 }
 
-export type NoteInput = { goal?: string; doneWhen?: DoneItem[]; assumption?: string }
+export type NoteInput = { goal?: string; doneWhen?: DoneItem[]; met?: string[]; assumption?: string }
 
-/** brief_note's input. doneWhen items are strings (`[x] ` marks one met) or `{ text, met }`. */
+/** brief_note's input. doneWhen items are strings (`[x] ` marks one met) or `{ text, met }`; `met` ticks checks by name. */
 export const validateNote = (input: unknown): { ok: true; value: NoteInput } | { ok: false; error: string } => {
-  const o = (input ?? {}) as { goal?: unknown; doneWhen?: unknown; assumption?: unknown }
+  const o = (input ?? {}) as { goal?: unknown; doneWhen?: unknown; met?: unknown; assumption?: unknown }
   const out: NoteInput = {}
   if (o.goal !== undefined) {
     if (typeof o.goal !== 'string' || clean(o.goal) === '') return { ok: false, error: 'goal is one line' }
@@ -82,14 +97,35 @@ export const validateNote = (input: unknown): { ok: true; value: NoteInput } | {
     }
     out.doneWhen = items
   }
+  if (o.met !== undefined) {
+    const raw = listOf(o.met)
+    const list = typeof raw === 'string' ? [raw] : raw
+    if (!Array.isArray(list) || !list.every(x => typeof x === 'string')) return { ok: false, error: 'met is a list of done-when checks, by their text' }
+    out.met = list.map(x => clean(x)).filter(x => x !== '')
+  }
   if (o.assumption !== undefined) {
     if (typeof o.assumption !== 'string' || clean(o.assumption) === '') return { ok: false, error: 'assumption is one line' }
     out.assumption = clean(o.assumption).slice(0, MAX_ROW)
   }
-  if (out.goal === undefined && out.doneWhen === undefined && out.assumption === undefined) {
-    return { ok: false, error: 'give at least one of goal, doneWhen, assumption' }
+  if (out.goal === undefined && out.doneWhen === undefined && out.met === undefined && out.assumption === undefined) {
+    return { ok: false, error: 'give at least one of goal, doneWhen, met, assumption' }
   }
   return { ok: true, value: out }
+}
+
+const key = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+/** Ticks the checks `met` names: the same text, or one containing the other, case and punctuation aside. */
+export const applyMet = (items: readonly DoneItem[], met: readonly string[]): { items: DoneItem[]; unmatched: string[] } => {
+  const unmatched: string[] = []
+  const out = items.map(d => ({ ...d }))
+  for (const m of met) {
+    const k = key(m)
+    const hit = out.find(d => key(d.text) === k) ?? out.find(d => k !== '' && (key(d.text).includes(k) || k.includes(key(d.text))))
+    if (hit === undefined) unmatched.push(m)
+    else hit.met = true
+  }
+  return { items: out, unmatched }
 }
 
 export const openQuestions = (qs: readonly Question[]): Question[] => qs.filter(q => q.status === 'open')

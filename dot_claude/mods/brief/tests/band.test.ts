@@ -105,7 +105,9 @@ test('ASCII only: every string the mod produces', async () => {
   ]
   for (const s of strings) for (const l of s.split('\n')) expect([l, isAscii(l)]).toEqual([l, true])
   // The agent's own strings are checked at the door.
-  expect(validateAsk({ question: 'Ship it→now?', short: 'Ship?', options: ['yes', 'no'] }).ok).toBe(false)
+  // Typographic punctuation is folded, not refused; anything else non-ASCII is refused.
+  expect(validateAsk({ question: 'Ship it\u2192now \u2014 really?', short: 'Ship\u2026', options: ['\u201cyes\u201d', 'no'] })).toEqual({ ok: true, value: { question: 'Ship it->now - really?', short: 'Ship...', options: ['"yes"', 'no'], blocking: false } })
+  expect(validateAsk({ question: 'Caf\u00e9?', short: 'Cafe?', options: ['yes', 'no'] }).ok).toBe(false)
 })
 
 test('brief_ask limits and the fixed texts', async () => {
@@ -168,6 +170,8 @@ const engine = (on: On) => {
     forks.n++
     return { value: { isAnswered: true, text: '{"onTrack": false, "unplanned": ["Status-line entry"]}', usage: { inputTokens: 1, outputTokens: 1 } } } as never
   })
+  let sid = 'sess-1'
+  on('session.id', () => ({ value: sid }))
   on('session.start', ($, e) => e)
   on('turn.start', ($, e) => e)
   on('turn.complete', ($, e) => ({ text: e.answer }))
@@ -180,7 +184,7 @@ const engine = (on: On) => {
     prompts.push(e.text)
     return e
   })
-  return { prompts, notified, forks }
+  return { prompts, notified, forks, setSession: (id: string) => (sid = id) }
 }
 
 const start = async ($: Engine) => $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/src/app' } as never)
@@ -364,4 +368,38 @@ test('spinner: suffix only, after Claude Code\'s own; compose: one fixed section
   const ids = composed.sections.map(s => s.id)
   expect(ids).toEqual(['base', 'brief:rule'])
   expect(composed.sections.at(-1)?.text).toBe(RULE)
+})
+
+test('eval fix: an open ask survives a restart of the same session; ids keep counting; /clear drops it', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engine(on)
+  on('session.end', ($, e) => e)
+  await start($)
+  await $.tool.call({ tool: 'mcp__brief__brief_note', goal: 'Wire the forecast', doneWhen: ['code reads WEATHER_KEY', 'works end to end'] } as never)
+  await ask($, { question: 'Add WEATHER_KEY to .env.local?', short: 'Add the key?', options: ['added', 'skip'], blocking: true })
+  await clock.advance(600)
+  // The process ends (a -p run, /exit): the state goes, the save stays.
+  await $.session.end({ reason: 'other', sessionId: 'sess-1', resume: {} } as never)
+  expect(String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)).toContain('open D1 (blocking): Add WEATHER_KEY to .env.local?')
+  expect(String((await ask($, { question: 'Second?', short: 'Second?', options: ['a', 'b'] })).result)).toBe('{"id":"D2"}')
+  expect(String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)).toContain('goal: Wire the forecast')
+  await clock.advance(600)
+  // /clear: the conversation is gone, and so is its save.
+  await $.session.end({ reason: 'clear', sessionId: 'sess-1', resume: {} } as never)
+  expect(String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)).not.toContain('open D')
+})
+
+test('eval fix: met ticks checks by name; an unknown name lists the checks; the rule names brief_note', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  await start($)
+  await $.tool.call({ tool: 'mcp__brief__brief_note', goal: 'wc CLI', doneWhen: ['spec.md written', 'plan.md written', 'wc.ts works'] } as never)
+  const ok = await $.tool.call({ tool: 'mcp__brief__brief_note', met: ['spec.md', 'Plan.md written'] } as never)
+  expect(String(ok.result)).toBe('ok; done when [x] spec.md written  [x] plan.md written  [ ] wc.ts works')
+  const bad = await $.tool.call({ tool: 'mcp__brief__brief_note', met: ['tests'] } as never)
+  expect(bad.isError).toBe(true)
+  expect(String(bad.result)).toContain('the checks are: spec.md written; plan.md written; wc.ts works')
+  expect(RULE).toContain('brief_note a one-line goal and 2-8 done-when checks')
+  expect(RULE).toContain('only they can do')
+  expect(validateAsk({ question: 'q', short: 's', options: ['requestConfig', 'b'] })).toEqual({ ok: false, error: 'option "requestConfig" is 13 characters; keep each to 12. Keep your choice and shorten its label (put the full name in the question)' })
 })

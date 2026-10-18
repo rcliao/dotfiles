@@ -9,6 +9,7 @@ import { activity, askSpec, fitAsk, stepCount, UNDO_MS } from './band'
 import {
   ASK_DESCRIPTION,
   answerRow,
+  applyMet,
   checkPrompt,
   defaultQuestion,
   driftQuestion,
@@ -46,6 +47,7 @@ const outboxAtom = atom({ plugin: 'brief', key: 'outbox' } as const, [] as strin
 const snapshotAtom = atom({ plugin: 'brief', key: 'snapshot' } as const, [] as SnapLine[])
 const unreadAtom = atom({ plugin: 'brief', key: 'unread' } as const, null as string | null)
 const keptAtom = atom({ plugin: 'brief', key: 'kept' } as const, [] as string[])
+const sidAtom = atom({ plugin: 'brief', key: 'sid' } as const, null as string | null)
 
 const ASK_TOOL = 'mcp__brief__brief_ask'
 const NOTE_TOOL = 'mcp__brief__brief_note'
@@ -53,14 +55,101 @@ const READ_TOOL = 'mcp__brief__brief_read'
 const TICK_MS = 15_000
 const FLUSH_MS = 300
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit'])
+const SAVE_MS = 500
+const SAVE_KEY = 'session-v2:'
+const SAVE_TTL_MS = 14 * 86_400_000
 
 // Module variables reset on a hot reload; each only skips one check or merges one row less.
 let toolsThisTurn = false
 let checking = false
 let flushTimer: { cancel: () => void } | undefined
 let undoTimer: { cancel: () => void } | undefined
+let saveTimer: { cancel: () => void } | undefined
 
-const redraw = ($: EngineInterface): void => $.ui.invalidate('ui.render')
+// Every change redraws; the same moment schedules the session's save, so a resume finds the brief as it was.
+const redraw = ($: EngineInterface): void => {
+  $.ui.invalidate('ui.render')
+  saveTimer?.cancel()
+  saveTimer = $.clock.after(SAVE_MS, () => {
+    void save($).catch(() => undefined)
+  })
+}
+
+// --- the brief across a resume: what the person has yet to answer, per session in $.store ---
+
+/** What a resumed session gets back. Jobs, steps and the turn's flags are re-observed; an answer in its undo window is not kept. */
+type Saved = {
+  at: number
+  goal: string | null
+  doneWhen: DoneItem[]
+  assumptions: string[]
+  questions: Question[]
+  armed: string | null
+  nextId: number
+  kept: string[]
+  startedAt: number
+  check: Check | null
+  turn: number
+}
+
+async function save($: EngineInterface): Promise<void> {
+  const sid = await read($, sidAtom)
+  if (sid === null) return
+  const pending = await read($, pendingAtom)
+  // An answer still undoable did not go out: on a resume its ask is open again.
+  const questions = (await read($, questionsAtom)).map(q => (pending !== null && q.id === pending.id ? { ...q, status: 'open' as const, answer: undefined } : q))
+  const saved: Saved = {
+    at: await $.clock.now(),
+    goal: await read($, goalAtom),
+    doneWhen: await read($, doneWhenAtom),
+    assumptions: await read($, assumptionsAtom),
+    questions: questions.slice(-40),
+    armed: await read($, armedAtom),
+    nextId: await read($, nextIdAtom),
+    kept: await read($, keptAtom),
+    startedAt: await read($, startedAtom),
+    check: await read($, checkAtom),
+    turn: await read($, turnAtom),
+  }
+  await $.store.set(SAVE_KEY + sid, saved)
+}
+
+async function load($: EngineInterface, sid: string): Promise<void> {
+  const v = (await $.store.get(SAVE_KEY + sid).catch(() => undefined)) as Partial<Saved> | undefined
+  if (v === undefined || v === null || typeof v !== 'object' || !Array.isArray(v.questions)) return
+  await update($, goalAtom, () => (typeof v.goal === 'string' ? v.goal : null))
+  await update($, doneWhenAtom, () => (Array.isArray(v.doneWhen) ? v.doneWhen : []))
+  await update($, assumptionsAtom, () => (Array.isArray(v.assumptions) ? v.assumptions : []))
+  await update($, questionsAtom, () => v.questions as Question[])
+  await update($, nextIdAtom, () => (typeof v.nextId === 'number' ? v.nextId : 1))
+  await update($, keptAtom, () => (Array.isArray(v.kept) ? v.kept : []))
+  await update($, checkAtom, () => v.check ?? null)
+  await update($, turnAtom, () => (typeof v.turn === 'number' ? v.turn : 0))
+  if (typeof v.startedAt === 'number' && v.startedAt > 0) await update($, startedAtom, () => v.startedAt as number)
+  const qs = v.questions as Question[]
+  await update($, armedAtom, () => pickArmed(qs, typeof v.armed === 'string' ? v.armed : null))
+}
+
+/**
+ * The state belongs to one session id. A /clear or a resume moves the process to another id without a
+ * session.start, so each entry point checks: a new id resets the state and loads that session's save.
+ */
+async function ensureSession($: EngineInterface): Promise<void> {
+  const sid = await $.session.id()
+  if ((await read($, sidAtom)) === sid) return
+  await resetSession($)
+  await update($, sidAtom, () => sid)
+  await load($, sid)
+}
+
+async function sweepSaves($: EngineInterface): Promise<void> {
+  const now = await $.clock.now()
+  for (const k of await $.store.keys()) {
+    if (!k.startsWith(SAVE_KEY)) continue
+    const v = (await $.store.get(k)) as { at?: number } | undefined
+    if (typeof v?.at !== 'number' || now - v.at > SAVE_TTL_MS) await $.store.delete(k)
+  }
+}
 
 const freshChanges = (since: number): Changes => ({ since, done: [], asks: 0, answers: 0, edits: 0 })
 
@@ -267,13 +356,14 @@ export const register: Register = on => {
       },
       {
         name: 'brief_note',
-        description: 'Record the goal, the done-when checks (a list; "[x] text" marks one met; the list replaces the last) or an assumption you made.',
+        description: 'Record the goal and 2-8 done-when checks when you start (the list replaces the last; "[x] text" marks one met), tick checks with met as you finish them, or note an assumption you made.',
         isDeferred: true,
         inputSchema: {
           type: 'object',
           properties: {
             goal: { type: 'string' },
             doneWhen: { type: 'array', items: { type: 'string' } },
+            met: { type: 'array', items: { type: 'string' }, description: 'Done-when checks now met, by their text' },
             assumption: { type: 'string' },
           },
         },
@@ -289,7 +379,9 @@ export const register: Register = on => {
     await $.command
       .register({ name: 'brief', description: 'Show the brief: goal, done-when, open asks, what changed, health', immediate: true })
       .catch(err => $.ui.log(`brief: could not register /brief (${String(err)})`))
-    if ((await read($, startedAtom)) === 0) await resetSession($)
+    // A hot reload keeps the state (same id); a fresh process or a resume loads the session's save.
+    await ensureSession($)
+    await sweepSaves($).catch(() => undefined)
     // A reload drops timers: an answer still in its undo window goes out when the window would have closed.
     const pending = await read($, pendingAtom)
     if (pending !== null) {
@@ -311,12 +403,18 @@ export const register: Register = on => {
   })
 
   on('session.end', async ($, e, next) => {
+    // Save what is open before the state goes: a resume of this session gets it back. /clear starts over.
+    if (e.reason === 'clear') await Promise.resolve($.store.delete(SAVE_KEY + e.sessionId)).catch(() => undefined)
+    else await save($).catch(() => undefined)
+    saveTimer?.cancel()
     await resetSession($)
+    await update($, sidAtom, () => null)
     return next(e)
   })
 
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
+      await ensureSession($)
       toolsThisTurn = false
       await update($, workingAtom, () => true)
       redraw($)
@@ -366,7 +464,10 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('tool.call', async ($, e, next) => {
-    if (e.tool === ASK_TOOL) {
+    // A plain string: the laid MCP types list a fixed set of names, so comparing e.tool narrows e to never.
+    const name: string = e.tool
+    if ([ASK_TOOL, NOTE_TOOL, READ_TOOL].includes(name)) await ensureSession($)
+    if (name === ASK_TOOL) {
       if (e.agentId !== undefined) return { result: 'Not queued: only the main session asks the person.' }
       const checked = validateAsk(e)
       if (!checked.ok) return { isError: true, result: checked.error, text: checked.error }
@@ -382,10 +483,10 @@ export const register: Register = on => {
       }
       return { result: JSON.stringify({ id }) }
     }
-    if (e.tool === NOTE_TOOL) {
+    if (name === NOTE_TOOL) {
       const checked = validateNote(e)
       if (!checked.ok) return { isError: true, result: checked.error, text: checked.error }
-      const { goal, doneWhen, assumption } = checked.value
+      const { goal, doneWhen, met, assumption } = checked.value
       if (goal !== undefined) {
         if ((await read($, goalAtom)) === null) {
           const started = await $.clock.now()
@@ -398,11 +499,23 @@ export const register: Register = on => {
         await noteDone($, doneWhen.filter(d => d.met && !prev.some(p => p.text === d.text && p.met)).map(d => d.text))
         await update($, doneWhenAtom, () => doneWhen)
       }
+      if (met !== undefined) {
+        const prev = await read($, doneWhenAtom)
+        const { items, unmatched } = applyMet(prev, met)
+        if (unmatched.length > 0) {
+          const error = prev.length === 0 ? 'no done-when checks yet: brief_note doneWhen first' : `no check matches ${unmatched.map(u => `"${u}"`).join(', ')}; the checks are: ${prev.map(d => d.text).join('; ')}`
+          return { isError: true, result: error, text: error }
+        }
+        await noteDone($, items.filter((d, i) => d.met && !(prev[i] as DoneItem).met).map(d => d.text))
+        await update($, doneWhenAtom, () => items)
+      }
       if (assumption !== undefined) await update($, assumptionsAtom, prev => [...(prev ?? []), assumption].slice(-5))
       redraw($)
-      return { result: 'ok' }
+      // The current checks, so the agent knows what is left without a brief_read.
+      const list = await read($, doneWhenAtom)
+      return { result: list.length === 0 ? 'ok' : `ok; done when ${list.map(d => `[${d.met ? 'x' : ' '}] ${d.text}`).join('  ')}` }
     }
-    if (e.tool === READ_TOOL) return { result: readText(await view($)) }
+    if (name === READ_TOOL) return { result: readText(await view($)) }
 
     if (e.agentId === undefined) toolsThisTurn = true
     const ran = await next(e)
@@ -443,6 +556,7 @@ export const register: Register = on => {
 
   // /brief: the model reads 'Brief shown.'; the row draws the snapshot taken now.
   on('command.run', { command: 'brief' }, async ($, e) => {
+    await ensureSession($)
     const lines = snapshot(await view($))
     await update($, snapshotAtom, () => lines)
     const now = await $.clock.now()

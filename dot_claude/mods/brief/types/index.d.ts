@@ -77,6 +77,8 @@ declare module 'claude-code' {
       unread: string | null
       /** drift the person kept: never asked about again */
       kept: string[]
+      /** the session id the state belongs to; a /clear or a resume moves the process to another */
+      sid: string | null
       /** the /brief snapshot as it was when the command ran */
       snapshot: SnapLine[]
     }
