@@ -19,6 +19,7 @@ import {
   openQuestions,
   parseCheck,
   pickArmed,
+  MAX_CHECK,
   readText,
   RULE,
   snapshot,
@@ -276,7 +277,7 @@ async function settle($: EngineInterface, q: Question, option: string): Promise<
   // A kept drift becomes a done-when check of its own.
   if (q.kind === 'drift' && option === 'keep') {
     const what = q.question.replace(/ isn't in done-when$/, '')
-    await update($, doneWhenAtom, prev => [...(prev ?? []), { text: what.slice(0, 40), met: false }])
+    await update($, doneWhenAtom, prev => [...(prev ?? []), { text: what.slice(0, MAX_CHECK), met: false }])
     await update($, keptAtom, prev => [...(prev ?? []), what.toLowerCase()])
   }
   await update($, questionsAtom, prev => (prev ?? []).map(x => (x.id === q.id ? { ...x, status: 'answered' as const, answer: option } : x)))
@@ -431,7 +432,7 @@ export const register: Register = on => {
       },
       {
         name: 'brief_read',
-        description: 'The brief as the person sees it: goal, done-when, open asks, recent answers, health. At most 8 lines.',
+        description: 'The brief as the person sees it: goal, status, done-when (one check per line), open asks, recent answers, health.',
         isDeferred: true,
         inputSchema: { type: 'object', properties: {} },
       },

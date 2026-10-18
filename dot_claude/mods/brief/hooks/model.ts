@@ -8,7 +8,8 @@ export const MAX_SHORT = 24
 export const MAX_OPTION = 12
 export const MAX_OPTIONS = 4
 export const MAX_ROW = 120
-export const MAX_READ_LINES = 8
+export const MAX_GOAL = 100
+export const MAX_CHECK = 60
 
 export const ASK_DESCRIPTION =
   "Queue a multiple-choice question without stopping. Put your default first; it applies if they don't answer in time."
@@ -16,7 +17,7 @@ export const ASK_DESCRIPTION =
 // Eval 2026-10-17: without the brief_note sentence the agent never set a goal (0/3), and without "only they can do"
 // a missing credential never blocked (0/3). docs/brief-v2-eval.md.
 export const RULE =
-  "Brief: for work with more than one step, brief_note a one-line goal and 2-8 done-when checks first, and brief_note met: [...] as each is met. Ask with brief_ask and keep working on option 1, your default. Block only for steps that can't be undone or that others will see. Anything you hand the person to do (a key, an account, a manual step) is a blocking brief_ask too. Questions under 60 characters, options under 12. Call brief_read before you say you're done."
+  "Brief: for work with more than one step, brief_note a one-line goal and 2-8 done-when checks first, and brief_note met: [...] as each is met. Ask with brief_ask and keep working on option 1, your default. Block only for steps that can't be undone or that others will see. Anything you hand the person to do (a key, an account, a manual step) is a blocking brief_ask too. Goal under 100 characters, checks and questions under 60, options under 12. Call brief_read before you say you're done."
 
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
 
@@ -79,21 +80,25 @@ export const validateNote = (input: unknown): { ok: true; value: NoteInput } | {
   const out: NoteInput = {}
   if (o.goal !== undefined) {
     if (typeof o.goal !== 'string' || clean(o.goal) === '') return { ok: false, error: 'goal is one line' }
-    out.goal = clean(o.goal).slice(0, 80)
+    const goal = clean(o.goal)
+    if (goal.length > MAX_GOAL) return { ok: false, error: `goal is ${goal.length} characters; keep it to ${MAX_GOAL}` }
+    out.goal = goal
   }
   if (o.doneWhen !== undefined) {
     const raw = listOf(o.doneWhen)
     if (!Array.isArray(raw) || raw.length > 8) return { ok: false, error: 'doneWhen is a list of at most 8 checks' }
     const items: DoneItem[] = []
     for (const x of raw) {
+      let item: DoneItem
       if (typeof x === 'string') {
         const m = /^\s*\[( |x|X)\]\s*(.*)$/.exec(x)
-        const text = clean(m === null ? x : (m[2] as string))
-        if (text !== '') items.push({ text: text.slice(0, 40), met: m !== null && m[1] !== ' ' })
+        item = { text: clean(m === null ? x : (m[2] as string)), met: m !== null && m[1] !== ' ' }
       } else if (x !== null && typeof x === 'object' && typeof (x as { text?: unknown }).text === 'string') {
-        const text = clean((x as { text: string }).text)
-        if (text !== '') items.push({ text: text.slice(0, 40), met: (x as { met?: unknown }).met === true })
+        item = { text: clean((x as { text: string }).text), met: (x as { met?: unknown }).met === true }
       } else return { ok: false, error: 'each doneWhen item is a string or { text, met }' }
+      // Eval 2026-10-18: a check cut at 40 hid its end from the person and failed met by its full text. Refuse instead.
+      if (item.text.length > MAX_CHECK) return { ok: false, error: `check "${item.text}" is ${item.text.length} characters; keep each to ${MAX_CHECK}` }
+      if (item.text !== '') items.push(item)
     }
     out.doneWhen = items
   }
@@ -105,7 +110,9 @@ export const validateNote = (input: unknown): { ok: true; value: NoteInput } | {
   }
   if (o.assumption !== undefined) {
     if (typeof o.assumption !== 'string' || clean(o.assumption) === '') return { ok: false, error: 'assumption is one line' }
-    out.assumption = clean(o.assumption).slice(0, MAX_ROW)
+    const assumption = clean(o.assumption)
+    if (assumption.length > MAX_ROW) return { ok: false, error: `assumption is ${assumption.length} characters; keep it to ${MAX_ROW}` }
+    out.assumption = assumption
   }
   if (out.goal === undefined && out.doneWhen === undefined && out.met === undefined && out.assumption === undefined) {
     return { ok: false, error: 'give at least one of goal, doneWhen, met, assumption' }
@@ -157,7 +164,8 @@ export const pickArmed = (qs: readonly Question[], armed: string | null): string
 export const expired = (qs: readonly Question[], now: number): Question[] =>
   openQuestions(qs).filter(q => q.kind === 'agent' && !q.blocking && now - q.at >= DEFAULT_MS)
 
-export const cutRow = (s: string): string => (s.length <= MAX_ROW ? s : s.slice(0, MAX_ROW))
+/** At most MAX_ROW characters; a cut ends in "...", so it shows. */
+export const cutRow = (s: string): string => (s.length <= MAX_ROW ? s : `${s.slice(0, MAX_ROW - 3)}...`)
 
 /** What the agent reads when the person answers; undefined when nothing needs saying. */
 export const answerRow = (q: Question, option: string): string | undefined => {
@@ -260,7 +268,26 @@ export type BriefView = {
   now: number
 }
 
-const doneWhenText = (items: readonly DoneItem[]): string => items.map(d => `[${d.met ? 'x' : ' '}] ${d.text}`).join('  ')
+const checkText = (d: DoneItem): string => `[${d.met ? 'x' : ' '}] ${d.text}`
+const doneWhenHead = (items: readonly DoneItem[]): string => `done when ${items.filter(d => d.met).length}/${items.length} met:`
+
+/**
+ * Where the session stands, in the words a returning person asks about. Eval 2026-10-18: without it the reader guessed
+ * the status (0.63). "finished" is the agent's own claim: every check it set is ticked and nothing waits on the person.
+ */
+export const statusText = (v: Pick<BriefView, 'doneWhen' | 'questions'>): string => {
+  const open = openQuestions(v.questions)
+  const blocking = open.filter(q => q.blocking)
+  if (blocking.length > 0) return `blocked on you (${blocking.map(q => q.id).join(', ')})`
+  // Only the agent's own asks default; a drift or a default's keep/drop waits for the person.
+  const waiting = open.filter(q => q.kind !== 'agent').map(q => q.id)
+  const going = open.filter(q => q.kind === 'agent').map(q => q.id)
+  const rest = going.length > 0 ? `; ${going.join(', ')} open, default applies` : ''
+  const allMet = v.doneWhen.length > 0 && v.doneWhen.every(d => d.met)
+  if (allMet && waiting.length === 0) return `finished${rest}`
+  if (allMet) return `waiting on you (${waiting.join(', ')})${rest}`
+  return `in progress${waiting.length > 0 ? `; ${waiting.join(', ')} waits on you` : ''}${rest}`
+}
 
 const questionText = (q: Question, now: number): string => {
   const time = q.kind === 'drift' ? `after turn ${q.turn ?? 0}` : q.blocking ? mins(now - q.at) : q.kind === 'default' ? `${mins(now - q.at)} ago` : `default in ${mins(q.at + DEFAULT_MS - now)}`
@@ -290,7 +317,11 @@ const healthText = (v: BriefView): string | undefined => {
 export const snapshot = (v: BriefView): SnapLine[] => {
   const lines: SnapLine[] = []
   lines.push({ text: v.goal ?? 'No goal set (brief_note).', tone: v.goal === null ? 'dim' : 'goal' })
-  if (v.doneWhen.length > 0) lines.push({ text: `done when  ${doneWhenText(v.doneWhen)}`, tone: 'dim' })
+  lines.push({ text: statusText(v), tone: 'dim' })
+  if (v.doneWhen.length > 0) {
+    lines.push({ text: doneWhenHead(v.doneWhen), tone: 'dim' })
+    for (const d of v.doneWhen) lines.push({ text: `  ${checkText(d)}`, tone: 'dim' })
+  }
   for (const q of openQuestions(v.questions)) lines.push({ text: questionText(q, v.now), tone: q.blocking ? 'warning' : 'plain' })
   const changed = changesText(v.changes, v.now)
   if (changed !== undefined) lines.push({ text: changed, tone: 'dim' })
@@ -299,11 +330,15 @@ export const snapshot = (v: BriefView): SnapLine[] => {
   return lines
 }
 
-/** brief_read: at most 8 plain lines, for the agent before it says it is done. */
+/** brief_read: plain lines, one per check, for the agent before it says it is done. Every field is bounded where it is written. */
 export const readText = (v: BriefView): string => {
   const lines: string[] = []
   lines.push(`goal: ${v.goal ?? '(none; set it with brief_note)'}`)
-  if (v.doneWhen.length > 0) lines.push(`done when: ${doneWhenText(v.doneWhen)}`)
+  lines.push(`status: ${statusText(v)}`)
+  if (v.doneWhen.length > 0) {
+    lines.push(doneWhenHead(v.doneWhen))
+    for (const d of v.doneWhen) lines.push(`  ${checkText(d)}`)
+  }
   const open = openQuestions(v.questions)
   for (const q of open.slice(0, 3)) lines.push(`open ${q.id}${q.blocking ? ' (blocking)' : ''}: ${q.question} [${q.options.join(' / ')}]`)
   if (open.length > 3) lines.push(`+${open.length - 3} more open asks`)
@@ -312,5 +347,5 @@ export const readText = (v: BriefView): string => {
   if (v.assumptions.length > 0) lines.push(`assumed: ${v.assumptions.slice(-2).join('; ')}`)
   const health = healthText(v)
   if (health !== undefined) lines.push(health)
-  return lines.slice(0, MAX_READ_LINES).map(l => cutRow(l)).join('\n')
+  return lines.join('\n')
 }

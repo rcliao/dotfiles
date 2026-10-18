@@ -3,7 +3,7 @@ import type { TestBody } from 'claude-code/testing'
 
 import type { Question } from '../types'
 import { activity, activityText, askSpec, askText, DEFAULT_MS, fitAsk, isAscii, nextFire } from '../hooks/band'
-import { answerRow, applyMet, ASK_DESCRIPTION, defaultQuestion, driftQuestion, readText, RULE, snapshot, validateAsk } from '../hooks/model'
+import { answerRow, applyMet, ASK_DESCRIPTION, MAX_CHECK, statusText, validateNote, defaultQuestion, driftQuestion, readText, RULE, snapshot, validateAsk } from '../hooks/model'
 
 type On = Parameters<TestBody>[1]
 type Engine = Parameters<TestBody>[0]
@@ -338,7 +338,7 @@ test('defaults apply after 10 minutes and raise keep/drop; a drift check raises 
   await $.turn.complete({ answer: 'did stuff', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' } as never)
   await clock.advance(10)
   const read = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)
-  expect(read.split('\n').length).toBeLessThanOrEqual(8)
+  expect(read.split('\n').every(l => l.length <= 160)).toBe(true)
   expect(read).toContain("Status-line entry isn't in done-when")
   expect(read).toContain('drift after turn 1')
 })
@@ -357,12 +357,16 @@ test('/brief: the model reads "Brief shown."; the row draws the snapshot', async
   const lines = (tree.children ?? []).map(textOf)
   expect(lines).toEqual([
     'Ship v0 of the brief mod: pane + agent ask tool',
-    'done when  [x] pane draws  [ ] answers reach agent  [ ] tests pass',
+    'blocked on you (D1)',
+    'done when 1/3 met:',
+    '  [x] pane draws',
+    '  [ ] answers reach agent',
+    '  [ ] tests pass',
     '! Publish the mod to GitHub?  private / public / later  0s',
     'since 0s  pane draws, 1 ask',
     'ctx 41%',
   ])
-  const warn = (tree.children ?? [])[2] as Exclude<Node, string>
+  const warn = (tree.children ?? [])[6] as Exclude<Node, string>
   expect(warn.props?.color).toBe('warning')
 })
 
@@ -484,4 +488,36 @@ test('review fix: a drift kept by a row joins done-when; a dropped default names
   expect(read).not.toContain('open D1')
   const deliver: Question = { id: 'D4', kind: 'agent', question: 'Deliver mid-turn?', short: 'Mid-turn?', options: ['mid-turn', 'next turn'], blocking: false, at: NOW, status: 'defaulted', answer: 'mid-turn' }
   expect(answerRow(defaultQuestion('D5', deliver, NOW), 'drop')).toBe('[brief] D5 -> drop (answered by the person). Undo the default "mid-turn" of D4; ask again if it matters.')
+})
+
+test('eval fix: brief_read shows every check on its own line and a status; long notes are refused, not cut', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  await start($)
+  // Eval 2026-10-18: a 47-character check was cut to 40, hid its end, and met by its full text then failed.
+  const long = 'recap and ysk pictures generated per round ok'.padEnd(MAX_CHECK, '.')
+  await $.tool.call({ tool: 'mcp__brief__brief_note', goal: 'Compare brief with the recap', doneWhen: [long, 'all pictures scored in one run'] } as never)
+  const ok = await $.tool.call({ tool: 'mcp__brief__brief_note', met: [long] } as never)
+  expect(ok.isError).not.toBe(true)
+  let read = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)
+  expect(read.split('\n')).toEqual(['goal: Compare brief with the recap', 'status: in progress', 'done when 1/2 met:', `  [x] ${long}`, '  [ ] all pictures scored in one run', 'ctx 41%'])
+  await $.tool.call({ tool: 'mcp__brief__brief_note', met: ['all pictures scored'] } as never)
+  await ask($, { question: 'Rename the doc?', short: 'Rename?', options: ['keep', 'rename'] })
+  read = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)
+  expect(read).toContain('status: finished; D1 open, default applies')
+  await ask($, { question: 'Push to main?', short: 'Push?', options: ['hold', 'push'], blocking: true })
+  read = String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)
+  expect(read).toContain('status: blocked on you (D2)')
+  // Over the limit: an error that names it, and the brief unchanged.
+  const bad = await $.tool.call({ tool: 'mcp__brief__brief_note', doneWhen: [`${long}!`] } as never)
+  expect(bad.isError).toBe(true)
+  expect(String(bad.result)).toContain(`is ${MAX_CHECK + 1} characters; keep each to ${MAX_CHECK}`)
+  expect(String((await $.tool.call({ tool: 'mcp__brief__brief_read' } as never)).result)).toContain('done when 2/2 met:')
+  // A drift never defaults: it waits for the person, and the work is not "finished" while it does.
+  const drifted = { doneWhen: [{ text: 'a', met: true }], questions: [driftQuestion('D3', 'Status-line entry', 1, NOW)] }
+  expect(statusText(drifted)).toBe('waiting on you (D3)')
+  expect(statusText({ ...drifted, doneWhen: [{ text: 'a', met: false }] })).toBe('in progress; D3 waits on you')
+  expect(validateNote({ goal: 'g'.repeat(101) })).toEqual({ ok: false, error: 'goal is 101 characters; keep it to 100' })
+  expect(validateNote({ assumption: 'a'.repeat(121) })).toEqual({ ok: false, error: 'assumption is 121 characters; keep it to 120' })
+  expect(RULE).toContain('checks and questions under 60')
 })

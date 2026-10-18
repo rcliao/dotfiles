@@ -19,7 +19,7 @@ v1 (below) grew to eight band rows, a pane and eleven subcommands. v2 keeps four
 **Interfaces.**
 - `mcp__brief__brief_ask` (not deferred) → `{"id":"D3"}`. Limits: question 60, short 24, options 2–4 of 12, ASCII. Description fixed by the spec.
 - `mcp__brief__brief_note({goal?, doneWhen?, met?, assumption?})` → `ok; done when [x] … [ ] …` (deferred). `doneWhen` items are strings, `[x] ` marks one met; `met` ticks checks by whole words (ambiguous names tick nothing).
-- `mcp__brief__brief_read()` → at most 8 plain lines (deferred).
+- `mcp__brief__brief_read()` → plain lines (deferred): `goal:`, `status:` (`blocked on you (Dn)`, `finished` or `in progress`), `done when k/n met:` then one check per line, open asks, the last two answers, assumptions, health. Nothing is cut: `brief_note` refuses a goal over 100 characters, a check over 60 and an assumption over 120, naming the limit.
 - `/brief` → `Brief shown.` plus the drawn snapshot.
 - One `prompt.compose` section `brief:rule`, last, scope `session`.
 - Retired 2026-10-17: `mcp__brief__brief`, `mcp__brief__report`, the facts ledger and the `evals/` suites that graded them.
