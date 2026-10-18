@@ -12,6 +12,7 @@ How well Claude uses brief v2 to keep a short, current brief and to leave pendin
 - [x] Tune the prompt rule and tool text against this baseline (rule v3, below)
 - [x] Persist open asks across resume, one file per session; re-run r3
 - [x] With/without outcome eval over several rounds (`evals/ab/run.mjs`)
+- [x] Summary fidelity: is the brief a short, faithful picture (`evals/summary/run.mjs`)
 
 ## What is measured
 
@@ -129,6 +130,33 @@ What the run shows:
 
 Where brief's value could still show, and this harness doesn't measure: the simulated person reads every message in full. The band is for a person who glances at many panes and reads only the band and the last lines. A "glance" person who sees only the band plus a message's last two lines would test that.
 
+## Is the brief a short, faithful picture of the session? (2026-10-18)
+
+`evals/summary/run.mjs` runs offline over the sessions `evals/ab` recorded; it needs no new agent runs. For each round of each with-brief run it takes the brief exactly as the agent last read it that round (the `brief_read` result). A haiku reader that sees only that text answers four questions a person glancing at a pane would ask:
+- what is the agent working on?
+- what is finished?
+- what is waiting on you?
+- is the work finished, in progress, or blocked on you?
+
+A sonnet grader with the round's full record scores each answer 1, 0.5 or 0 against the agent's whole message and the open asks. It also flags a picture as misleading when an answer would lead the person to act wrongly. The same reader also answers from two other pictures of that moment: the last two lines of the message (a glance) and the whole message (the upper bound).
+
+Run over `ab/2026-10-18T03-13-32-232Z`: 35 rounds, 31 of which had a `brief_read`. Cost $0.97.
+
+| Picture | Words | Goal | Done | Waiting on you | Status | Overall | Misleading |
+|---|---|---|---|---|---|---|---|
+| brief | 48 | 0.89 | 0.52 | 0.63 | 0.61 | 0.66 | 10/31 |
+| last two lines | 50 | 0.52 | 0.37 | 0.77 | 0.58 | 0.56 | 10/31 |
+| whole message | 151 | 0.98 | 0.97 | 0.90 | 0.81 | 0.92 | 2/31 |
+
+The brief is a third the length of the message and better than a glance at the goal. On what's done, what's waiting on you and the status, though, it is no better than a glance, and it misled the reader as often. From the ten misleading cases:
+
+1. **Truncation hides checks.** The goal is cut at 80 characters (17/31 rounds) and each check at 40 (26/31). The done-when list is one line cut at 120 characters (30/31), so later checks never reach the reader, who then reports them as not done or "can't tell". The agent gets no warning that its text was cut.
+2. **There is no status line.** The brief never says "finished" or "waiting on you", so the reader infers it, often wrongly.
+3. **Small hand-offs stay in prose.** "Case 22 is yours to try by hand" or "deleting /tmp/x needs your approval" appear only in the message, never as an ask, so the brief says nothing is waiting. (The grader may be strict here: some of these are optional.)
+4. **Snapshots can be stale.** The agent reads the brief before its last ticks and its final message, so the band at the end of the round may be more current than this test credits.
+
+Next: have `evals/ab` save each round's brief state, so any version of `readText` can be scored offline against the same moments. Then lay out done-when one check per line with "k/n met", add a status line, and re-score.
+
 ## Next steps (not done here)
 
 1. A "glance" person for `evals/ab`: it sees only the band and the last two lines of each message, which is how the band is meant to be read. The full-reading person above ties on every outcome.
@@ -142,6 +170,8 @@ Where brief's value could still show, and this harness doesn't measure: the simu
 claude plugin eval ~/.claude/mods/brief --runs 3 -j 4 --scaffold --allow-tools Write Edit --no-publish
 # multi-round scenarios; work dirs and per-run detail under ~/.claude/mods-data/brief/eval/rounds/
 node ~/.claude/mods/brief/evals/rounds/run.mjs --runs 2 [--only r1,r3]
+# is the brief a faithful picture? offline over an ab run (about $1)
+node ~/.claude/mods/brief/evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp>
 # with/without over several rounds against a simulated person; work dirs under ~/.cache/brief-eval/ab/
 node ~/.claude/mods/brief/evals/ab/run.mjs --runs 3 -j 6 [--only s1,s4] [--arms with,without]
 ```
