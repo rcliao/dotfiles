@@ -13,6 +13,7 @@ How well Claude uses brief v2 to keep a short, current brief and to leave pendin
 - [x] Persist open asks across resume, one file per session; re-run r3
 - [x] With/without outcome eval over several rounds (`evals/ab/run.mjs`)
 - [x] Summary fidelity: is the brief a short, faithful picture (`evals/summary/run.mjs`)
+- [x] Compared with Claude Code's recap and You should know (same harness)
 
 ## What is measured
 
@@ -156,6 +157,31 @@ The brief is a third the length of the message and better than a glance at the g
 4. **Snapshots can be stale.** The agent reads the brief before its last ticks and its final message, so the band at the end of the round may be more current than this test credits.
 
 Next: have `evals/ab` save each round's brief state, so any version of `readText` can be scored offline against the same moments. Then lay out done-when one check per line with "k/n met", add a status line, and re-score.
+
+### Compared with Claude Code's own recap and "You should know" (2026-10-18)
+
+Claude Code ships two features in this space:
+- **Away summary.** `/recap`, which also shows on its own when you come back after five minutes away. Its prompt asks for under 40 words: the goal and the current task, then the one next action.
+- **You should know** (`you-should-know@builtin`). A side agent forks the session and surfaces at most one note above the prompt, tagged "You should know" or "Heads up", or nothing ("learn: none").
+
+Both answer from the session's own context. `evals/summary/run.mjs` reproduces each one the way it runs. It cuts the transcript at the end of the round and resumes a fork of it. It then sends `/recap`, or the You-should-know prompt rendered from the installed binary for a first call, with no tools. The prompt is read at run time and never kept in this repo. The work dir is moved aside during each fork. Without that, Claude Code shows the fork every file that changed since it was read, and later rounds leak in: the first smoke run's round-0 note described round 1's code.
+
+All five pictures were scored in one run, over the same 31 rounds. An earlier run of the first three pictures scored brief 0.66 against 0.71 here, so read differences under about 0.05 as noise. The run cost $26.50: $24.80 for the 70 Opus forks and $1.71 for grading. A new column, heads-up, scores whether the picture surfaces the thing in the record the person most needs to act on or would regret missing.
+
+| Picture | Words | Goal | Done | Waiting on you | Status | Overall | Heads-up | Misleading |
+|---|---|---|---|---|---|---|---|---|
+| whole message | 151 | 0.98 | 0.95 | 0.94 | 0.87 | 0.94 | 0.90 | 1/31 |
+| recap | 36 | 0.82 | 0.79 | 0.74 | 0.65 | 0.75 | 0.50 | 8/31 |
+| brief | 48 | 0.95 | 0.52 | 0.76 | 0.63 | 0.71 | 0.32 | 13/31 |
+| last two lines | 50 | 0.50 | 0.45 | 0.71 | 0.53 | 0.55 | 0.50 | 5/31 |
+| you should know | 29 | 0.53 | 0.50 | 0.53 | 0.52 | 0.52 | 0.18 | 2/31 |
+
+1. **The recap is the better short summary, by a little.** It is shorter than the brief (36 words against 48) and scores higher overall (0.75 against 0.71). Round by round it beat the brief 15 times, lost 6 and tied 10. Its edge is "done" (0.79 against 0.52): it writes from the whole conversation, while the brief shows checks the agent ticked, cut to fit. It misleads by turning optional offers into blockers ("next, confirm the name"), and in 8 rounds it said the person was blocking when they weren't.
+2. **The brief wins on the goal and holds its own on what's waiting.** Goal 0.95 is the best short picture, and "waiting on you" (0.76) ties the recap. Its 13 misleading rounds come mostly from checks hidden by truncation and the missing status line (see above). Those are the brief's own layout, not its data.
+3. **You should know is a different tool.** It showed something in 6 of 31 rounds and stayed silent otherwise, which is its design. When it did show, its heads-up score was 0.75. Examples: the key was still hard-coded in `api.mjs` after the person asked for `.env.local` only; the new slugify returns an empty slug for an all-Japanese title; IE11 is dropped in a minor version that `^1.2.4` users get automatically. None of these appeared in the brief or the recap. It doesn't summarize state, so it scores low on the four questions by construction.
+4. **Every short picture misses the heads-up more often than not** (0.18–0.50, against 0.90 for the whole message). The brief is lowest of the summaries (0.32): it only holds what the agent chose to write down or ask.
+
+What this suggests for brief: the recap and the brief are good at different questions, and You should know covers what neither does. The brief's own fixes come first (one check per line, a status line, no silent cuts). After that, the goal and asks from the brief plus a recap-style "done" line would probably beat either alone. A combined picture is cheap to score from `summary-compare.json` (grading only, about $0.30).
 
 ## Next steps (not done here)
 
