@@ -33,3 +33,10 @@ When `brief` has something to say it draws the band alone (at most two lines,
 fitted by hand to `bodyColumns`); otherwise it passes the band to whatever is
 beneath. Nothing draws in the footer tail: the engine drops it when the footer
 is full.
+
+## Evals
+
+`brief` has two agent-side suites; results stay out of the repo (`evals/results/` is in `.chezmoiignore`, rounds write to `~/.claude/mods-data/brief/eval/`). Baseline, cost and value per case: `docs/brief-v2-eval.md`.
+
+- `claude plugin eval ~/.claude/mods/brief --runs 3 -j 4 --scaffold --allow-tools Write Edit --no-publish`: 8 single-prompt cases, with and without the mod. About $6 for the full run.
+- `node ~/.claude/mods/brief/evals/rounds/run.mjs --runs 2`: answers the agent's asks the way the band does and grades the next round, plus one resume. About $6.
