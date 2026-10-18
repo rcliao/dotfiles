@@ -16,7 +16,7 @@ export const ASK_DESCRIPTION =
 // Eval 2026-10-17: without the brief_note sentence the agent never set a goal (0/3), and without "only they can do"
 // a missing credential never blocked (0/3). docs/brief-v2-eval.md.
 export const RULE =
-  "Brief: when you start a task, brief_note a one-line goal and 2-8 done-when checks, and brief_note met: [...] as each is met. Ask with brief_ask and keep working on option 1, your default. Block only for steps that can't be undone, that others will see, or that only they can do (a key, an account, a manual step). Questions under 60 characters, options under 12. Call brief_read before you say you're done."
+  "Brief: for work with more than one step, brief_note a one-line goal and 2-8 done-when checks first, and brief_note met: [...] as each is met. Ask with brief_ask and keep working on option 1, your default. Block only for steps that can't be undone or that others will see. Anything you hand the person to do (a key, an account, a manual step) is a blocking brief_ask too. Questions under 60 characters, options under 12. Call brief_read before you say you're done."
 
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
 

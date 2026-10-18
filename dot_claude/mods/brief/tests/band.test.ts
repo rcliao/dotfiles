@@ -415,7 +415,7 @@ test('eval fix: met ticks checks by name; an unknown name lists the checks; the 
   expect(bad.isError).toBe(true)
   expect(String(bad.result)).toContain('the checks are: spec.md written; plan.md written; wc.ts works')
   expect(RULE).toContain('brief_note a one-line goal and 2-8 done-when checks')
-  expect(RULE).toContain('only they can do')
+  expect(RULE).toContain('Anything you hand the person to do')
   expect(validateAsk({ question: 'q', short: 's', options: ['requestConfig', 'b'] })).toEqual({ ok: false, error: 'option "requestConfig" is 13 characters; keep each to 12. Keep your choice and shorten its label (put the full name in the question)' })
 })
 
