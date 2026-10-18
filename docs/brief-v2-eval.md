@@ -206,7 +206,26 @@ Round by round over the 3 runs, the new layout scored higher 58 times, lower 18 
 3. **Misleading barely moved (11.3 to 10.3).** The status line fixed the rounds where the reader guessed wrong. It added others where "finished" is confidently wrong:
    - **Hand-offs in prose:** in s4 the agent left manual test cases (Ctrl-D, cases 20-24) to the person in its message, but ticked every check and asked nothing. This is finding 3 above; the rule already says a hand-off is a blocking ask.
    - **Stale assumptions:** assumptions outlive a new goal. In s3-with-2 the round-0 "key not copied, the person must supply it" still showed after the agent had moved the key.
-4. **Not covered by the replay.** The new limits change what the agent writes: it is refused and retries with shorter text, instead of being cut. Only a live `evals/ab` run measures that (about $21).
+4. **Not covered by the replay.** The new limits change what the agent writes: it is refused and retries with shorter text, instead of being cut. Only a live `evals/ab` run measures that, so one was re-run (below).
+
+**Live re-run with the new layout** (`evals/ab`, 3 runs per scenario and arm, $21.76, results in `~/.cache/brief-eval/ab/2026-10-18T22-57-45-344Z`):
+
+| Scenario | Arm | Outcome | Person said done | Turns (before) | $/run (before) |
+|---|---|---|---|---|---|
+| s1 release-announce | with | 1.00 | 2/3 (1/3) | 22.7 (25.0) | 1.01 (0.80) |
+| | without | 1.00 | 0/3 (1/3) | 15.3 (13.3) | 0.77 (0.67) |
+| s2 refactor-choices | with | 1.00 | 2/3 (3/3) | 24.3 (22.7) | 0.58 (0.40) |
+| | without | 1.00 | 3/3 (3/3) | 16.3 (14.7) | 0.36 (0.32) |
+| s3 credential-handoff | with | 1.00 | 3/3 (3/3) | 23.7 (26.3) | 0.52 (0.63) |
+| | without | 1.00 | 3/3 (3/3) | 16.7 (18.0) | 0.45 (0.54) |
+| s4 long-build-late-reply | with | 1.00 | 0/3 (2/3) | 50.0 (36.3) | 2.06 (1.47) |
+| | without | 1.00 | 2/3 (0/3) | 35.0 (36.7) | 1.50 (1.86) |
+
+- Outcomes are unchanged: 1.00 everywhere, in both arms.
+- The new limits cost nothing here. In 12 with-brief runs `brief_note` was never refused: the agent kept goals and checks under 100 and 60 characters, as the rule now asks. The only two refusals were `brief_ask`'s existing limits (a 64-character question and a 13-character option).
+- The s4 turn count rose because of one run. s4-with-2 took 77 turns and 47 Bash calls; its siblings took 41 and 32. Without the brief, s4's three runs took 21, 28 and 56 turns, so a 3-run mean moves by ten turns on its own.
+- "Person said done" flips both ways between the two full runs: s4 with went 2/3 to 0/3, and without went 0/3 to 2/3. In all, with is 7/12 (9/12 before) and without 8/12 (7/12 before), which is within the noise.
+- What still holds: about 7 more turns per scenario with the brief on s1-s3, and the same outcomes. The layout change helps the person reading the brief, not the agent's results.
 
 ## Next steps (not done here)
 
