@@ -100,7 +100,9 @@ With-arm results, 3 runs each (rule v3; the without arm does not change with the
 
 Rounds after the fix (rule v2, store persistence): r1 2/2, r2 2/2 with the choice kept after a length refusal (`reqDefaults`, full name in the question), **r3 open ask after a resume 2/2** (was 0/2), the new ask numbered D2 (no id collision).
 
-Cost of the fix loop: suite (both arms) $6.05, rule v3 with arm $3.20, credential re-check $0.42 + $0.30, rounds $5.66.
+Final rounds (rule v3, file saves): r2 2/2, **r3 2/2** through the per-session files. r1 first went 1/2: the agent would not post on `[brief] D1 -> Post as-is (you).`, reading "(you)" as its own words, and brief_read still showed D1 open because the harness sends the row without a band press. Rows now say "(answered by the person)", and a prompt carrying a row closes the matching open ask; **r1 then 3/3**.
+
+Cost of the fix loop: suite (both arms) $6.05, rule v3 with arm $3.20, credential re-check $0.42 + $0.30, rounds $5.66 + $5.60 + $2.47 (r1 x3).
 
 ## Next steps (not done here)
 
