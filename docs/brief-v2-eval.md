@@ -15,6 +15,7 @@ How well Claude uses brief v2 to keep a short, current brief and to leave pendin
 - [x] Summary fidelity: is the brief a short, faithful picture (`evals/summary/run.mjs`)
 - [x] Compared with Claude Code's recap and You should know (same harness)
 - [x] Layout fix: one check per line, a status line, no silent cuts; re-scored on the same rounds
+- [x] A long session (s5: phases, two `/compact`s): baseline both arms, then the approval hint, re-run
 
 ## What is measured
 
@@ -227,13 +228,58 @@ Round by round over the 3 runs, the new layout scored higher 58 times, lower 18 
 - "Person said done" flips both ways between the two full runs: s4 with went 2/3 to 0/3, and without went 0/3 to 2/3. In all, with is 7/12 (9/12 before) and without 8/12 (7/12 before), which is within the noise.
 - What still holds: about 7 more turns per scenario with the brief on s1-s3, and the same outcomes. The layout change helps the person reading the brief, not the agent's results.
 
+## A long session: phases and two compactions (2026-10-19)
+
+s5 in `evals/ab`: a notes CLI built over four phases sent one round at a time. Reply 1 also carries two rules for later phases (anything that deletes needs `--yes`; every new command gets a README line), and `/compact` runs between rounds before phases 3 and 4, so those rules are only in the compacted summary when they are needed. Round 2 is a silent "busy" round. Six file checks, graded the same way in both arms (`--grade` re-scores a folder for free).
+
+**Baseline, 3 runs per arm ($25.32).**
+
+| arm | outcome | person said done | turns | $/run |
+|---|---|---|---|---|
+| with brief | 1.00 | 1/3 | 61.7 | 4.74 |
+| without | 1.00 | 0/3 | 46.3 | 3.70 |
+
+The first grading said 0.83 in both arms: `clear_needs_yes` required the file to be deleted, but every run emptied it to `[]`, which "deletes all notes" allows. Fixed in the grader; all six runs re-graded to 1.00.
+
+- **Compaction broke nothing.** Neither arm lost the reply-1 rules; every `clear` refuses without `--yes` and every README lists the later commands. Brief's own state held too: done-when was re-noted twice per run, each time at the start of a new phase (the agent's choice, not a lost list), and ticks matched. So no `session.compact` hook was built: there was nothing for it to fix. (A probe confirmed the event fires under `claude -p "/compact"` with the mod loaded, and its result is the summary message, if a later case needs it.)
+- **Brief beats `/recap` on the goal over a long session** (summary eval, 12 with-brief rounds, $11.97, nearly all of it the recap forks):
+
+| picture | words | goal | done | waiting | status | overall | heads-up | misleading |
+|---|---|---|---|---|---|---|---|---|
+| brief (last brief_read) | 71 | 1.00 | 0.92 | 0.58 | 0.83 | 0.83 | 0.38 | 4/12 |
+| recap | 32 | 0.58 | 0.96 | 0.54 | 0.71 | 0.70 | 0.63 | 1/12 |
+| whole message | 218 | 0.79 | 1.00 | 0.75 | 0.79 | 0.83 | 0.88 | 0/12 |
+
+- **The weak spot was what waits on the person,** and all four misleading rounds had one cause: an `rm` of a stray file, refused because it needed an approval nobody could give, that the agent handed to the person in prose. Three of the four were partly the eval's own fault: the `brief` picture is the agent's last `brief_read`, and the blocking ask came after it. The new `live` picture (the band at the round's end, asks from the save file) fixes the measurement: waiting 0.67, still 4/12 misleading, all the same `rm`.
+
+**The fix: a hint at the moment of refusal.** The first idea, listing refused calls on the band as "needs your approval", was built and dropped before any run: in the earlier ab runs nearly every refusal was a test command the agent rewrote and ran another way (`node x; echo $?` refused for its `;`, then `node x` alone), so the band would have cried wolf. Instead, a main-loop call refused for want of an approval gets one line in its result context (`APPROVAL_HINT`): do it another way, or `brief_ask` it with `blocking: true`. A person's own decline at the prompt reads differently and gets none, and so does a failed command whose output merely mentions an approval (`gh pr merge` waiting on a reviewer): the match is anchored to core's own wordings, six seen in these runs. Checked live under `claude -p`: after a refused `rm` the agent raised a blocking ask. Auto mode's refusal wording was not checked.
+
+**Re-run, with brief only, 3 runs ($11.35).** Outcome 0.94: one run named the field `createdAt`, a hidden preference the agent never showed and the person never corrected (unrelated to brief). Only one run hit a real hand-off this time (an `rm` of test files); it said why and raised a blocking ask. Summary eval on the new rounds ($0.28):
+
+| picture | words | goal | done | waiting | status | overall | misleading |
+|---|---|---|---|---|---|---|---|
+| brief, baseline | 71 | 1.00 | 0.92 | 0.54 | 0.96 | 0.85 | 4/12 |
+| live, baseline | 71 | 1.00 | 0.92 | 0.67 | 0.88 | 0.86 | 4/12 |
+| brief, with the hint | 77 | 1.00 | 0.88 | 0.83 | 0.88 | 0.90 | 2/12 |
+| live, with the hint | 75 | 1.00 | 0.79 | 0.83 | 0.96 | 0.90 | 2/12 |
+
+(The baseline rows are a second grading of the same text as the table above: status moved 0.83 to 0.96 on identical pictures, so read differences under about 0.1 at n=12 as noise.) The two misleading rounds left are not hand-offs: one tick claims "verified end to end in a temp dir" for testing done in the project folder, and one ticks every check while two cases went untested. That is the agent's tick, which brief records as given.
+
+**Findings.**
+1. Over a long, compacted session brief keeps the goal (1.00 against recap's 0.58) and costs about 15 more turns and $1 a run for the same outcome; compaction itself needed no fix.
+2. Hand-offs the agent cannot do are where a glance went wrong. Telling the agent when the refusal happens moved waiting from about 0.6 to 0.83, from one real hand-off and twelve rounds: a direction, not a measurement.
+3. s5 ended up measuring hand-offs more than memory, because `rm` is not in the harness's allowed tools. That is realistic for `claude -p` and auto mode, so it stays.
+4. `handoffsInProse` (`--recount`) over-counts: a test command rerun under another first word (`cd x && node y` then `node y`) still counts. Read the transcripts before trusting it.
+
 ## Next steps (not done here)
 
 1. A "glance" person for `evals/ab`: it sees only the band and the last two lines of each message, which is how the band is meant to be read. The full-reading person above ties on every outcome.
 2. A way for the agent to withdraw an ask it has outgrown (finding 4 above).
 3. A cross-session check: two live sessions answering asks at once (the unit test covers the files; a live run does not exist yet).
 4. Clear or re-confirm assumptions when the goal or the done-when list is replaced (layout fix, finding 3).
-5. Hand-offs left in prose: the agent should ask, not tick (layout fix, finding 3). Measure on a live `evals/ab` re-run, which also measures the new limits.
+5. Hand-offs left in prose: the agent should ask, not tick (layout fix, finding 3). Measure on a live `evals/ab` re-run, which also measures the new limits. Partly done: refusals for want of an approval now prompt an ask (long session, above).
+6. Ticks that claim more than was done (long session, above): a tick could carry its evidence ("verified: node check.mjs"), or the direction check could compare ticks against the turn's tool calls.
+7. Brief's extra turns (about 7 per scenario on s1-s3, 15 on s5): nearly all are brief's own calls (notes, reads, and a ToolSearch because `brief_note` and `brief_read` are deferred).
 
 ## How to run
 
@@ -247,5 +293,10 @@ node ~/.claude/mods/brief/evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<s
 # this checkout's readText on the same moments, graded beside the recorded brief (about $0.70 per repeat; --dry is free)
 node ~/.claude/mods/brief/evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp> --pictures brief,layout --out summary-layout.json
 # with/without over several rounds against a simulated person; work dirs under ~/.cache/brief-eval/ab/
-node ~/.claude/mods/brief/evals/ab/run.mjs --runs 3 -j 6 [--only s1,s4] [--arms with,without]
+node ~/.claude/mods/brief/evals/ab/run.mjs --runs 3 -j 6 [--only s1,s5] [--arms with,without] [--brief <built copy>]
+# re-grade a folder or re-count a run's transcripts, free
+node ~/.claude/mods/brief/evals/ab/run.mjs --grade ~/.cache/brief-eval/ab/<stamp>/s5-with-1 --only s5
+node ~/.claude/mods/brief/evals/ab/run.mjs --recount ~/.cache/brief-eval/ab/<stamp>
+# the band at each round's end, beside the last brief_read
+node ~/.claude/mods/brief/evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp> --pictures brief,live --out summary-live.json
 ```

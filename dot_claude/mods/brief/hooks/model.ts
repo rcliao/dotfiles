@@ -147,6 +147,21 @@ export const applyMet = (items: readonly DoneItem[], met: readonly string[]): { 
   return { items: out, unmatched }
 }
 
+/**
+ * A call refused because it needs an approval nobody could give (seen under `claude -p`). Core's own wordings, each
+ * anchored at the start: a failed command's output ("Exit code 1 ... requires approval from a reviewer") is not one.
+ * A person who declines at the prompt reads "The user doesn't want to proceed".
+ */
+export const NEEDS_APPROVAL = /^(This command (requires|uses shell operators that require) approval|This Bash command contains multiple operations\. The following parts? requires? approval|Multiple directory changes in one command require approval|[\w.-]+ in '[^']*' needs approval\.|Claude requested permissions to )/
+
+/**
+ * What the agent reads after such a refusal. Eval 2026-10-19 (s5): an `rm` refused this way was handed to the person
+ * in prose in every with-brief run, so the brief showed nothing waiting on them. Most refusals are commands the agent
+ * rewrites and runs another way, so the band does not show refusals itself: the agent decides at the moment it sees one.
+ */
+export const APPROVAL_HINT =
+  "brief: nobody could approve this call. Do it another way if there is one; if the person has to run or approve it, brief_ask it with blocking: true, so the band shows it waits on them."
+
 export const openQuestions = (qs: readonly Question[]): Question[] => qs.filter(q => q.status === 'open')
 
 /**

@@ -13,6 +13,7 @@ v1 (below) grew to eight band rows, a pane and eleven subcommands. v2 keeps four
 4. A non-blocking ask unanswered for 10 min is marked defaulted and raises `? <short>: went with <opt>  1: keep  2: drop`.
 5. At each main-loop `turn.complete` with tool calls and a goal set, `$.model.fork` asks whether the turn did work outside done-when; a hit raises `? <work> isn't in done-when  1: keep  2: drop`. Keep adds it to done-when.
 6. Hooks observe the rest: steps from `TaskCreate`/`TaskUpdate`/`TodoWrite`, else the done-when count; jobs and wakeups from `classic.Stop`; context from `$.session.usage()`.
+7. A main-loop call refused because it needs an approval nobody could give (seen under `claude -p`; core's wordings, anchored at the start: "This command requires approval", "rm in '…' needs approval.", "Claude requested permissions to …"; auto mode's refusals not checked) gets one reminder in its `tool.call` result context: do it another way, or `brief_ask` it with `blocking: true`. A person's own decline at the prompt gets none. The band does not list refusals itself: most are commands the agent rewrites and runs (eval 2026-10-19).
 
 **Data model** (`$.state.brief`, `types/index.d.ts`): `questions: Question[]` (`id, kind: agent|drift|default, question, short, options, blocking, at, status, answer?`), `armed`, `pending`, `steps`, `goal`, `doneWhen: {text, met}[]`, `jobs`, `crons`, `check`, `changes`, `outbox`, `snapshot`. `sid` names the session the state belongs to. Saved per session to `~/.claude/mods-data/brief/sessions/<id>.json` (questions, goal, done-when, id counter, outbox), loaded when the session id changes (a resume, a fresh process), removed on `/clear`, swept after 14 days. Not `$.store`: that is one file every session writes.
 
@@ -22,6 +23,7 @@ v1 (below) grew to eight band rows, a pane and eleven subcommands. v2 keeps four
 - `mcp__brief__brief_read()` → plain lines (deferred): `goal:`, `status:` (`blocked on you (Dn)`, `finished` or `in progress`), `done when k/n met:` then one check per line, open asks, the last two answers, assumptions, health. Nothing is cut: `brief_note` refuses a goal over 100 characters, a check over 60 and an assumption over 120, naming the limit.
 - `/brief` → `Brief shown.` plus the drawn snapshot.
 - One `prompt.compose` section `brief:rule`, last, scope `session`.
+- `tool.call` context on a refused-for-approval result (`APPROVAL_HINT`, matched by `NEEDS_APPROVAL` in `hooks/model.ts`).
 - Retired 2026-10-17: `mcp__brief__brief`, `mcp__brief__report`, the facts ledger and the `evals/` suites that graded them.
 
 **Layout rule.** `hooks/band.ts` computes each ask line's length and draws the first form that fits `bodyColumns`: full question and meta, full question and short meta, short question and short meta, short question and `+n`, short question alone, else the engine truncates. Tests pin every reference capture at 75 and 55 cells.

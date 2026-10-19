@@ -398,7 +398,7 @@ function briefCalls(sessionId) {
 }
 
 // A copy of model.ts NEEDS_APPROVAL (the harness runs plain node).
-const NEEDS_APPROVAL = /\b(needs|requires?) approval\b|\bparts? requires? approval\b|^Claude requested permissions to /
+const NEEDS_APPROVAL = /^(This command (requires|uses shell operators that require) approval|This Bash command contains multiple operations\. The following parts? requires? approval|Multiple directory changes in one command require approval|[\w.-]+ in '[^']*' needs approval\.|Claude requested permissions to )/
 
 const words = s => (s.match(/\S+/g) ?? []).length
 

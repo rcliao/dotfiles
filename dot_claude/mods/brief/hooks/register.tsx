@@ -7,6 +7,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Changes, Check, Cron, DoneItem, Job, Pending, Question, SnapLine, Step } from '../types'
 import { activity, askSpec, fitAsk, stepCount, UNDO_MS } from './band'
 import {
+  APPROVAL_HINT,
   ASK_DESCRIPTION,
   answerRow,
   applyMet,
@@ -16,6 +17,7 @@ import {
   driftQuestion,
   expired,
   mergeRows,
+  NEEDS_APPROVAL,
   openQuestions,
   parseCheck,
   pickArmed,
@@ -589,6 +591,7 @@ export const register: Register = on => {
 
     if (e.agentId === undefined) toolsThisTurn = true
     const ran = await next(e)
+    if (ran.isError === true && e.agentId === undefined && NEEDS_APPROVAL.test(ran.text ?? '')) return { ...ran, context: [...(ran.context ?? []), APPROVAL_HINT] }
     if (ran.deny !== undefined || ran.isError === true || e.agentId !== undefined) return ran
 
     // Steps, from the agent's own task list.

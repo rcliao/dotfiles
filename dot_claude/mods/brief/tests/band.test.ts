@@ -3,7 +3,7 @@ import type { TestBody } from 'claude-code/testing'
 
 import type { Question } from '../types'
 import { activity, activityText, askSpec, askText, DEFAULT_MS, fitAsk, isAscii, nextFire } from '../hooks/band'
-import { answerRow, applyMet, ASK_DESCRIPTION, MAX_CHECK, statusText, validateNote, defaultQuestion, driftQuestion, readText, RULE, snapshot, validateAsk } from '../hooks/model'
+import { answerRow, applyMet, APPROVAL_HINT, ASK_DESCRIPTION, MAX_CHECK, NEEDS_APPROVAL, statusText, validateNote, defaultQuestion, driftQuestion, readText, RULE, snapshot, validateAsk } from '../hooks/model'
 
 type On = Parameters<TestBody>[1]
 type Engine = Parameters<TestBody>[0]
@@ -178,7 +178,16 @@ const engine = (on: On) => {
   on('classic.Stop', () => ({}))
   on('prompt.compose', () => ({ sections: [{ id: 'base', text: 'base', scope: 'session' as const }] }))
   let task = 0
-  on('tool.call', ($, e) => (e.tool === 'TaskCreate' ? { result: { task: { id: String(++task), subject: e.subject } } } : { result: 'ok' }))
+  // Core beneath: a Bash `rm` is refused as `claude -p` refuses what needs an approval; `rmdir`, as a person declines.
+  on('tool.call', ($, e) => {
+    if (e.tool === 'TaskCreate') return { result: { task: { id: String(++task), subject: e.subject } } }
+    const cmd = String((e as { command?: unknown }).command ?? '')
+    const refused = (text: string) => ({ result: text, text, isError: true }) as never
+    if (e.tool === 'Bash' && cmd.startsWith('rm ')) return refused("rm in '/w/notes.json' needs approval. The path is inside the working directories for this session")
+    if (e.tool === 'Bash' && cmd.startsWith('rmdir ')) return refused("The user doesn't want to proceed with this tool use.")
+    if (e.tool === 'Bash' && cmd.startsWith('gh ')) return refused('Exit code 1\nX Pull request #12 requires approval from a reviewer')
+    return { result: 'ok' }
+  })
   mock.store(on)
   // A file system beneath, for the per-session saves.
   const files = new Map<string, string>()
@@ -520,4 +529,30 @@ test('eval fix: brief_read shows every check on its own line and a status; long 
   expect(validateNote({ goal: 'g'.repeat(101) })).toEqual({ ok: false, error: 'goal is 101 characters; keep it to 100' })
   expect(validateNote({ assumption: 'a'.repeat(121) })).toEqual({ ok: false, error: 'assumption is 121 characters; keep it to 120' })
   expect(RULE).toContain('checks and questions under 60')
+})
+
+test('eval fix: a call nobody could approve tells the agent to work around it or ask; a decline does not', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engine(on)
+  await start($)
+  // Eval 2026-10-19 (s5): an `rm` refused under `claude -p` was handed to the person in prose, and the brief showed nothing waiting.
+  const rm = await $.tool.call({ tool: 'Bash', command: 'rm notes.json' } as never)
+  expect(rm.isError).toBe(true)
+  expect(rm.context).toEqual([APPROVAL_HINT])
+  expect((await $.tool.call({ tool: 'Bash', command: 'rmdir old' } as never)).context ?? []).toEqual([])
+  expect((await $.tool.call({ tool: 'Bash', command: 'rm x', agentId: 'sub-1' } as never)).context ?? []).toEqual([])
+  for (const t of [
+    'This command requires approval',
+    'This command uses shell operators that require approval for safety',
+    'This Bash command contains multiple operations. The following part requires approval: yes word',
+    'This Bash command contains multiple operations. The following parts require approval: rm -rf /tmp/x, mkdir /tmp/x',
+    'Claude requested permissions to edit /a/b',
+    'Multiple directory changes in one command require approval for clarity',
+    "rm in '/w/notes.json' needs approval. The path is inside the working directories for this session",
+  ])
+    expect([t, NEEDS_APPROVAL.test(t)]).toEqual([t, true])
+  for (const t of ["The user doesn't want to proceed with this tool use.", 'Exit code 1\nPull request #12 requires approval from a reviewer', 'Exit code 1\n(fail) This command requires approval'])
+    expect([t, NEEDS_APPROVAL.test(t)]).toEqual([t, false])
+  expect((await $.tool.call({ tool: 'Bash', command: 'gh pr merge 12' } as never)).context ?? []).toEqual([])
+  expect(APPROVAL_HINT).toContain('blocking: true')
 })
