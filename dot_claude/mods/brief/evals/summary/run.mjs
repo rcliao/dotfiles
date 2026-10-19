@@ -8,13 +8,16 @@
 //   brief    the last `brief_read` result in that round: the text the person would see
 //   layout   the same moment drawn by this checkout's `readText`: the round's brief_note calls replayed at full
 //            length, asks and health taken from the recorded brief_read (drift and default asks are the mod's own)
+//   live     the brief as the band holds it when the round ends: the replayed notes, the open asks the harness read
+//            from the mod's save file then, and the answers the person's rows carried. Unlike brief, it does not
+//            miss an ask made after the agent's last brief_read
 //   glance   the last two lines of the agent's message
 //   message  the whole message (an upper bound)
 //   recap    Claude Code's away summary: `/recap` on a fork of the session cut at the end of the round
 //   ysk      Claude Code's "You should know" side agent: its own prompt, rendered from the installed binary,
 //            sent to a fork of the session cut at the end of the round with no tools (what $.model.fork does)
 //
-//   node evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp> [--pictures brief,glance,message,recap,ysk,layout] [--only s2-with-1] [-j 6] [--out summary.json] [--dry]
+//   node evals/summary/run.mjs --from ~/.cache/brief-eval/ab/<stamp> [--pictures brief,live,glance,message,recap,ysk,layout] [--only s2-with-1] [-j 6] [--out summary.json] [--dry]
 //
 // Lean haiku reader and sonnet grader, no tools or settings. A recap or ysk fork re-reads the whole session on the
 // session's model (about $0.45 each on Opus). Results go to <from>/summary.json, or --out.
@@ -228,6 +231,25 @@ function layout(st, recorded) {
   return health === undefined ? text : `${text}\n${health}`
 }
 
+// The live band at a round's end, drawn by this checkout's readText: the open asks as the harness read them from
+// the save file (kind and all), the answers the person sent, and the replayed goal, done-when and assumptions.
+function live(end, asks) {
+  if (end === undefined || (end.goal === null && end.doneWhen.length === 0 && asks.length === 0)) return undefined
+  const open = asks.map(q => ({ ...q, short: '', at: 0, status: 'open' }))
+  const answered = end.answers.filter(a => !open.some(q => q.id === a.id)).map(a => ({ id: a.id, kind: 'agent', question: '', short: '', options: [], blocking: false, at: 0, status: 'answered', answer: a.answer }))
+  return model.readText({
+    goal: end.goal,
+    doneWhen: end.doneWhen,
+    questions: [...answered, ...open].sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1))),
+    steps: [],
+    check: null,
+    changes: { since: 0, done: [], asks: 0, answers: 0, edits: 0 },
+    ctxPercent: undefined,
+    assumptions: end.assumptions,
+    now: 0,
+  })
+}
+
 // The session's transcript, the line each round's prompt starts at, and the last brief_read result in each round
 // (as recorded, and in this checkout's layout).
 function session(sessionId) {
@@ -243,7 +265,8 @@ function session(sessionId) {
     const notes = new Map()
     const applied = new Set()
     const asking = new Map()
-    const st = { goal: null, doneWhen: [], assumptions: [], asks: {} }
+    const ends = []
+    const st = { goal: null, doneWhen: [], assumptions: [], asks: {}, answers: [] }
     lines.forEach((line, i) => {
       let row
       try {
@@ -257,6 +280,9 @@ function session(sessionId) {
       const isPrompt =
         row.type === 'user' &&
         !row.isMeta &&
+        // A /compact between rounds leaves its summary and the command's own rows: none is the person's prompt.
+        !row.isCompactSummary &&
+        !/^<(local-command-|command-name>)/.test(typeof c === 'string' ? c : (c?.find?.(b => b.type === 'text')?.text ?? '')) &&
         (typeof c === 'string' || (Array.isArray(c) && c.some(b => b.type === 'text') && !c.some(b => b.type === 'tool_result')))
       if (isPrompt) {
         starts.push(i)
@@ -264,7 +290,9 @@ function session(sessionId) {
         const text = typeof c === 'string' ? c : c.map(b => b.text ?? '').join('\n')
         for (const m of text.matchAll(/-> keep \(answered by the person\)\. "(.+?)" is now in done-when/g))
           st.doneWhen = [...st.doneWhen, { text: m[1], met: false }]
+        for (const m of text.matchAll(/\[brief\] (D\d+) -> (.+?) \(answered by the person\)/g)) st.answers.push({ id: m[1], answer: m[2] })
       }
+      ends[starts.length - 1] = { goal: st.goal, doneWhen: [...st.doneWhen], assumptions: [...st.assumptions], answers: [...st.answers] }
       if (!Array.isArray(c)) return
       for (const b of c) {
         if (b.type === 'tool_use' && b.name === 'mcp__brief__brief_read') reads.add(b.id)
@@ -288,9 +316,9 @@ function session(sessionId) {
         }
       }
     })
-    return { dir: join(base, d), lines, starts, briefs, layouts }
+    return { dir: join(base, d), lines, starts, briefs, layouts, ends }
   }
-  return { lines: [], starts: [], briefs: [], layouts: [] }
+  return { lines: [], starts: [], briefs: [], layouts: [], ends: [] }
 }
 
 // Send a prompt to a fork of the session as it stood at the end of a round: a copy of the transcript up to the next
@@ -427,6 +455,7 @@ for (const f of readdirSync(FROM).filter(
       message: entry.text,
       brief: s.briefs[entry.round],
       layout: s.layouts[entry.round],
+      live: rec.arm === 'with' ? live(s.ends[entry.round], entry.asks) : undefined,
     })
   }
 }
@@ -439,7 +468,7 @@ if (DRY) {
     return `${cs.filter(c => c.startsWith('[x]')).length}/${cs.length}`
   }
   for (const it of items.filter(i => i.brief !== undefined))
-    console.log(`${it.run} r${it.round}  recorded ${ticks(it.brief)}  layout ${ticks(it.layout)}  ${/^status: (.*)$/m.exec(it.layout)?.[1]}`)
+    console.log(`${it.run} r${it.round}  recorded ${ticks(it.brief)}  layout ${ticks(it.layout)}  live ${ticks(it.live)}  ${/^status: (.*)$/m.exec(it.layout)?.[1]} | live ${/^status: (.*)$/m.exec(it.live ?? '')?.[1]}`)
   process.exit(0)
 }
 
@@ -457,6 +486,7 @@ await Promise.all(
           let made = 0
           if (PICTURES.includes('brief') && it.brief !== undefined) pictures.brief = it.brief
           if (PICTURES.includes('layout') && it.layout !== undefined) pictures.layout = it.layout
+          if (PICTURES.includes('live') && it.live !== undefined) pictures.live = it.live
           if (PICTURES.includes('glance')) pictures.glance = glance(it.message)
           if (PICTURES.includes('message')) pictures.message = it.message
           if (PICTURES.includes('recap')) {

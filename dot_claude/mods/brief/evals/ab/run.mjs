@@ -3,7 +3,9 @@
 // when brief is loaded? `claude plugin eval` scores one prompt, where both arms tie; this runs a task over
 // several rounds against a simulated person who holds preferences the agent cannot guess and replies late.
 //
-//   node evals/ab/run.mjs [--runs 3] [--only s1,s4] [--arms with,without] [-j 4] [--model <m>]
+//   node evals/ab/run.mjs [--runs 3] [--only s1,s4] [--arms with,without] [-j 4] [--model <m>] [--brief <dir>]
+//   node evals/ab/run.mjs --grade <dir> --only s5   (grade a folder, no runs)
+//   node evals/ab/run.mjs --recount ~/.cache/brief-eval/ab/<stamp>   (transcript counts again, no runs)
 //
 // Both arms are lean and identical except for brief: no settings, CLAUDE.md or MCP servers
 // (--setting-sources "" --strict-mcp-config), and CLAUDE_CODE_PLUGIN_DIRS names only brief (with) or nothing
@@ -29,7 +31,7 @@ const ONLY = opt('--only', '').split(',').filter(Boolean)
 const ARMS = opt('--arms', 'with,without').split(',').filter(Boolean)
 const MODEL = opt('--model', undefined)
 const ROUNDS = 3 // replies the person gives, at most
-const BRIEF = join(homedir(), '.claude/mods/brief')
+const BRIEF = opt('--brief', join(homedir(), '.claude/mods/brief')) // a built copy, to try a change before it is installed
 const SAVES = join(homedir(), '.claude/mods-data/brief/sessions')
 const OUT = join(homedir(), '.cache/brief-eval/ab', new Date().toISOString().replace(/[:.]/g, '-'))
 // The same tools in both arms; brief's own tools come with the mod and are allowed only where it is loaded.
@@ -146,14 +148,64 @@ const SCENARIOS = {
     },
     outcome: ['four_files', 'json_output', 'spec_says_json'],
   },
+  // A long session: the work comes in phases, the conversation is compacted twice, and what the person said
+  // early (in a reply, not the task) must still hold for the commands written after both compactions.
+  s5: {
+    name: 'long-session-compacted',
+    fixture: { 'package.json': '{ "name": "notes", "type": "module" }\n' },
+    prompt: 'We are building a small notes CLI, notes.mjs (node, no dependencies), over several phases; I will send each phase when you finish the last one. Phase 1: store.mjs that saves and loads the notes in a JSON file, and `node notes.mjs add <text>`.',
+    task: 'A small notes CLI, notes.mjs, built over four phases: storage and add; list and tags; export; clear and a README.',
+    prefs: [
+      'The notes live in a file named exactly .notes.json in the current directory (a dot file). Any other name is wrong.',
+      'Each note is {"id":N,"text":"...","created":"<ISO 8601 time>"}, ids counting up from 1.',
+    ],
+    rounds: 4,
+    // Rounds start with the person's reply, then the next phase. Round 1 also carries rules for later phases.
+    phases: {
+      1: 'Two rules for later phases: any command that deletes data must refuse to run unless given --yes, and from now on every new command needs a line in README.md. Phase 2: `list` prints one line per note as `#<id> <text>`, and `add --tag <t> <text>` tags a note; tagged notes list as `#<id> <text> [<t>]`, and `list --tag <t>` shows only those.',
+      2: 'Phase 3: `export` prints the notes as markdown, one line per note: `- <text> (#<id>)`, newest first.',
+      3: 'Phase 4: add `clear`, which deletes all notes. Then tell me what is finished and whether anything is left.',
+    },
+    compact: [2, 3], // before the agent's rounds 2 and 3, as /compact between turns
+    silent: [2],
+    grade: dir => {
+      const t = join(dir, '.grade')
+      execFileSync('rm', ['-rf', t])
+      mkdirSync(t)
+      const run = (...a) => nodeRun(t, '../notes.mjs', '', a)
+      run('add', 'alpha')
+      run('add', '--tag', 'work', 'beta')
+      let notes
+      try {
+        notes = JSON.parse(read(t, '.notes.json'))
+      } catch {}
+      const list = run('list').stdout.trim().split('\n')
+      const tagged = run('list', '--tag', 'work').stdout.trim().split('\n')
+      const exp = run('export').stdout.trim().split('\n')
+      const refused = run('clear')
+      const kept = run('list').stdout.trim().split('\n').length === 2
+      run('clear', '--yes')
+      const cleared = run('list').stdout.trim() === ''
+      const readme = read(dir, 'README.md')
+      return {
+        store_dotfile: notes !== undefined && !existsSync(join(t, 'notes.json')),
+        note_shape: Array.isArray(notes) && notes.length === 2 && notes.every((n, i) => n.id === i + 1 && typeof n.text === 'string' && !Number.isNaN(Date.parse(n.created))),
+        list_format: list[0] === '#1 alpha' && list[1] === '#2 beta [work]' && tagged.length === 1 && tagged[0] === '#2 beta [work]',
+        export_newest_first: exp[0] === '- beta (#2)' && exp[1] === '- alpha (#1)',
+        clear_needs_yes: refused.code !== 0 && kept && cleared,
+        readme_every_command: ['list', 'export', 'clear'].every(c => new RegExp(`\\b${c}\\b`).test(readme)),
+      }
+    },
+    outcome: ['store_dotfile', 'note_shape', 'list_format', 'export_newest_first', 'clear_needs_yes', 'readme_every_command'],
+  },
 }
 
 const read = (dir, f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), 'utf8') : '')
 
-function nodeRun(dir, file, input = '') {
+function nodeRun(dir, file, input = '', argv = []) {
   if (!existsSync(join(dir, file))) return { code: -1, stdout: '' }
   try {
-    return { code: 0, stdout: execFileSync('node', [file], { cwd: dir, input, encoding: 'utf8', timeout: 20_000 }) }
+    return { code: 0, stdout: execFileSync('node', [file, ...argv], { cwd: dir, input, encoding: 'utf8', timeout: 20_000 }) }
   } catch (err) {
     return { code: err.status ?? -1, stdout: String(err.stdout ?? '') }
   }
@@ -193,6 +245,13 @@ function agent(arm, dir, prompt, sessionId, first) {
   const extra = ['--max-turns', '40', '--allowedTools', ...tools, first ? '--session-id' : '--resume', sessionId]
   if (MODEL) extra.push('--model', MODEL)
   return claude(dir, prompt, extra, { CLAUDE_CODE_PLUGIN_DIRS: arm === 'with' ? BRIEF : '' })
+}
+
+// /compact between turns, the same call the person's /compact makes; the session's save file is untouched.
+function compact(arm, dir, sessionId) {
+  const extra = ['--resume', sessionId]
+  if (MODEL) extra.push('--model', MODEL)
+  return claude(dir, '/compact', extra, { CLAUDE_CODE_PLUGIN_DIRS: arm === 'with' ? BRIEF : '' })
 }
 
 // The band as the person sees it: open asks from the session's save file (with arm only).
@@ -237,7 +296,7 @@ async function person(sc, round, report, asks) {
     : '(none)'
   const prompt = `You are a busy developer who asked an AI coding agent to do a task. You only see what the agent tells you; you do not read its files.
 
-Your task for it: ${sc.prompt}
+Your task for it: ${sc.task ?? sc.prompt}
 
 What you want (the agent was never told this; only enforce it when the agent asks or its message shows it):
 ${sc.prefs.map(p => `- ${p}`).join('\n')}
@@ -275,7 +334,16 @@ function briefCalls(sessionId) {
     const f = join(base, d, `${sessionId}.jsonl`)
     if (!existsSync(f)) continue
     const seen = new Set()
-    const counts = { ask: 0, blocking: 0, note: 0, read: 0 }
+    const names = new Map()
+    const asked = new Set()
+    // What a compaction can break: the done-when noted again (its ticks start over), calls the mod refuses
+    // (a tick by text that no longer matches), and an ask asked twice.
+    // And a hand-off left in prose: a call refused for want of an approval (model.ts NEEDS_APPROVAL) whose program
+    // never ran later in that round, with no brief_ask after it. A command rewritten and run another way is not one.
+    const counts = { ask: 0, blocking: 0, note: 0, read: 0, compactions: 0, renoted: 0, refused: 0, reasked: 0, denials: 0, handoffsInProse: 0 }
+    const unasked = new Set()
+    const program = cmd => String(cmd ?? '').trim().split(/\s+/).find(w => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) ?? ''
+    const norm = q => String(q ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
     for (const line of readFileSync(f, 'utf8').split('\n')) {
       let row
       try {
@@ -283,21 +351,54 @@ function briefCalls(sessionId) {
       } catch {
         continue
       }
-      for (const b of Array.isArray(row.message?.content) ? row.message.content : []) {
+      if (row.type === 'system' && row.subtype === 'compact_boundary') counts.compactions++
+      if (row.type !== 'user' && row.type !== 'assistant') continue
+      const c = row.message?.content
+      if (row.type === 'user' && !row.isMeta && !row.isCompactSummary && (typeof c === 'string' || (Array.isArray(c) && c.some(b => b.type === 'text') && !c.some(b => b.type === 'tool_result')))) {
+        counts.handoffsInProse += unasked.size
+        unasked.clear()
+      }
+      for (const b of Array.isArray(c) ? c : []) {
+        if (b?.type === 'tool_result' && b.is_error === true && !seen.has(`d${b.tool_use_id}`)) {
+          const text = Array.isArray(b.content) ? b.content.map(x => x.text ?? '').join(' ') : String(b.content ?? '')
+          if (NEEDS_APPROVAL.test(text)) {
+            seen.add(`d${b.tool_use_id}`)
+            counts.denials++
+            unasked.add(names.get(`p${b.tool_use_id}`) ?? '')
+          }
+        }
+        if (b?.type === 'tool_result' && b.is_error !== true) unasked.delete(names.get(`p${b.tool_use_id}`) ?? '\0')
+        if (b?.type === 'tool_result' && names.get(b.tool_use_id)?.startsWith('mcp__brief__') && !seen.has(`r${b.tool_use_id}`)) {
+          seen.add(`r${b.tool_use_id}`)
+          const text = Array.isArray(b.content) ? b.content.map(c => c.text ?? '').join(' ') : String(b.content ?? '')
+          if (b.is_error === true || /no check matches|no done-when checks yet|keep (it|each) to/i.test(text)) counts.refused++
+        }
         if (b?.type !== 'tool_use' || seen.has(b.id)) continue
         seen.add(b.id)
+        names.set(b.id, b.name)
+        if (b.name === 'Bash') names.set(`p${b.id}`, program(b.input?.command))
         if (b.name === 'mcp__brief__brief_ask') {
+          unasked.clear()
           counts.ask++
           if (b.input?.blocking === true) counts.blocking++
+          if (asked.has(norm(b.input?.question))) counts.reasked++
+          asked.add(norm(b.input?.question))
         }
-        if (b.name === 'mcp__brief__brief_note') counts.note++
+        if (b.name === 'mcp__brief__brief_note') {
+          counts.note++
+          if (counts.compactions > 0 && Array.isArray(b.input?.doneWhen)) counts.renoted++
+        }
         if (b.name === 'mcp__brief__brief_read') counts.read++
       }
     }
+    counts.handoffsInProse += unasked.size
     return counts
   }
   return {}
 }
+
+// A copy of model.ts NEEDS_APPROVAL (the harness runs plain node).
+const NEEDS_APPROVAL = /\b(needs|requires?) approval\b|\bparts? requires? approval\b|^Claude requested permissions to /
 
 const words = s => (s.match(/\S+/g) ?? []).length
 
@@ -317,8 +418,13 @@ async function runOne(key, arm, run) {
   let done = false
   let picked = []
   let unseen = []
-  for (let round = 0; round <= ROUNDS; round++) {
+  const rounds = sc.rounds ?? ROUNDS
+  // The person may call it done only once the last phase has gone out.
+  const lastPhase = Math.max(0, ...Object.keys(sc.phases ?? {}).map(Number))
+  for (let round = 0; round <= rounds; round++) {
     console.log(`::status ${key} ${arm} ${run}: round ${round}`)
+    if (sc.compact?.includes(round)) cost += (await compact(arm, dir, sessionId)).cost
+    if (sc.phases?.[round]) prompt = `${prompt === 'Go on.' ? '' : `${prompt}\n\n`}${sc.phases[round]}`
     const a = await agent(arm, dir, prompt, sessionId, round === 0)
     cost += a.cost
     turns += a.turns
@@ -329,7 +435,7 @@ async function runOne(key, arm, run) {
     const entry = { round, agentCost: a.cost, turns: a.turns, error: a.error, text: a.text, posts, stale, asks: asks.map(q => ({ id: q.id, kind: q.kind, question: q.question, options: q.options, blocking: q.blocking })) }
     log.push(entry)
     unseen.push(a.text)
-    if (round === ROUNDS) break
+    if (round === rounds) break
     if (sc.silent?.includes(round + 1)) {
       entry.person = { picks: [], message: BUSY, done: false, scripted: true }
       prompt = BUSY
@@ -343,7 +449,7 @@ async function runOne(key, arm, run) {
     const p = await person(sc, round + 1, report, asks)
     cost += p.cost
     entry.person = p
-    if (p.done) {
+    if (p.done && round + 1 > lastPhase) {
       done = true
       break
     }
@@ -360,6 +466,22 @@ async function runOne(key, arm, run) {
 }
 
 // --- main ---
+
+// --grade <dir> --only <key>: grade a folder by hand (a reference solution, an old run) and exit.
+if (opt('--grade')) {
+  console.log(JSON.stringify(SCENARIOS[ONLY[0]].grade(opt('--grade'), []), null, 2))
+  process.exit(0)
+}
+
+// --recount <stamp dir>: the transcript counts above for every run already there, both arms (free).
+if (opt('--recount')) {
+  const dir = opt('--recount')
+  for (const f of readdirSync(dir).filter(f => /^s\d+-(with|without)-\d+\.json$/.test(f)).sort()) {
+    const r = JSON.parse(readFileSync(join(dir, f), 'utf8'))
+    console.log(`${f.replace('.json', '')} ${JSON.stringify(briefCalls(r.sessionId))}`)
+  }
+  process.exit(0)
+}
 
 mkdirSync(OUT, { recursive: true })
 const jobs = []
