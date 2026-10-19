@@ -19,3 +19,11 @@
 
 # Renamed to ghost-promote.sh on 2026-10-08 (also maintains repo notes).
 .claude/hooks/ghost-gotcha-promote.sh
+
+# brief v2 (639045a) retired the brief/report tools and their modules.
+.claude/mods/brief/hooks/brief.ts
+.claude/mods/brief/hooks/ledger.ts
+.claude/mods/brief/hooks/progress.ts
+.claude/mods/brief/tests/brief.test.ts
+.claude/mods/brief/tests/jobs.test.ts
+.claude/mods/brief/tests/ledger.test.ts
